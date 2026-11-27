@@ -2,9 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- (Its first reads, started here, ahead of launch.js, the fonts and its script: round() reads each by its name, taking the
-         very request started here, so a failed one fails there as it would have. Not <link rel="preload" as="fetch">: WebKit's
-         fetch() doesn't take what it preloaded and asks again.) -->
+    <!-- Not <link rel="preload" as="fetch">: WebKit's fetch() doesn't take what it preloaded and asks again. -->
     <script>
       {
         const first = {
@@ -21,12 +19,10 @@
         };
         const send = (path) => fetch(path, { signal: AbortSignal.timeout(10_000) });
         const kept = new Map(Object.values(first).map((path) => [path, send(path)]));
-        // (Handled here too, so only the read that takes one reports its failure.)
         kept.forEach((reply) => reply.catch(() => {}));
         let firstRound = true;
         window.bitviewFirst = first;
         window.bitviewRead = (path) => {
-          // (Only the first round's: what a later round reads is fetched then, never answered by a kept one.)
           if (firstRound) (firstRound = false), setTimeout(() => kept.clear());
           const reply = kept.get(path) ?? send(path);
           kept.delete(path);
@@ -34,18 +30,16 @@
         };
       }
     </script>
-    <!-- (Its fonts and module, ahead of launch.js too: WebKit's parser reads a link past a script only once that script has loaded.) -->
+    <!-- WebKit's parser reads a link past a script only once that script has loaded. -->
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="modulepreload" href="/assets/pools/logos.js" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
     <title>Bitview</title>
     <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
-    <!-- (Its share card, the billboard's first picture with Bitview's name: made by scripts/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bitview" />
@@ -57,7 +51,6 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Bitview: Bitcoin's price through the layers of its holders' cost basis, as Studio draws it" />
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- (What it is, for search engines: the site, and Bitview with its logo.) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -153,14 +146,12 @@
         font-display: swap;
       }
 
-      /* (Upright, for Compass's name.) */
       @font-face {
         font-family: Instrument;
         src: url("/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
         font-display: swap;
       }
 
-      /* (Bedrock's name: the letters of "Bedrock" alone, the file its page uses.) */
       @font-face {
         font-family: "Bricolage Grotesque";
         src: url("/assets/fonts/BricolageGrotesque-ExtraBold.bedrock.woff2") format("woff2");
@@ -168,8 +159,6 @@
         font-display: swap;
       }
 
-      /* (Bottoms' name: Archivo at its page's weight and width, the letters of "BOTTOMS" alone, not its page's 48 KB
-         file.) */
       @font-face {
         font-family: Archivo;
         src: url("/assets/fonts/Archivo-Black.bottoms.woff2") format("woff2");
@@ -178,9 +167,6 @@
         font-display: swap;
       }
 
-      /* Bitview's home screen, as a streaming service's: a billboard that turns through the featured titles on its own;
-         under it shelves of things to open, each a way straight in (an app, a chart, a block, a pool), sliding sideways;
-         each with an i for what it is. Dark where the pictures are, in either scheme. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f1ec, #0d0c0b);
@@ -193,7 +179,6 @@
         --glass: light-dark(rgb(251 250 247 / 0.72), rgb(30 27 23 / 0.66));
         --focus: light-dark(rgb(22 19 15 / 0.6), rgb(246 243 238 / 0.85));
         --live: light-dark(#0c7642, #3ccf7c);
-        /* (Live's red: white words on it at 4.7:1.) */
         --red: #d93036;
         --brand: oklch(64.34% 0.191 44.41);
         --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
@@ -202,7 +187,6 @@
         --gutter: 16px;
         --lift: cubic-bezier(0.2, 0.7, 0.2, 1);
         --radius: 10px;
-        /* (Where the bar's line starts: under the status bar where the page runs under it (Safari's, a notch's).) */
         --bar-top: env(safe-area-inset-top);
 
         @media (min-width: 720px) {
@@ -213,7 +197,6 @@
           --gutter: 56px;
         }
 
-        /* (Past a desk's width, a share of it: everything on one edge, the bar's, the words', the rows', however wide.) */
         @media (min-width: 1600px) {
           --gutter: 3.5vw;
         }
@@ -233,7 +216,6 @@
         box-sizing: border-box;
       }
 
-      /* (A section from the bar's links slid to, not jumped to.) */
       @media (prefers-reduced-motion: no-preference) {
         html {
           scroll-behavior: smooth;
@@ -250,14 +232,7 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      /* (iOS tints its status bar with the first fixed box at the screen's top edge, else with the body's colour, and
-         passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
-         a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
-         bar's own: the status bar dark in either scheme, the bottom bar still the page's (the bar easing from it: see
-         .top). Installed from a home screen, no strip: iOS paints its status bar in the body's colour after a load, and
-         after a launch blurs the page up into it, tinted with that colour (its choice, not the page's); so the body's
-         colour the billboard's dark, the page painted paper over it, the root paper (where the page is pulled past
-         either end).) */
+      /* iOS tints the status bar from the first fixed box at the top edge, else the body's colour, and passes over see-through ones: so the body is the billboard's dark and the page paper over it. */
       @supports (-webkit-touch-callout: none) {
         .edge {
           position: fixed;
@@ -312,15 +287,12 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* (Dark in either scheme: the bar, the billboard, every cover; their tokens resolve dark.) */
       .top,
       .billboard,
       .tile,
       .rank {
         color-scheme: dark;
       }
-
-      /* ── The bar: the brand; the chain's height, the price and the next block's fee ── */
 
       .top {
         position: fixed;
@@ -332,11 +304,6 @@
         gap: 12px;
         height: calc(64px + var(--bar-top));
         padding: var(--bar-top) var(--gutter) 0;
-        /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
-           progressive blur. Five layers behind its contents (each costs Mullvad's CPU drawing ~2ms a frame: ten
-           looked no smoother on an iPhone), each blurring two to three times as much as the one under it and stopping a little higher, so the blur builds smoothly toward the top (its contents over the
-           strongest), past its foot none: no slab, no line, as iOS's own bars end. A tint of its ground fades out with it,
-           for its words.) */
         > .glass {
           position: absolute;
           inset: 0 0 -96px;
@@ -350,10 +317,7 @@
             -webkit-mask-image: linear-gradient(#000 var(--to), transparent var(--off));
           }
 
-          /* (Lengths fixed from its foot, whatever its height (the installed app's, no status bar over it, is 62px
-             shorter than Safari's): over its words all five (the page frosted through); from its pills' middle (24px
-             over its foot) to 96px past it, one fewer each 24px, each one's fade overlapping the next's: a long, even
-             ease, no step to see. Each blur written out: Safari takes none through a custom property.) */
+          /* Each blur written out: Safari takes none through a custom property. */
           > i:nth-child(1) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); --to: calc(100% - 48px); --off: calc(100% - 0px); }
           > i:nth-child(2) { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); --to: calc(100% - 72px); --off: calc(100% - 24px); }
           > i:nth-child(3) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); --to: calc(100% - 96px); --off: calc(100% - 48px); }
@@ -364,10 +328,6 @@
             content: "";
             position: absolute;
             inset: 0;
-            /* (From the status bar's own color at its top, solid: the bar and the glass one piece, no seam where the
-               page's art would meet the bar; under its contents enough for its words over anything; past its foot,
-               easing out with the blur over 120px from its pills' middle (an ease-out curve's stops): a long, even fall,
-               begun under its contents, not after them.) */
             background: linear-gradient(#0d0c0b 14px, rgb(13 12 11 / 0.88) calc(100% - 120px), rgb(13 12 11 / 0.752) calc(100% - 110px), rgb(13 12 11 / 0.634) calc(100% - 100px), rgb(13 12 11 / 0.524) calc(100% - 90px), rgb(13 12 11 / 0.424) calc(100% - 80px), rgb(13 12 11 / 0.334) calc(100% - 70px), rgb(13 12 11 / 0.253) calc(100% - 60px), rgb(13 12 11 / 0.182) calc(100% - 50px), rgb(13 12 11 / 0.122) calc(100% - 40px), rgb(13 12 11 / 0.073) calc(100% - 30px), rgb(13 12 11 / 0.035) calc(100% - 20px), rgb(13 12 11 / 0.010) calc(100% - 10px), rgb(13 12 11 / 0.000) calc(100% - 0px));
           }
         }
@@ -394,8 +354,6 @@
           }
         }
 
-        /* (A phone's: the sections as chips on a line of their own, under the brand, sliding sideways, as a streaming
-           app's categories; the one in view filled.) */
         @media (max-width: 899px) {
           flex-wrap: wrap;
           row-gap: 0;
@@ -416,7 +374,6 @@
             order: 3;
             flex: 1 0 100%;
             gap: 8px;
-            /* (Room above and below inside the scroller, which clips: each chip's reach, 44 px, held in it.) */
             margin: -6px calc(-1 * var(--gutter));
             padding: 6px var(--gutter);
             overflow-x: auto;
@@ -521,22 +478,16 @@
         }
       }
 
-      /* ── The billboard: a featured title, its picture full bleed; it turns to the next on its own (paused while
-         pointed at, focused, or with less motion asked for), each title a segment that fills as it shows ── */
-
       .billboard {
         position: relative;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         overflow: hidden;
-        /* (Its height leaves the apps in view under it: on a phone their first line, on a desk their top.) */
         padding: 0 0 8px;
         color: var(--text);
         background: var(--app);
 
-        /* (A phone's: its words clear of the bar's two lines, held sideways too; its rows the space over them (its
-           picture's, see .art), its words, its buttons and its pages.) */
         @media (max-width: 719px) {
           display: grid;
           grid-template: 1fr repeat(3, auto) / 100%;
@@ -544,14 +495,11 @@
           padding-top: calc(110px + var(--bar-top));
         }
 
-        /* (A desk's, a streaming home's: most of the first screen, 16:9 of its width up to 78% of its height, the apps'
-           top under it; taller only as its words need: they never come under the bar.) */
         @media (min-width: 720px) {
           min-height: clamp(420px, min(56.25vw, 78svh), 1080px);
           padding-top: calc(96px + var(--bar-top));
           padding-bottom: clamp(36px, 7svh, 88px);
 
-          /* (Dark, the apps rise 96 px into its fade (main's margin); on paper, the band ends cleanly above them.) */
           @media (prefers-color-scheme: dark) {
             padding-bottom: calc(clamp(36px, 7svh, 88px) + 96px);
           }
@@ -568,17 +516,15 @@
           width: 100%;
           height: calc(100% - var(--art-drop, 0px));
           object-fit: cover;
-          /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
           object-position: 70% var(--art-y, 35%);
           opacity: 0;
           transition: opacity 0.6s ease;
 
-          /* (The one showing, still: one fades into the next, nothing else moves.) */
           &.on {
             opacity: 1;
           }
 
-          /* (Its price runs above its waves: its top in view, the picture dropped below the nav (32px at one row, 90 at two), so the line and the crests both show.) */
+          /* The price line runs above the waves: the picture is dropped below the nav so line and crests both show. */
           &[src$="/studio.webp"] {
             --art-drop: 32px;
             --art-y: 0%;
@@ -588,13 +534,12 @@
             }
           }
 
-          /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
+          /* Its chart sits mid-picture: lowered, it would sink into the words' fade. */
           &[src$="/oracle.webp"] {
             --art-drop: 0px;
           }
         }
 
-        /* (Its words' ground: the picture darkened to the left and the foot, where they sit.) */
         &::after {
           content: "";
           position: absolute;
@@ -605,23 +550,17 @@
             linear-gradient(to bottom, rgb(13 12 11 / 0.75), rgb(13 12 11 / 0.25) 14%, transparent 26%);
         }
 
-        /* (A phone's: a band from the top to a set height over its words' foot, where it fades into their ground: the
-           picture as wide as a phone can show it, clear over the words, their first lines on its fade, the rest on the
-           dark. Its foot from the buttons' row, which every title shares: a title's words, however many lines, never move
-           or scale it. Full bleed, a phone showed a tenth of it, the most of that shaded for the words.) */
         @media (max-width: 719px) {
           grid-row: auto / 3;
           grid-column: 1;
           bottom: 100px;
           overflow: hidden;
 
-          /* (A picture whose subject is its top: that top the band's height, the rest under it cut.) */
           img {
             bottom: auto;
             height: calc(100% / var(--art-top, 1) - var(--art-drop, 0px));
 
-            /* (Installed on iOS, the page runs up under the status bar: the picture starts under it, where it did, and
-               its own top, mirrored, fills the strip above, its colours carried up to the screen's edge.) */
+            /* Installed on iOS the page runs under the status bar: the picture's top, mirrored, fills the strip. */
             @supports (-webkit-touch-callout: none) {
               @media (display-mode: standalone) {
                 top: var(--art-drop, env(safe-area-inset-top));
@@ -649,8 +588,6 @@
           max-width: 600px;
         }
 
-        /* (A phone's: its words, buttons and pages in the billboard's rows; its lines close, the picture over them the
-           taller.) */
         @media (max-width: 719px) {
           grid-row: 2 / -1;
           display: grid;
@@ -673,8 +610,6 @@
           }
         }
 
-        /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher. Its fact
-           and buttons at the screen's scale, as its title and blurb are.) */
         @media (min-width: 720px) {
           --column: clamp(520px, 42vw, 780px);
           display: grid;
@@ -702,8 +637,6 @@
             }
           }
 
-          /* (Its title on one line where the screen has room, wider than the words under it if it must, as a streaming
-             title's logo is; its blurb the column's.) */
           .words {
             grid-column: 1 / -1;
             max-width: none;
@@ -719,8 +652,6 @@
         }
       }
 
-      /* (Its words change with the title: faded across, never a jump; their room the tallest title's, however they wrap
-         here (each title's words, hidden, where the shown ones are: the script's), so nothing over or under them moves.) */
       .words {
         display: grid;
         align-items: end;
@@ -770,7 +701,6 @@
         }
       }
 
-      /* (What it is now: Live, and its fact, as a streaming title's year and length.) */
       .meta {
         display: flex;
         flex-wrap: wrap;
@@ -844,12 +774,10 @@
           }
         }
 
-        /* (One this browser can't use, hidden: over the display above.) */
         > [hidden] {
           display: none;
         }
 
-        /* (Its icons at the type's size, wherever a button's made.) */
         svg {
           flex: none;
           width: 18px;
@@ -885,14 +813,12 @@
         }
       }
 
-      /* Its titles: a segment each, the one showing filling as it shows; then a pause, for whoever wants it still. */
       .paging {
         display: flex;
         align-items: center;
         gap: 10px;
         margin: 22px 0 0;
 
-        /* (For fingers, room for the last bar's reach and the pause's, side by side.) */
         @media (pointer: coarse) {
           gap: 16px;
         }
@@ -931,8 +857,6 @@
         padding: 0;
         list-style: none;
 
-        /* (For fingers, each bar's reach 44px wide, unseen: a clear border half into the gaps either side, as wide as
-           that needs.) */
         @media (pointer: coarse) {
           gap: 12px;
         }
@@ -946,7 +870,6 @@
           background: none;
           cursor: pointer;
 
-          /* (The bar its 32px still: the border is outside it; its ring 2px off the bar's ends.) */
           @media (pointer: coarse) {
             width: 44px;
             height: 44px;
@@ -955,8 +878,6 @@
             outline-offset: -4px;
           }
 
-          /* (The track, a rounded bar; the fill in it is as wide, slid in from the left behind its clip, so its ends are as
-             a bar of its width's, with nothing scaled. The showing title's, full at rest: its nine seconds slide it in, below.) */
           span {
             position: absolute;
             left: 0;
@@ -987,12 +908,6 @@
         }
       }
 
-      /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
-         Studio and Stack in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
-         The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
-         a made-up bold); Compass in it upright, as its states are named; Bedrock in Bricolage Grotesque, extra bold, as
-         its page sets it; Bottoms in Archivo, black, wide and upper case, as its page sets it. Over those titles' own
-         weight and spacing, wherever those are set. */
       :is(.billboard .title, .tile .name, .about h3) {
         &[data-face="oracle"] {
           font-family: var(--mono);
@@ -1044,8 +959,6 @@
         }
       }
 
-      /* (A serif name a third larger than the others, as on the billboard, its small letters as tall: on a cover and in a
-         sheet, whose others are 40 px, 30 on a phone.) */
       .tile .name:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
         font-size: calc(var(--name-size) * 1.3);
         line-height: 1;
@@ -1059,8 +972,6 @@
         }
       }
 
-      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
-         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
       .stars {
         white-space: nowrap;
       }
@@ -1082,7 +993,6 @@
         stroke-linejoin: round;
       }
 
-      /* An arrow in words (a way on, a way out of the site): drawn, at the text's size, on its line. */
       .glyph {
         flex: none;
         width: 1em;
@@ -1095,7 +1005,6 @@
           translate: 0.15em 0;
         }
 
-        /* (Out of the site: as tall as the words' small letters, a little lighter, so the words lead.) */
         &:has(use[href="#i-out"]) {
           margin-left: 0.2em;
           vertical-align: -0.1em;
@@ -1103,11 +1012,7 @@
         }
       }
 
-      /* ── Shelves: a title, then a row sliding sideways, the next cover showing at the edge; on a desk an arrow at
-         each end, where there's more ── */
-
-      /* (Lengths worked out once where they're set, main, and handed down as such: so a box inside that measures itself,
-         a pool's portrait, still reads the module, not its own width's share.) */
+      /* Set once on main and handed down: a box that measures itself would read its own width's share. */
       @property --tile-w {
         syntax: "<length>";
         inherits: true;
@@ -1120,11 +1025,6 @@
         initial-value: 124px;
       }
 
-      /* The page's one module: a tile is an app's, one column of the apps grid wide, at 16:10 on a desk, 4:3 below one
-         (taller there so a block's or a pool's card has room), never under 124 px tall. Every row's tiles are it, so their
-         edges line up with the grid's, row under row, and a row pages by four. On a phone, the rows' tiles a little
-         narrower than the grid's two, the next one showing at the edge (two exactly would hide that a row slides).
-         Measured on main, as wide as each row, a container for it. */
       main {
         --grid-gap: 12px;
         --tile-h: max(124px, (100cqw - 2 * var(--gutter) - var(--grid-gap)) / 2 * 3 / 4);
@@ -1145,24 +1045,17 @@
           --tile-h: calc(var(--tile-w) * 10 / 16);
         }
 
-        /* (On a desk the first row rises into the billboard's fade, as a streaming home's does.) */
         @media (min-width: 720px) and (prefers-color-scheme: dark) {
           margin-top: -96px;
         }
       }
 
-      /* (Until the script lays the rows, the shelves and the foot wait unseen: their headings never shown where the rows
-         then push them from; never when a link has asked for one of them.) */
       main:not(:has(.row), :has(:target)),
       main:not(:has(.row), :has(:target)) ~ footer {
         visibility: hidden;
-        /* (Shown anyway after 4 s if the script never lays them: one that failed to load or threw.) */
         animation: shown 0s 4s forwards;
       }
 
-      /* The billboard's turn: the showing title's bar fills over nine seconds on the compositor, with no script running, and
-         its end turns the title. It stays where it is while the pointer is on the billboard, a key's focus is in it, or the
-         script holds it (paused, a sheet open, scrolled off, the tab hidden). */
       @media (prefers-reduced-motion: no-preference) {
         .pages button[aria-current="true"] span::after {
           animation: fill 9s linear;
@@ -1203,7 +1096,6 @@
           }
         }
 
-        /* (A live row that didn't answer: its last tiles dimmed, its Live badge off; one that never did, a line.) */
         &[data-failed] {
           .row > li > * {
             opacity: 0.45;
@@ -1233,7 +1125,6 @@
           margin-top: 44px;
         }
 
-        /* (The first, the apps: close under the billboard.) */
         &:first-child {
           margin-top: 16px;
         }
@@ -1267,14 +1158,12 @@
         }
       }
 
-      /* (How many covers a row shows across, the last cut by the edge: a phone's a little over one and a half.) */
       .row {
         display: flex;
         gap: var(--grid-gap);
         margin: 0;
         padding: 6px var(--gutter) 14px;
-        /* (Sideways only: a Top 10's numerals, their boxes past its foot, made it scroll up and down too, a page's scroll
-           taken by it as the pointer crossed it.) */
+        /* Sideways only: a numeral past a foot made it scroll vertically too, taking the page's scroll. */
         overflow-x: auto;
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
@@ -1287,15 +1176,12 @@
           display: none;
         }
 
-        /* (Each a module wide.) */
         > li {
           flex: 0 0 var(--tile-w);
           min-width: 0;
           scroll-snap-align: start;
         }
 
-        /* (The apps: every one at once, a grid, not a row to slide: four across from a tablet up, two on a phone (eight
-           fill either, no hole in a last line); each cover its picture's own shape, 16:10.) */
         &.apps-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1313,8 +1199,6 @@
         }
       }
 
-      /* A row's head: its title, and on a desk its two ways along, round, at its right end, as the App Store's; dimmed
-         where there's no more that way; none where it all shows, nor on a touch screen, where it's swiped. */
       .shelf-head {
         display: flex;
         align-items: center;
@@ -1369,9 +1253,6 @@
         }
       }
 
-      /* ── A cover: a picture (or, live, what it reads now), its name over its foot ── */
-
-      /* (A tile a container: what it holds sized by its own width, a module's, from a phone's to a wide screen's.) */
       .tile {
         position: relative;
         display: block;
@@ -1379,7 +1260,6 @@
         aspect-ratio: 16 / 9;
         container-type: inline-size;
 
-        /* (In a row: the rows' one height.) */
         main & {
           aspect-ratio: auto;
           height: var(--tile-h);
@@ -1400,7 +1280,6 @@
           object-fit: cover;
         }
 
-        /* (Its name's ground.) */
         &.named::after {
           content: "";
           position: absolute;
@@ -1408,7 +1287,6 @@
           background: linear-gradient(to top, rgb(13 12 11 / 0.92), rgb(13 12 11 / 0.6) 40%, transparent);
         }
 
-        /* (An app's name, by its cover's width.) */
         .name {
           --name-size: clamp(16px, 7.5cqw, 26px);
           position: absolute;
@@ -1433,7 +1311,6 @@
         }
 
 
-        /* (Pointed at: its edge lit.) */
         @media (pointer: fine) {
           &:hover {
             box-shadow: 0 0 0 1px rgb(246 243 238 / 0.32);
@@ -1447,14 +1324,11 @@
         }
       }
 
-      /* A title's i, at its cover's corner: on a desk with the cover pointed at or focused, on a touch screen always. */
       .row > li {
         position: relative;
         border-radius: var(--radius);
 
-        /* (Its cover's ring: on the slot, the page's ground, so the page's scheme colours it; the cover's own is dark
-           in either, and its ring was the dark scheme's light one on a light page. An outline: painted over the
-           cover's own edge.) */
+        /* On the slot, so the page's scheme colours it: the cover's own is dark in either. */
         &:has(> .tile:focus-visible) {
           outline: 2.5px solid var(--focus);
         }
@@ -1499,16 +1373,12 @@
         }
       }
 
-      /* A chart, as a stock's card: its name, its value now large, how it moved in a year; its last ten years under
-         them, drawn from this server now, its last point lit. */
       .chart {
         display: flex;
         flex-direction: column;
         padding: 12px 14px;
 
-        /* (Its words their own height; the line its lower 58%, out to its edges, less where the words wrap to a third
-           line, so it never runs under them. A percent here is of the box inside the padding: 14px, 58% of the 24px
-           padding, puts it back.) */
+        /* A percent is of the box inside the padding: 14px keeps the line from running under the words. */
         > :not(canvas) {
           flex-shrink: 0;
         }
@@ -1583,8 +1453,6 @@
         }
       }
 
-      /* A topic: Studio's section, its colour, its name large, how many charts it holds; a faint line of one of its
-         series behind. */
       .topic {
         display: flex;
         flex-direction: column;
@@ -1592,7 +1460,6 @@
         padding: 14px 16px;
         background: radial-gradient(130% 130% at 100% 0%, color-mix(in srgb, var(--hue) 34%, transparent), transparent 64%), #151311;
 
-        /* (Its line between its count and its name: a texture, not a chart, clear of the words.) */
         > canvas {
           inset: 26% 0 auto;
           height: 34%;
@@ -1624,7 +1491,6 @@
         }
       }
 
-      /* A developer's card: its name, then what it is in one statement, in type; the Research Kit in its own blue. */
       .card {
         display: flex;
         flex-direction: column;
@@ -1650,7 +1516,6 @@
           white-space: nowrap;
         }
 
-        /* (A call: broken at its path's middle when the card's narrow.) */
         .ask {
           color: var(--soft);
           font-size: 12.5px;
@@ -1662,7 +1527,6 @@
           font-weight: 700;
         }
 
-        /* (Its statement as large as its longest line, 17 characters, fits.) */
         .big {
           overflow: hidden;
           color: var(--ink);
@@ -1700,7 +1564,6 @@
             font-weight: 600;
           }
 
-          /* (A narrow card: one column of three.) */
           @container (max-width: 229px) {
             .crates {
               grid-template-columns: max-content;
@@ -1719,7 +1582,6 @@
         }
       }
 
-      /* A block: its height, its pool, its size; the newest first. */
       .block {
         display: flex;
         flex-direction: column;
@@ -1744,7 +1606,6 @@
           justify-content: space-between;
           gap: 8px;
 
-          /* (Its pool's mark as large as the card's height allows beside its words: the card's picture.) */
           .logo {
             width: calc(var(--tile-h) * 0.3);
             height: calc(var(--tile-h) * 0.3);
@@ -1773,7 +1634,6 @@
           white-space: nowrap;
           text-overflow: ellipsis;
 
-          /* (A narrow card: the count and the rate; the fees past its room. A phone's: those two a line each.) */
           @container (max-width: 269px) {
             .fees {
               display: none;
@@ -1792,7 +1652,6 @@
         }
       }
 
-      /* (A row's places held while it's read: tiles of its shape, still.) */
       .bone {
         pointer-events: none;
         background: #151311;
@@ -1815,7 +1674,6 @@
         }
       }
 
-      /* A Top 10's cover: its rank, a numeral as tall as the cover, outlined, behind a portrait of its pool. */
       .rank {
         position: relative;
         display: flex;
@@ -1828,7 +1686,6 @@
           left: -4%;
           bottom: -8%;
           color: var(--app);
-          /* (As tall as the row, whatever its width.) */
           font: 900 calc(var(--tile-h) * 0.82) / 1 var(--sans);
           letter-spacing: -0.08em;
           -webkit-text-stroke: 3px light-dark(rgb(22 19 15 / 0.5), rgb(246 243 238 / 0.55));
@@ -1858,7 +1715,6 @@
           text-align: center;
           transition: scale 0.3s var(--lift);
 
-          /* (Its mark by the card's width and its height alike: room kept under it for the name and the share.) */
           .logo {
             flex: none;
             width: min(44%, var(--tile-h) * 0.3);
@@ -1887,7 +1743,6 @@
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
 
-            /* (A narrow card: its share alone, its blocks past its room.) */
             @container (max-width: 170px) {
               .blocks {
                 display: none;
@@ -1925,9 +1780,6 @@
           }
         }
       }
-
-      /* ── About a title: a sheet (a card on a desk), as a streaming title's More info: its picture, and over its foot its
-         kind, its name and its ways in; what it shows now, its line and its words, beside what's known of it ── */
 
       .about {
         width: min(760px, calc(100vw - 32px));
@@ -2004,8 +1856,7 @@
             object-fit: cover;
           }
 
-          /* (Its foot into the sheet, under the words over it: deep enough there for the soft words at 4.5:1 over any
-             picture's greys.) */
+          /* Deep enough for 4.5:1 on the soft words over any picture's greys. */
           &::after {
             content: "";
             position: absolute;
@@ -2014,7 +1865,6 @@
           }
         }
 
-        /* (On a phone under it, over its fade's last stretch: the picture shown, not covered.) */
         .over {
           position: absolute;
           left: 32px;
@@ -2029,14 +1879,11 @@
           }
         }
 
-        /* (A developer's card for its picture: its words under it, not over it, nothing fading; its name the sheet's
-           title already.) */
         .hero:has(.card) {
           .shot {
             aspect-ratio: 3 / 1;
             border-bottom: 1px solid rgb(246 243 238 / 0.08);
 
-            /* (Taller on a phone: its statement's room at 320 px.) */
             @media (max-width: 599px) {
               aspect-ratio: 5 / 2;
             }
@@ -2077,7 +1924,6 @@
         .buttons {
           margin-top: 18px;
 
-          /* (On a phone, each its share of the width, a thumb's.) */
           @media (max-width: 599px) {
             > * {
               flex: 1;
@@ -2085,7 +1931,6 @@
           }
         }
 
-        /* (Its words; beside them on a desk, under them on a phone, what's known of it.) */
         .body {
           display: grid;
           gap: 20px 40px;
@@ -2154,7 +1999,6 @@
           overflow-wrap: anywhere;
         }
 
-        /* (Its address handed on: "Copied" there for a moment, its room kept.) */
         .share span {
           display: inline-flex;
           flex-direction: column;
@@ -2216,11 +2060,7 @@
         }
       }
 
-      /* ── Reach ── */
-
-      /* (The brand, the links of the bar, a shelf's heading and the foot, the pause, a tile's i and a sheet's ×:
-         reached at 24 px by a pointer and 44 by a finger, unseen and centred on each; the foot's rows as far apart as
-         that, so no reach takes another's link.) */
+      /* Unseen reach, 24px by pointer and 44px by finger; the foot's rows as far apart, so none takes another's link. */
       :root {
         --hit: 24px;
 
@@ -2239,8 +2079,6 @@
         }
       }
 
-      /* ── The foot ── */
-
       footer {
         margin: 56px auto 0;
         padding: 0 var(--gutter) calc(32px + env(safe-area-inset-bottom));
@@ -2256,8 +2094,6 @@
           font-weight: 500;
         }
 
-        /* (Its links in columns, as a streaming service's foot, across its width: Bitview and this server first, then
-           the apps, the developers', running your own; on a phone, Bitview across, the rest two by two.) */
         .columns {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2299,8 +2135,6 @@
               flex-wrap: wrap;
               gap: 4px 16px;
 
-              /* (For fingers, its lines as far apart as each link's reach is tall (44px over a 20px line): a reach
-                 never takes the line under's link, as the link lists' do.) */
               @media (pointer: coarse) {
                 row-gap: 24px;
               }
@@ -2357,8 +2191,7 @@
   </head>
   <body>
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
-      <!-- The page's icons, one set: the 16 grid and 1.5 stroke of the style table (studio/icons.js), round ends and joins; the filled ones
-           (play, pause), drawn on 24, as heavy as the stroked ones look. Play's triangle sits right of the middle, where it looks centred, its corners round. -->
+      <!-- 16 grid, 1.5 stroke as studio/icons.js; the filled icons are drawn on 24 to look as heavy as the stroked. -->
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.25 5.32v13.36c0 .86.93 1.4 1.68.97l11.07-6.68a1.12 1.12 0 0 0 0-1.94L9.93 4.35c-.75-.43-1.68.11-1.68.97z" fill="currentColor" /></symbol>
       <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.75" height="14" rx="1.25" fill="currentColor" /><rect x="13.75" y="5" width="3.75" height="14" rx="1.25" fill="currentColor" /></symbol>
       <symbol id="i-info" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.75" cy="7.75" r="5.5" /><path d="M7.75 8.25v2.5" /><circle cx="7.75" cy="5.25" r="1.25" fill="currentColor" stroke="none" /></symbol>
@@ -2391,8 +2224,6 @@
     <h1 class="vh">Bitview</h1>
 
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
-      <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
-           others. scripts/home.mjs checks it's FEATURED's first, as its own page names it.) -->
       <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.webp" srcset="/assets/home/banners/studio.webp 1900w, /assets/home/banners/studio@2x.webp 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
       <div class="feature">
         <div class="words" id="words" aria-live="off">
@@ -2402,7 +2233,6 @@
             <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
           </div>
-          <!-- (The words' room from the first frame: a serif title's line, the tallest a title's is; the script puts every title's in it.) -->
           <div class="room" aria-hidden="true"><div><p class="kind">&nbsp;</p><p class="title" data-face="trail">&nbsp;</p><p class="meta"></p><p class="blurb">&nbsp;</p></div></div>
         </div>
         <div class="buttons">
@@ -2457,7 +2287,7 @@
       const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.webp`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.webp`);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const mouse = matchMedia("(pointer: fine)");
-      /** An element: its tag, its properties, its children. @template {keyof HTMLElementTagNameMap} K */
+      /** @template {keyof HTMLElementTagNameMap} K */
       const el = (/** @type {K} */ tag, /** @type {Record<string, any>} */ props = {}, /** @type {(Node | string)[]} */ ...kids) => {
         const node = /** @type {HTMLElementTagNameMap[K]} */ (Object.assign(document.createElement(tag), props));
         node.append(...kids);
@@ -2469,14 +2299,10 @@
         return /** @type {Element} */ (span.firstElementChild);
       };
 
-      // ── Numbers ──
-
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
-      /** A fee rate, in sat/vB, to a tenth: 0.5, 1.4, 12.3. */
       const feeRate = (/** @type {number} */ v) => String(Number(v.toFixed(1)));
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z"];
-      /** Four digits and a letter past a thousand: 1.13Z, 164.5M, 0.817. */
       const short = (/** @type {number} */ v) => {
         const a = Math.abs(v);
         if (a < 1000) return String(Number(v.toPrecision(a < 1 ? 3 : 4)));
@@ -2496,12 +2322,7 @@
         return `${days} day${days > 1 ? "s" : ""}`;
       };
 
-      // ── What there is: the titles, each its kind, a line, its words, its way in ──
-
-      // Each title: what this page says of it (its kind, its line, its way in; what it's made from, the data its app reads);
-      // what its own page says of it (its name, its
-      // words), from FROM_APPS below, the apps' own pages read and written here by scripts/home.mjs, so a renamed or
-      // reworded app is renamed and reworded here too: run it after changing one.
+      // FROM_APPS is written by scripts/home.mjs from the apps' own pages: run it after changing one.
       /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, made?: string, copy?: string, face?: string }} Title */
       /** @type {Title[]} */
       const APPS = /** @type {any[]} */ ([
@@ -2517,7 +2338,6 @@
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
         { id: "miners", kind: "Mining", line: "Which pool did each new thing first, and which left coins unclaimed.", href: "/miners/", made: "Each block's mining pool, version and coinbase" },
       ]);
-      // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
         { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "Bitview's series, blocks, addresses and mempool" },
@@ -2554,11 +2374,8 @@
       for (const t of [...APPS, ...DEV]) Object.assign(t, /** @type {Record<string, object>} */ (FROM_APPS)[t.href]);
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
-      /** The billboard's titles, in turn. */
       const FEATURED = ["studio", "oracle", "globe", "trail", "stack", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
-      /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
-       * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
       const OPENS = "bitview.opened";
       function readOpens() {
         try {
@@ -2571,7 +2388,6 @@
           return {};
         }
       }
-      /** As they were on arriving: the rows' order (nothing moves while you look). */
       const opens = readOpens();
       function opened(/** @type {string} */ id) {
         const now = readOpens();
@@ -2580,33 +2396,21 @@
           localStorage.setItem(OPENS, JSON.stringify(now));
         } catch {}
       }
-      // (Any way in carrying its title, data-open, counts when followed, clicked or middle-clicked, wherever it is: a
-      // tile, its sheet, the billboard.)
       for (const kind of ["click", "auxclick"])
         document.addEventListener(kind, (event) => {
           const a = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.("a[data-open]"));
           if (a && (kind === "click" || /** @type {MouseEvent} */ (event).button === 1)) opened(/** @type {string} */ (a.dataset.open));
         });
-      /** The last opened first; the rest as listed. */
       const used = (/** @type {Title[]} */ list) => [...list].sort((a, b) => (opens[b.id] ?? 0) - (opens[a.id] ?? 0));
 
-      /** Live facts, by title, as this server says them: shown in the billboard and sheets. @type {Record<string, string>} */
+      /** @type {Record<string, string>} */
       const facts = {};
       function meta(/** @type {Title} */ t) {
         return `${t.live ? `<span class="live">Live</span>` : ""}${facts[t.id] ? `<span>${facts[t.id]}</span>` : ""}`;
       }
 
-      // ── The billboard: a title every nine seconds, its segment filling; held while pointed at, focused by keys or a sheet's
-      // open, paused by its button, not turning at all with less motion asked for; its bar filled by the stylesheet, so no
-      // frame is asked for ──
-
       const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
-      // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp screen; as wide as the first one says
-      // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
-      // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
-      // phone Studio's band, its top only, the widest there.)
-      // (The first, in the page from its start; the others made here, each asked for once the one before it shows, or
-      // when chosen: all in view, stacked, a lazy one would load at once.)
+      // Not loading="lazy": all are in view, stacked, so a lazy one would load at once.
       const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "" })) : first));
       const fetchPicture = (/** @type {number} */ i) => {
         const p = pictures[i], src = banner(FEATURED[i].id);
@@ -2615,7 +2419,6 @@
       const pages = FEATURED.map((t, i) => {
         const button = el("button", { type: "button", ariaLabel: t.name }, el("span"));
         button.addEventListener("click", () => {
-          // (A title chosen is said; the turning ones aren't, every nine seconds.)
           $("words").setAttribute("aria-live", "polite");
           show(i);
           setTimeout(() => $("words").setAttribute("aria-live", "off"), 1000);
@@ -2623,7 +2426,6 @@
         $("pages").append(el("li", {}, button));
         return button;
       });
-      /** A title's words, into the shown ones or a copy of them. */
       function fill(/** @type {Element} */ words, /** @type {Title} */ t) {
         const title = /** @type {HTMLElement} */ (words.querySelector(".title"));
         /** @type {Element} */ (words.querySelector(".kind span")).textContent = t.kind ?? "";
@@ -2632,7 +2434,6 @@
         /** @type {Element} */ (words.querySelector(".meta")).innerHTML = meta(t);
         /** @type {Element} */ (words.querySelector(".blurb")).textContent = t.line;
       }
-      // (The words' room: every title's words, hidden, where the shown ones are, in place of the markup's one line.)
       const shown = /** @type {Element} */ ($("words").firstElementChild);
       const room = /** @type {Element} */ ($("words").querySelector(".room"));
       room.replaceChildren(...FEATURED.map((t) => {
@@ -2641,19 +2442,16 @@
         fill(copy, t);
         return copy;
       }));
-      /** The title turned to (at), the one its words and buttons show (current: the same once its words are in). */
       let at = -1, current = 0, fading = 0;
       function show(/** @type {number} */ i) {
         if (i === at) return;
         const t = FEATURED[i], first = at < 0;
         at = i;
         fetchPicture(i);
-        // (The one showing stays until this one is ready, or has failed: a picture chosen before it came never fades
-        // into an empty band; a later choice meanwhile wins.)
+        // A picture chosen before it came would fade into an empty band: the showing one stays until ready.
         pictures[i].decode().catch(() => {}).then(() => {
           if (at !== i) return;
           pictures.forEach((p, k) => p.classList.toggle("on", k === i));
-          // (The next one's, ready for the turn: not where nothing turns.)
           if (!reduced) fetchPicture((i + 1) % FEATURED.length);
         });
         pages.forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
@@ -2667,7 +2465,6 @@
           $("bb-about").setAttribute("aria-label", `More about ${t.name}`);
           words.classList.remove("out");
         };
-        // (A later title meanwhile: this one's words never come in.)
         clearTimeout(fading);
         if (first || reduced) return put();
         words.classList.add("out");
@@ -2675,19 +2472,17 @@
       }
       const billboard = $("billboard");
       let stopped = false, sheetOpen = false, onScreen = true;
-      // (What holds it besides the pointer and a keyboard's focus in it, which the stylesheet sees, as read: a click's
-      // focus (a title's bar, More info, its sheet's coming back) holds nothing, else it held until a click somewhere else.)
+      // A click's focus is let go, else it holds until a click elsewhere.
       const hold = () => billboard.toggleAttribute("data-held", stopped || sheetOpen || !onScreen || document.hidden);
       $("pages").addEventListener("animationend", (e) => e.animationName === "fill" && show((at + 1) % FEATURED.length));
-      // (Held while a title's sheet is open, More info's or a cover's: nothing turns behind the one read. Its toggle caught
-      // on its way down: it doesn't bubble.)
+      // A sheet's toggle is caught on its way down: it doesn't bubble.
       document.addEventListener("toggle", (e) => {
         if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
         sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
         hold();
       }, true);
       document.addEventListener("visibilitychange", hold);
-      // (Its last word: scrolled off and back between two of its calls, it says both, oldest first.)
+      // Scrolled off and back between two calls, it says both, oldest first: the last wins.
       new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), hold())).observe(billboard);
       show(0);
       $("pause").hidden = reduced;
@@ -2700,9 +2495,6 @@
       hold();
       $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
 
-      // ── Shelves ──
-
-      /** A shelf's row, and its arrows (on a desk, where there's more that way). */
       function row(/** @type {string} */ titleId, /** @type {string} */ extra = "") {
         const title = $(titleId), shelf = /** @type {HTMLElement} */ (title.closest(".shelf"));
         const list = el("ul", { className: `row ${extra}` });
@@ -2724,19 +2516,15 @@
         return list;
       }
 
-      /** A title's i: its sheet. */
       function info(/** @type {Title} */ t) {
         const button = el("button", { className: "info", type: "button", ariaLabel: `More about ${t.name}` }, icon("i-info"));
         button.addEventListener("click", () => about(t, button));
         return button;
       }
 
-      /** A cover for a title: its picture, its name in its face. */
       function cover(/** @type {Title} */ t) {
         const name = el("span", { className: "name" }, t.name);
         if (t.face) name.dataset.face = t.face;
-        // (Drawn as wide as its tile from a desk's 1,100 px, 1.2 times it below, where tiles are 4:3: the 720 one for
-        // phones up to a 1440 desk at 2×.)
         const picture = el("img", { alt: "", loading: "lazy", srcset: `${poster(t.id).replace(".webp", "@720.webp")} 720w, ${poster(t.id)} 960w`, sizes: "(min-width: 1100px) calc(25vw - 40px), (min-width: 720px) calc(30vw - 36px), calc(60vw - 26px)", src: poster(t.id) });
         const a = el("a", { className: "tile named", href: t.href }, picture, name);
         a.dataset.open = t.id;
@@ -2746,7 +2534,7 @@
       const apps = row("apps-title", "apps-grid");
       for (const t of used(APPS)) apps.append(cover(t));
 
-      /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
+      /** @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
         catalog: () => el("span", { className: "say" }, el("code", { className: "big catalog-count" }, "–"), el("span", { className: "small" }, "What each one is, and how to fetch it")),
@@ -2757,7 +2545,6 @@
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
         mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "bitview.space/mcp"), el("span", { className: "small" }, "Claude · Codex · Cursor · Gemini CLI")),
       };
-      /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {
         const a = el("a", { className: `tile card dev-${t.id}`, href: t.href }, el("span", { className: "label" }, t.name), STATEMENTS[t.id]());
         a.dataset.open = t.id;
@@ -2765,8 +2552,6 @@
       }
       const dev = row("dev-title");
       for (const t of used(DEV)) dev.append(card(t));
-
-      // ── About: a sheet, its picture, its words, its ways in, what's known of it ──
 
       const sheet = el("div", { className: "about", popover: "auto", role: "dialog" });
       document.body.append(sheet);
@@ -2778,18 +2563,14 @@
         shut.addEventListener("click", () => sheet.hidePopover());
         const heading = el("h3", {}, t.name);
         if (t.face) heading.dataset.face = t.face;
-        // (Its picture: a featured app's banner, the widest; another's cover; a developer's, its card as the row draws it.)
         const card = /** @type {HTMLElement | null} */ (document.querySelector(`#shelves a.dev-${t.id}`)?.cloneNode(true) ?? null);
         if (card) card.tabIndex = -1;
         const picture = card ?? el("img", { alt: "", src: FEATURED.includes(t) ? banner(t.id) : poster(t.id) });
-        // (What it shows now, if it shows anything.)
         const now = meta(t), m = el("p", { className: "meta" });
         m.innerHTML = now;
-        // (Its line as the lead, unless its words begin with it already.)
         const lead = t.about.startsWith(t.line.replace(/\.$/, "")) ? [] : [el("p", { className: "lead" }, t.line)];
         const words = el("div", {}, ...(now ? [m] : []), ...lead, el("p", { className: "text" }, t.about));
         if (t.copy) words.append(copier(t.copy));
-        // (What tells it from the others, as a film's genre and cast: its kind, and what it's made from.)
         const known = [["Category", kind], ...(t.made ? [["Made from", t.made]] : [])];
         sheet.replaceChildren(
           shut,
@@ -2798,12 +2579,9 @@
         );
         sheet.setAttribute("aria-label", t.name);
         /** @type {any} */ (sheet).showPopover({ source });
-        // (Its top, as another's was left scrolled: once it's shown, a hidden one has none to scroll.)
         sheet.scrollTop = 0;
-        // (Keys go into it, to its way in; a tap's leaves no ring.)
         if (source.matches(":focus-visible")) go.focus();
       }
-      /** Says something's copied: on its label for a moment, and to a screen reader. */
       function copiedOn(/** @type {HTMLElement} */ label) {
         const was = label.textContent;
         let back = 0;
@@ -2820,7 +2598,6 @@
         button.addEventListener("click", () => navigator.clipboard.writeText(text).then(copied, () => {}));
         return el("div", { className: "copy" }, el("code", {}, text), button);
       }
-      /** A title's address handed on: to the system's share sheet where there's one, else copied. */
       function sharer(/** @type {Title} */ t) {
         const url = new URL(t.href, location.href).href, label = el("span", {}, "Share"), copied = copiedOn(label);
         const button = el("button", { className: "secondary share", type: "button", hidden: !navigator.share && !navigator.clipboard }, icon("i-share"), label);
@@ -2831,16 +2608,12 @@
         return button;
       }
 
-      // ── Live rows: the latest blocks, the week's pools, the charts, the topics ──
-
       const early = /** @type {Record<string, string>} */ (/** @type {any} */ (window).bitviewFirst);
       const read = (/** @type {string} */ path, kind = "json") => /** @type {Promise<Response>} */ (/** @type {any} */ (window).bitviewRead(path)).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return kind === "json" ? r.json() : r.text();
       });
 
-      /** A live row answered or didn't: one that didn't says so by its heading (its Live badge off), its last tiles kept,
-       * dimmed; one that never answered, a line where its tiles would be. */
       function answered(/** @type {string} */ titleId, /** @type {HTMLElement} */ list, /** @type {boolean} */ ok) {
         const title = $(titleId), shelf = /** @type {HTMLElement} */ (title.closest(".shelf"));
         shelf.toggleAttribute("data-failed", !ok);
@@ -2849,14 +2622,13 @@
         title.append(el("small", { className: "stale" }, "not answering"));
         if (list.querySelector(".bone")) list.replaceChildren(el("li", { className: "none" }, "This server isn't answering. This row fills in when it does."));
       }
-      /** A row's tiles put in order without taking out the ones that stay (a focused one keeps its focus). */
+      /** Reorders without removing the tiles that stay: a focused one keeps its focus. */
       function reconcile(/** @type {HTMLElement} */ list, /** @type {HTMLElement[]} */ items) {
         items.forEach((li, i) => list.children[i] !== li && list.insertBefore(li, list.children[i] ?? null));
         while (list.children.length > items.length) /** @type {Element} */ (list.lastElementChild).remove();
       }
       const bones = (/** @type {number} */ n, /** @type {() => HTMLElement} */ make) => Array.from({ length: n }, () => el("li", { ariaHidden: "true" }, make()));
 
-      /** A pool's logo, as the other pages draw it (one with none: its initials). */
       function logo(/** @type {string} */ slug, /** @type {string} */ name) {
         const mark = el("span", { className: "logo" });
         if (LOGOS.has(slug)) mark.style.backgroundImage = `url("${poolLogo(slug, false)}")`;
@@ -2871,7 +2643,7 @@
 
       const blocks = row("blocks-title");
       blocks.append(...bones(8, () => el("span", { className: "tile bone" })));
-      /** Each block's tile, by its hash, while it's shown (a block replaced at its height: a tile of its own). @type {Map<string, HTMLElement>} */
+      /** @type {Map<string, HTMLElement>} */
       const blockTiles = new Map();
       function blockTile(/** @type {any} */ b) {
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
@@ -2907,13 +2679,12 @@
         if (top) facts.globe = `<b>${top.name}</b> leads this week, ${((top.blockCount / total) * 100).toFixed(0)}% of blocks`;
         else delete facts.globe;
         refresh("globe");
-        // (Redrawn only when the ranking changed, and never under a focus: a key on a pool keeps it.)
+        // Redrawn only when the ranking changed, never under a focus: a key on a pool keeps it.
         const drawn = d.pools.slice(0, 10).map((/** @type {any} */ p) => `${p.slug}:${p.blockCount}`).join() + `/${total}`;
         if (drawn === poolsDrawn || pools.contains(document.activeElement)) return;
         poolsDrawn = drawn;
         pools.replaceChildren(...d.pools.slice(0, 10).map((/** @type {any} */ p, /** @type {number} */ i) => {
           const share = `${((p.blockCount / total) * 100).toFixed(1)}%`;
-          // (Its share against the leader's, a bar along its foot: the ranking seen at once.)
           const bar = el("span", { className: "bar", ariaHidden: "true" });
           bar.style.setProperty("--of", String(p.blockCount / d.pools[0].blockCount));
           const tile = el("a", { className: "rank", href: "/globe/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
@@ -2923,7 +2694,6 @@
         }));
       }
 
-      /** The charts: each a Studio chart, drawn here from the same series, a month a point, its last ten years. */
       /** @typedef {{ name: string, href: string, series: string[], colors: string[], log?: boolean, unit: (v: number) => string }} Chart */
       /** @type {Chart[]} */
       const CHARTS = [
@@ -2938,9 +2708,8 @@
         { name: "Reserve risk", href: "/studio/presets/valuation/reserve-risk", series: ["reserve_risk"], colors: ["#ef476f"], log: true, unit: (v) => v.toPrecision(3) },
         { name: "Inflation", href: "/studio/presets/supply/inflation", series: ["inflation_rate"], colors: ["#4cc9f0"], log: true, unit: (v) => `${v.toFixed(2)}%` },
       ];
-      /** Each series' history, a month a point. @type {Map<string, number[]>} */
+      /** @type {Map<string, number[]>} */
       const histories = new Map();
-      /** Each watched canvas's size, and what draws it, from one observer: drawn again when it's resized, once its data's in. */
       const sizes = /** @type {WeakMap<Element, { width: number, height: number }>} */ (new WeakMap());
       const draws = /** @type {WeakMap<Element, () => void>} */ (new WeakMap());
       const sized = new ResizeObserver((entries) => {
@@ -2948,17 +2717,14 @@
         if (histories.size) for (const e of entries) draws.get(e.target)?.();
       });
       const watch = (/** @type {HTMLCanvasElement} */ canvas, /** @type {() => void} */ draw) => (draws.set(canvas, draw), sized.observe(canvas));
-      /** A colour (#rrggbb or rgb(r g b / a)) at an opacity, as a canvas reads it. */
       const alpha = (/** @type {string} */ color, /** @type {number} */ a) => {
         const hex = color.match(/^#(..)(..)(..)$/);
         if (hex) return `rgba(${hex.slice(1).map((h) => parseInt(h, 16)).join(",")},${a})`;
         const rgb = color.match(/rgb\((\d+) (\d+) (\d+)/);
         return rgb ? `rgba(${rgb[1]},${rgb[2]},${rgb[3]},${a})` : color;
       };
-      /** Draws a chart's last ten years into a canvas at its size: lines, the last filled under, its last point lit. */
       function paint(/** @type {HTMLCanvasElement} */ canvas, /** @type {Chart} */ c) {
-        // (Its size as last observed (asked of the layout only for one not yet watched): a row's many, read so,
-        // each resized after another read, would each lay the page out again.)
+        // The observer's last size: reading layout per canvas would lay the page out again each time.
         const box = sizes.get(canvas) ?? canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
         if (!box.width) return;
         canvas.width = Math.round(box.width * dpr);
@@ -3008,10 +2774,8 @@
           ctx.fill();
         }
       }
-      /** The series the charts and topics draw: one request for all, a month a point; read once, tried again after a
-       * failure the next time a row needing it comes near. @type {Promise<void> | null} */
+      /** @type {Promise<void> | null} */
       let reading$ = null;
-      /** Every series the charts and the topics draw (the topics, further down, read when this first runs). */
       const series = () => [...new Set([...CHARTS.flatMap((c) => c.series), ...TOPICS.flatMap(([, , , s]) => (s ? [s] : []))])];
       const readHistories = () => (reading$ ??= ((ids) => read(`/api/series/bulk?series=${ids.join(",")}&index=month1`).then((/** @type {any[]} */ replies) => {
         replies.forEach((r, i) => histories.set(ids[i], r.data));
@@ -3019,8 +2783,6 @@
         reading$ = null;
         throw error;
       }))(series()));
-      /** Watches a row: when it comes near, runs its reading; stops watching once that has answered; one that didn't, said
-       * by its heading and tried again half a minute on. */
       const near = (/** @type {string} */ titleId, /** @type {HTMLElement} */ list, /** @type {() => Promise<unknown>} */ run) => {
         const watch = new IntersectionObserver((entries) => {
           if (!entries.some((e) => e.isIntersecting)) return;
@@ -3046,10 +2808,9 @@
         for (const { c, canvas, value, moved } of chartTiles) {
           const list = histories.get(c.series[0]) ?? [], last = list.findLastIndex((v) => v != null);
           const now = last < 0 ? null : list[last], then = last < 12 ? null : list[last - 12];
-          // (Its unit, after a thin space, small and in words' face: a monospace's space is a whole figure wide.)
+          // Thin space before the unit: a monospace's space is a whole figure wide.
           const [figure, unit] = now == null ? [""] : c.unit(now).split("\u2009");
           value.replaceChildren(figure, ...(unit ? [el("small", {}, unit)] : []));
-          // (How it moved in a year: its last month against the same a year before.)
           if (now != null && then) {
             const pct = (now / then - 1) * 100;
             moved.className = `moved ${pct >= 0 ? "up" : "down"}`;
@@ -3058,8 +2819,6 @@
           paint(canvas, c);
         }
       }));
-
-      // ── Topics: Studio's sections, each its charts as Studio counts them ──
 
       /** @type {[string, string, string, string?][]} */
       const TOPICS = [
@@ -3088,8 +2847,7 @@
         topics.append(el("li", {}, tile));
         return { slug, count, canvas, chart };
       });
-      /** Studio's guide for assistants, read once (again after a failure): its sections, each "- Name (count): address", as
-       * Studio counts them. @type {Promise<void> | null} */
+      /** @type {Promise<void> | null} */
       let counting$ = null;
       const countCharts = () => (counting$ ??= read("/studio/llms.txt", "text").then((/** @type {string} */ text) => {
         const counted = new Map([...text.matchAll(/^- [^(\n]+\((\d+)\): \S*\/studio\/presets\/([a-z0-9-]+)\/$/gm)].map((m) => [m[2], Number(m[1])]));
@@ -3106,8 +2864,6 @@
       }));
       near("topics-title", topics, () => Promise.all([countCharts(), readHistories().then(() => topicTiles.forEach(({ canvas, chart }) => chart && paint(canvas, chart)))]));
 
-      // ── The corner and the foot: what the chain and this server say, every 30 seconds ──
-
       const said = (/** @type {string} */ id, /** @type {string} */ words) => (/** @type {HTMLElement} */ ($(id).querySelector("[data-said]")).textContent = words);
       const part = (/** @type {string} */ id, /** @type {Promise<any>} */ reading, /** @type {(value: any) => void} */ show) =>
         reading.then((value) => (show(value), ($(id).hidden = false), $(id).removeAttribute("data-failed"), said(id, ""), true), () => {
@@ -3115,7 +2871,6 @@
           said(id, ", not answering: the last reading");
           return false;
         });
-      /** A title's fact changed: its billboard line anew, in the words' room and, if it's the one showing, shown. */
       function refresh(/** @type {string} */ id) {
         const k = FEATURED.findIndex((t) => t.id === id);
         if (k < 0) return;
@@ -3152,7 +2907,7 @@
             refresh("oracle");
             refresh("stack");
           }).then((ok) => ok || forget("oracle", "stack")),
-          // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
+          // The next block's rate as it is, not rounded up like the recommended ones.
           part("fees-panel", read(early.fees), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read(early.tip, "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read(early.blocks).then((list) => {
@@ -3181,14 +2936,12 @@
           }),
         ];
         await Promise.allSettled(parts);
-        // (The disk's sizes, read this round, in the foot.)
         showServer();
         rounds++;
         reading = false;
       }
 
-      // (The bar solid once the billboard's buttons are past; the section in view lit in it, nothing while the billboard
-      // shows. A band across the screen's middle, in pixels: a percentage of rootMargin is of the width.)
+      // A band in pixels: a percentage of rootMargin is of the width.
       const links = [...document.querySelectorAll(".top nav a")];
       let onBillboard = true;
       new IntersectionObserver((entries) => {
@@ -3196,19 +2949,14 @@
         if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
         else update();
       }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
-      // (The section lit: the one crossing a line just under the bar, where a section jumped to lands; between two, the
-      // last one lit stays. The chip lit, on a phone, slid into view.)
       let sections = /** @type {IntersectionObserver | null} */ (null);
-      /** The section lit, and the one crossing the line under the bar now. */
       let lit = "", crossing = "";
       function light(/** @type {string} */ id) {
-        // (Only on a change: a jump passes every section between.)
         if (id === lit) return;
         lit = id;
         for (const a of links) {
           const on = a.getAttribute("href") === `#${id}`;
           a.setAttribute("aria-current", String(on));
-          // (A phone's chips: the lit one slid to their middle, the bar's row alone moving.)
           const nav = /** @type {HTMLElement} */ (a.parentElement);
           if (on && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: /** @type {HTMLElement} */ (a).offsetLeft - (nav.clientWidth - /** @type {HTMLElement} */ (a).offsetWidth) / 2, behavior: reduced ? "auto" : "smooth" });
         }
@@ -3224,8 +2972,7 @@
       }
       watchSections();
       addEventListener("resize", watchSections);
-      // (At the page's foot the last sections can't reach the line: there, the last one lit; back up from it, the one
-      // crossing again. Worked out in one place, whichever of the watchers and the scroll speaks last.)
+      // At the page's foot the last sections can't reach the line: the last one is lit there.
       const lastSection = /** @type {string} */ ([...document.querySelectorAll(".shelf h2")].at(-1)?.id);
       function update() {
         if (onBillboard) return;
@@ -3234,8 +2981,6 @@
       }
       addEventListener("scroll", update, { passive: true });
 
-      // (Arrow keys, as a television's remote: left and right along a row, up and down to the cover nearest in the row
-      // above or below; the row slides to keep it in view.)
       $("shelves").addEventListener("keydown", (event) => {
         const key = /** @type {KeyboardEvent} */ (event).key, from = /** @type {HTMLElement} */ (event.target);
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key) || !from.matches(".row > li > a")) return;
@@ -3244,8 +2989,6 @@
         if (key === "ArrowLeft") target = li.previousElementSibling?.querySelector("a");
         else if (key === "ArrowRight") target = li.nextElementSibling?.querySelector("a");
         else {
-          // (Up or down: the nearest line of covers that way, a grid's next line or the next row, and in it the cover
-          // nearest across.)
           const at = from.getBoundingClientRect(), down = key === "ArrowDown";
           const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".shelf .row > li > a")]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
           const beyond = ways.filter(([, r]) => (down ? r.top > at.bottom - 4 : r.bottom < at.top + 4));
@@ -3257,7 +3000,6 @@
         target.focus({ preventScroll: true });
         target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
       });
-      // (The foot's apps, named as their pages name them, in this page's order.)
       $("footer-apps").append(...APPS.map((t) => el("a", { href: t.href }, t.name)));
       $("public").hidden = location.hostname === "bitview.space";
       round();

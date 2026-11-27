@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Compass" data-color="#2f5d8a" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0f14" />
     <title>Compass · Bitview</title>
     <meta name="description" content="Where Bitcoin's market stands, day by day since 2011: price against its long-term and short-term holders' cost basis: nine moods from Fear to Optimism, in three trends, and how long each has lasted." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/compass/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/compass/" />
@@ -23,7 +21,6 @@
     <meta property="og:image:alt" content="Compass: where Bitcoin's market stands today, the state's name over years of price, each day coloured by its state" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
-    <!-- (Its type, colours and the compass's look, shared with the pages that draw its pictures.) -->
     <link rel="stylesheet" href="draw.css" />
     <style>
       /* craft rules */
@@ -97,8 +94,6 @@
         margin: 0;
       }
 
-      /* (Even lines: headings balanced, no paragraph ending on a lone word. The mood's name over the chart keeps its own
-         break.) */
       h2,
       h3 {
         text-wrap: balance;
@@ -126,14 +121,7 @@
         margin-inline: auto;
       }
 
-      /* A mood's name with its tag beside it, on its baseline (named() in the script): over the chart and in the mood
-         panel, one piece sized by --named, in the colour of --state. The tag is a quiet label about the mood, not part
-         of its name: tracked caps, its colour softened toward the text's, 4.5:1 or more on every mood's wash in both
-         themes; tabular, so a longer run moves nothing. On an extreme day "extreme" stacks over its move in the
-         name's italic, lower case, 0.34 its size, in --words (see wordsOver), on a line the tag's height (a length, inherited);
-         the tag's last line stays on the name's baseline, so nothing moves as it comes and goes.
-         Every mood's one line from 320 wide with any run yet (the longest is 220 days); a run of four digits would
-         take Optimism's 2px past it at 320. */
+      /* An extreme day's words stack on a line the tag's height, on the name's baseline: nothing moves as they come and go. */
       .named {
         height: 1.05em;
         margin: 0;
@@ -174,25 +162,19 @@
         }
       }
 
-      /* ── The first screen: the bar, where it stands, the chart filling the rest ── */
-
-      /* The first screen is the chart, edge to edge down to the foot; the bar and where it stands sit over it, the plot
-         drawn under them. Only what's pressed over it takes the pointer: the rest of the chart moves it. */
+      /* Over the chart: only what's pressed takes the pointer, the rest of the chart moves it. */
       .stage {
         position: relative;
         display: grid;
         grid-template: auto auto 1fr auto / minmax(0, 1fr);
         height: 100svh;
-        /* (The screen's height, so a phone's first screen holds it all and a drag can't scroll it (the iPhone Duo's
-           Safari is 580 tall); on a shorter one, a phone on its side, at least this, scrolled.) */
+        /* The screen's height, so a drag can't scroll a phone's first screen; a shorter screen scrolls. */
         min-height: 480px;
         max-height: 1100px;
         padding-bottom: max(8px, env(safe-area-inset-bottom));
-        /* (The words' halo the chart's wash where they sit, about a third of the way down it: see .chart.) */
         --halo: color-mix(in oklch, var(--state, var(--app)) 4%, var(--app));
         background: var(--app);
 
-        /* (One column, every part in it: the chart under the bar and where it stands, the foot under the chart.) */
         > * {
           grid-column: 1;
         }
@@ -208,7 +190,7 @@
         }
       }
 
-      /* (Its brand low in it: clear of the blur iOS draws at the top of the screen. Back to today at its right.) */
+      /* Brand low: clear of the blur iOS draws at the top of the screen. */
       .bar {
         grid-row: 1;
         display: flex;
@@ -236,11 +218,10 @@
         .today {
           height: 28px;
           padding: 0 11px;
-          /* (One line, whatever its font's metrics: iOS wrapped it in a box a pixel short of its words.) */
+          /* One line, whatever its font's metrics: iOS wrapped it in a box a pixel short of its words. */
           white-space: nowrap;
           border: 1px solid var(--line);
           border-radius: 999px;
-          /* (Its ground the halo's, the day's line passing behind it.) */
           background: var(--halo);
           color: var(--ink);
           font-size: 12px;
@@ -252,28 +233,21 @@
         }
       }
 
-      /* Where it stands, two lines: its state's name as large as the screen allows, its move and its run's day beside
-         it; the day and its price. (How the run ranks is the mood panel's lead.) Fixed heights and one line each at every
-         width, so nothing under it moves as a day's words change; its mood's colours change with them, at once (a fade,
-         a main-thread animation, painted it every frame of a slide across moods). */
+      /* Fixed heights, one line each, so nothing under it moves; no colour fade: it painted every frame of a slide. */
       .hero {
         grid-row: 2;
         padding: 8px 0 8px;
 
-        /* (Its words over the prices that rise behind them: each glyph haloed in the page's own background, as every
-           word over a drawing is, --halo-width wide.) */
         :is(h1, .day) {
           paint-order: stroke fill;
           -webkit-text-stroke: calc(var(--halo-width) * 1px) var(--halo);
         }
 
-        /* (The name as large as the screen allows; its tag the mood's move and its run's day.) */
         h1 {
           --named: clamp(42px, 5vw, 64px);
           margin-top: 2px;
 
-          /* (The mood a box the line's height, not the face's taller one: its focus ring hugs the word. Before the days
-             are read, a quiet bar where it goes.) */
+          /* A box the line's height, not the face's taller one: its focus ring hugs the word. */
           #hero-name {
             position: relative;
             display: inline-block;
@@ -288,10 +262,7 @@
           }
         }
 
-        /* (The day: "Today" or its date in the text's soft ink, its price in the mood's colour, as the name is; one
-           line, tabular, so its width holds as the day changes. Right under the name's box, whose foot is already its
-           deepest descender's (Apathy's p and y), so the two lines read as one block: its own line's air, 6.6px, is the
-           gap.) */
+        /* Right under the name's box, whose foot is already its deepest descender's: its line's air is the gap. */
         .day {
           height: 22px;
           margin: 0;
@@ -306,12 +277,10 @@
             font-weight: 600;
           }
 
-          /* (The day's index in its trend's colour, as the index chart draws it.) */
           #index-now {
             color: var(--trend);
           }
 
-          /* (While the days are being read, a quiet bar where its words go; none once the read has failed.) */
           .stage:has(.chart.loading) &::before {
             content: "";
             display: block;
@@ -324,8 +293,6 @@
         }
       }
 
-      /* The chart, everything down to the foot: price, the two clouds, the days coloured by their state, the dates
-         under them (the chart library's canvases, its ground the page's). Its own layers kept under the words over it. */
       .chart {
         grid-row: 1 / 4;
         min-height: 0;
@@ -334,8 +301,7 @@
         -webkit-touch-callout: none;
         cursor: crosshair;
 
-        /* (The day's mood a faint wash down from the top, as a sky is the weather's, fading out by the chart's middle: over
-           its drawing (its canvases are opaque), under the day's marks.) */
+        /* Over the chart's drawing (its canvases are opaque), under the day's marks. */
         &::after {
           content: "";
           position: absolute;
@@ -346,7 +312,6 @@
         }
       }
 
-      /* (Before the days are read: the pan bar empty, its window not yet anywhere.) */
       .stage:has(.chart.loading) .pan .window {
         visibility: hidden;
       }
@@ -388,27 +353,21 @@
         font-size: 12.5px;
         color: var(--soft);
 
-        /* (On a phone, the pan bar a row of its own, the buttons under it.) */
         @media (max-width: 719px) {
           .pan {
             flex-basis: 100%;
           }
 
-          /* (Full width, so its ends sit on the page's edges, not the row's free space on the left.) */
           .controls {
             flex-basis: 100%;
             justify-content: space-between;
           }
 
-          /* (What the colours follow under Play, the way down to the compass beside it where there's room: a row of
-             its own at 320.) */
           .more {
             flex-basis: auto;
           }
 
-          /* (A finger's 44px across on a touch phone, the row still one line at 375px; this block's .foot lets these
-             override the reaches set with the buttons below. Each span 42px wide, reaching 1px into the 2px gap on each
-             side, unseen. Play takes its 44px from the page's 16px margin on its left.) */
+          /* A finger's 44px on a touch phone, the row still one line at 375px: .foot's rules override the reaches below. */
           @media (pointer: coarse) {
             [data-span]::before {
               inset-inline: -1px;
@@ -425,8 +384,6 @@
           }
         }
 
-        /* (A finger's 44px across on a wider touch screen, where the row has room: each span at least as wide as its
-           reach is tall, the pan bar giving up the difference.) */
         @media (pointer: coarse) and (min-width: 720px) {
           [data-span] {
             min-width: 44px;
@@ -434,9 +391,6 @@
         }
       }
 
-      /* The history bars, one look: the pan bar over the chart and the strip under the compass. A rounded box, its
-         handle a rounded frame 12px wide at least with a grip at each end (at its least, the two one grip), in ink
-         under a mouse or held. */
       :is(.pan, .scrub .track) {
         height: 32px;
         overflow: hidden;
@@ -483,7 +437,6 @@
         }
       }
 
-      /* The pan bar (Studio's navigator, as this page draws): all the history, the chart's days a window on it. */
       .pan {
         position: relative;
         flex: 1 1 240px;
@@ -507,7 +460,6 @@
         }
       }
 
-      /* The way down, under it all: what the rest of the page holds. */
       .more {
         position: relative;
         display: flex;
@@ -526,7 +478,6 @@
           color: var(--ink);
         }
 
-        /* (A finger's 44px, unseen: 8px up, short of the buttons' over it, and 12px down.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -545,7 +496,6 @@
         margin-left: auto;
       }
 
-      /* Play: the span's days run through, the chart and the compass together; its icon alone, round. */
       .replay {
         position: relative;
         display: inline-flex;
@@ -571,7 +521,7 @@
           cursor: default;
         }
 
-        /* (Its border is outside the box the inset counts from: 6px beyond it.) */
+        /* Its border is outside the box the inset counts from. */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -581,7 +531,6 @@
         }
       }
 
-      /* A choice of a few, one pressed: the chart's span, and what its colours follow. */
       .choice {
         display: inline-flex;
         gap: 2px;
@@ -607,7 +556,6 @@
             box-shadow: 0 0 0 1px var(--line);
           }
 
-          /* (A finger's 44px, unseen, up and down only.) */
           @media (pointer: coarse) {
             &::before {
               content: "";
@@ -617,8 +565,6 @@
           }
         }
       }
-
-      /* ── Below: the compass and how it reads, the index, then how it's computed ── */
 
       main {
         padding: 56px 0 24px;
@@ -659,7 +605,6 @@
         }
       }
 
-      /* (The index's ends, named in their colours.) */
       #index {
         .low {
           color: var(--s-fear);
@@ -685,7 +630,6 @@
           margin-top: 12px;
         }
 
-        /* The days after the day told, veiled: what wasn't known yet then, faded (under the crosshair). */
         .later {
           position: absolute;
           inset: 0;
@@ -694,10 +638,7 @@
       }
 
       .atlas {
-        /* (The compass's cells, as its drawing places them: the last 600 of its 676 units across, its axis words in the
-           76 at its left (its viewBox), the drawing centred and at most 560px wide. The strip and the foot under them
-           line up with them, so on a phone the cells, the strip and the words under them share one column, ending
-           where the page's do.) */
+        /* The compass's cells as its viewBox places them: the last 600 of its 676 units; the strip and foot line up. */
         --drawn: min(100%, 560px);
         --cells-width: calc(var(--drawn) * 600 / 676);
         --cells-left: calc((100% - var(--drawn)) / 2 + var(--drawn) * 76 / 676);
@@ -757,7 +698,6 @@
           &::-moz-range-track { background: transparent; }
         }
 
-        /* (The bar read in words, a line of its own over its figures.) */
         .distribution-legend {
           margin-bottom: 12px;
           font-variant-numeric: tabular-nums;
@@ -770,26 +710,21 @@
           font-weight: 500;
         }
 
-        /* (The bar read in figures, one line: its days and, all in one trend, which.) */
         .distribution-at {
           min-height: 1.5em;
           margin: 0 0 10px;
           color: var(--soft);
           font: 600 13px/1.5 var(--sans);
-          /* (Again: the shorthand resets the legend's.) */
+          /* Again: the shorthand resets the legend's. */
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
         }
 
-        /* (The trends, one row: each a switch showing or hiding its bars, its days at the bar inside it when there are
-           any. One line whatever the counts, so the readout keeps its height as a slide crosses the bars.) */
         #distribution-trends {
           display: flex;
           gap: 6px;
         }
 
-        /* (A pill: its name in ink on its colour's tint, its arrow in the colour, ringed; once hidden, bare and struck
-           through. A finger's 44px reach, unseen, up and down.) */
         .distribution-entry {
           position: relative;
           display: inline-flex;
@@ -805,7 +740,6 @@
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
 
-          /* (From inside its 1px border: 28 + 2 × 8 = 44.) */
           &::before { content: ""; position: absolute; inset: -8px 0; }
           svg { width: 14px; height: 14px; flex: none; color: var(--trend); }
           .distribution-count { margin-left: 2px; color: var(--soft); font-weight: 500; }
@@ -823,8 +757,6 @@
         #distribution-span { display: block; margin-bottom: 4px; }
       }
 
-      /* A mood lit (see light): pressable wherever it's named; the compass's other cells dimmed; over the chart, the
-         mood underlined once lit. */
       [data-light] {
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
@@ -840,8 +772,7 @@
         --dim: 0.3;
       }
 
-      /* (A cell not lit: its rect faded, its words' ink faded on a halo kept whole in the colour the faded tint shows
-         as, so the trail stays under them.) */
+      /* A cell not lit: its words' ink fades on a halo kept whole in the faded tint's colour, so the trail stays under. */
       .lighting .compass .cell:not(.lit) {
         &[role] {
           opacity: var(--dim);
@@ -857,7 +788,6 @@
         }
       }
 
-      /* (The year's trail faded with the cells not lit, so the lit mood leads; its tail stays whole with the dot.) */
       .lighting .compass .trail {
         opacity: var(--dim);
       }
@@ -874,9 +804,7 @@
         }
       }
 
-      /* (Over the chart, a mood pressed: underlined in its own colour, 2px, clear under its descenders;
-         nothing at rest.) */
-      /* (A line of its own, not a text decoration: the words' halo stroke paints over one.) */
+      /* A line of its own, not a text decoration: the words' halo stroke paints over one. */
       .hero [data-light].lit::after {
         content: "";
         position: absolute;
@@ -886,7 +814,6 @@
         background: currentColor;
       }
 
-      /* The compass (its look in draw.css): where it sits, and what a press, a pointer and a focus do to it. */
       .compass {
         position: relative;
         width: 100%;
@@ -901,16 +828,12 @@
           touch-action: manipulation;
         }
 
-        /* (The day's dot, the trail and a cell's words let a press through to the cell under them: the whole cell is
-           its button.) */
+        /* The day's dot, the trail and a cell's words let a press through: the whole cell is its button. */
         :is(.dot, .ring, .trail path, .tail, .cell text, .cell .icon) {
           pointer-events: none;
         }
 
-        /* (A side pressed anywhere over its row or column in the margin; lit, in ink with a bar along its row or
-           column, as the cells it lights.) */
         .side {
-          /* (Faint at rest, the sign it can be pressed; stronger under a mouse, its words too; solid once lit.) */
           .bar {
             transition: opacity 0.2s;
           }
@@ -943,20 +866,15 @@
           }
         }
 
-        /* (A cloud's name not pressable: its box takes a tap there, so it never reaches the part whose reach runs under
-           it.) */
+        /* Not pressable: its box would take a tap meant for the part whose reach runs under it. */
         .title .axis {
           pointer-events: none;
         }
       }
 
-      /* Every day as a strip, each in its state's colour, the pan bar's handle on the day shown: the chart's day,
-         picked from down here too. As wide as the compass's cells, its years under it; the slider half its thumb wider
-         each side, so the thumb's middle is on its day. */
+      /* The slider is half its thumb wider each side, so the thumb's middle is on its day. */
       .scrub {
-        /* (Its unseen thumb, as wide and tall as it takes hold: the strip and its years with a mouse; on a touch screen
-           a finger's 44px tall, centred on the strip, and as wide as half of it past the strip's right end stays inside
-           the page's gutter (on a phone the strip ends where the page's words do).) */
+        /* Its unseen thumb as wide and tall as it takes hold; on touch, no wider than the gutter past the strip's end. */
         --grab: 28px;
         --reach: 52px;
         position: relative;
@@ -981,7 +899,6 @@
           inset: 0 0 auto;
         }
 
-        /* (On the day, kept inside the strip at its ends.) */
         .knob {
           left: clamp(0px, var(--at, 0px) - 6px, 100% - 12px);
         }
@@ -1017,8 +934,7 @@
             background: none;
           }
 
-          /* (Unseen: the handle's drawn under it.) */
-          /* (iOS draws a thumb, white and shadowed, unless it's unseen outright.) */
+          /* iOS draws a thumb, white and shadowed, unless it's unseen outright. */
           &::-webkit-slider-thumb {
             width: var(--grab);
             height: var(--reach);
@@ -1041,7 +957,6 @@
         }
       }
 
-      /* The compass's day, what the compass draws said under it. */
       .compass-foot {
         width: var(--cells-width);
         margin: 10px 0 0 var(--cells-left);
@@ -1059,7 +974,6 @@
           margin-top: 4px;
           text-wrap: pretty;
 
-          /* (Each trend's arrow in its words, as on the compass.) */
           svg {
             width: 1.1em;
             height: 1.1em;
@@ -1072,17 +986,12 @@
         }
       }
 
-      /* Beside the compass (under it, on a phone): one mood, the day's or a cell pointed at or pressed: its run now, what
-         it usually turns into, its time overall. */
       .mood {
-        /* (Its ground and rules the mood's colour, faint, as its cell on the compass: the panel reads as that cell
-           opened.) */
         --tint: color-mix(in srgb, var(--c) 7%, transparent);
         --rule: color-mix(in srgb, var(--c) 22%, transparent);
-        /* (Its width the grid's, so its words can size to it: see .where.) */
         container-type: inline-size;
         display: grid;
-        /* (One column held to the card: content too wide for it wraps, never pushes past its padding.) */
+        /* One column held to the card: too-wide content wraps, never pushes past its padding. */
         grid-template-columns: minmax(0, 1fr);
         align-content: start;
         gap: 20px;
@@ -1100,17 +1009,12 @@
           gap: 6px;
         }
 
-        /* (Its name and its move as the header has them (its run told in the lead, not in the tag); where its price
-           is under it, as the day is under the header's name.) */
         h3 {
           --named: 48px;
           --state: var(--c);
         }
 
-        /* (One line for every mood's, at 15px but as the card narrows: the longest, "Old holders about even, new in
-           profit", is 17.8 times its font size wide, so 5.5% of the card's width leaves it room (13.75px, 245 of 250px
-           at 320 wide). Of the card, not the screen, so the rule needn't know the page's gutters or the card's
-           padding.) */
+        /* Scaled with the card so the longest (17.8 font sizes wide) stays one line; the card's width, not the screen's. */
         .where {
           color: var(--soft);
           font-size: min(15px, 5.5cqi);
@@ -1123,7 +1027,6 @@
           font: 400 22px/1.2 var(--serif);
         }
 
-        /* (Its parts apart by a rule in its colour, midway: the gap above it, as much under it.) */
         > section {
           padding-top: 20px;
           border-top: 1px solid var(--rule);
@@ -1139,7 +1042,6 @@
           font-weight: 600;
         }
 
-        /* (No margins of their own: the card's gap spaces its parts.) */
         :is(figure, ol) {
           margin: 0;
         }
@@ -1149,8 +1051,6 @@
           font: 400 26px/1.25 var(--serif);
         }
 
-        /* (Its runs by length, a bar each range, the run told in its colour, the rest its tint; the ranges under them
-           on a foot line.) */
         .hist {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
@@ -1168,7 +1068,6 @@
             text-align: center;
           }
 
-          /* (Its height a scale from the foot: a day's new counts only repaint it.) */
           i {
             border-radius: 3px 3px 0 0;
             box-shadow: 0 1px 0 var(--rule);
@@ -1209,8 +1108,6 @@
           margin-top: 8px;
         }
 
-        /* (Each run a row: when it began, a bar of its length against the others shown, its length, what it turned
-           into. The run told first, its bar whole.) */
         .runs li {
           display: grid;
           grid-template-columns: 5.2em 5.2em minmax(0, 1fr) 6.2em;
@@ -1235,7 +1132,7 @@
             text-align: right;
           }
 
-          /* (A little toward the ink, as the compass's small words: 4.5:1 on the panel's tint in either scheme.) */
+          /* A little toward the ink: 4.5:1 on the panel's tint in either scheme. */
           .to {
             order: 2;
             color: color-mix(in srgb, var(--to) 85%, var(--ink));
@@ -1263,7 +1160,6 @@
             display: none;
           }
 
-          /* (On a phone, each bar the row's whole width, under its words.) */
           @media (max-width: 719px) {
             grid-template-columns: 5.2em 1fr auto;
             gap: 4px 10px;
@@ -1279,13 +1175,11 @@
           }
         }
 
-        /* (What it turned into, all of it as one bar, a piece a mood in its colour; the three most under it.) */
         .split:has(> i:only-child) {
           display: none;
         }
 
-        /* (Each piece at least as wide as the bar is tall, so a small last piece shows a stretch before its rounded end:
-           a piece only the end's width read as a clipped cap.) */
+        /* Each piece at least as wide as the bar is tall: one only the end's width read as a clipped cap. */
         .split {
           --tall: 12px;
           display: flex;
@@ -1302,7 +1196,6 @@
           }
         }
 
-        /* (A row, wrapping where the card's too narrow for all three.) */
         .next {
           display: flex;
           flex-wrap: wrap;
@@ -1332,8 +1225,6 @@
 
       }
 
-      /* How it's computed: three parts, each a heading and its words; side by side, on rows they share, so each
-         part's heading and words start level with the others' whichever wraps. */
       .how {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -1376,8 +1267,6 @@
           font-weight: 600;
         }
 
-        /* (The nine moods' key: the compass's cells in small, each name in its trend's colour on that colour, faint, so
-           the diagonals read at a glance; its sides' labels soft.) */
         .key {
           width: calc(100% + 8px);
           margin: 6px -4px 6px;
@@ -1392,7 +1281,6 @@
             text-align: left;
             white-space: nowrap;
 
-            /* (Each side's labels under its cloud's name: the rows' down the left, the columns' along the top.) */
             &[scope="row"] {
               vertical-align: middle;
             }
@@ -1402,7 +1290,7 @@
             padding: 8px;
             border-radius: 8px;
             background: color-mix(in srgb, var(--c) 12%, transparent);
-            /* (A step darker in light, on its tint: 5.2:1 at worst, where the trend's own colour gave 4.2.) */
+            /* A step darker in light: the trend's own colour gave 4.2:1 on its tint, under 4.5. */
             color: light-dark(color-mix(in oklab, var(--c) 90%, black), var(--c));
             font-weight: 600;
           }
@@ -1427,16 +1315,13 @@
         color: var(--soft);
         font-size: 13px;
 
-        /* What the clouds are made from and which coins they count: a label, then its choices, the one in use in ink. */
         .coins {
           display: grid;
           gap: 20px;
           margin-top: 14px;
           color: var(--faint);
 
-          /* (Each group its label over its choices (beside them, the first would read as the label's own when the rest
-             wrap), pills in a row that wraps: 32px tall and 14px apart, so a finger's 44px reach (unseen, inside its 1px
-             border) stays clear of the next row's.) */
+          /* Label over, not beside (the first choice would read as its own); rows apart so 44px reaches don't meet. */
           [role="group"] {
             display: flex;
             flex-wrap: wrap;
@@ -1476,7 +1361,6 @@
         }
       }
 
-      /* (A finger's reach, unseen: the brand and the replay, 44px tall, up and down only.) */
       :is(a.brand, .today) {
         position: relative;
 
@@ -1489,7 +1373,7 @@
         }
       }
 
-      /* (The brand's reach more up than down: clear of the mood's name under it.) */
+      /* The brand's reach more up than down: clear of the mood's name under it. */
       @media (pointer: coarse) {
         a.brand::before {
           inset: -18px 0 -8px;
@@ -1652,20 +1536,14 @@
       import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, SIDE_WORDS, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
       /** @typedef {import("./market.js").Basis} Basis @typedef {import("./market.js").Days} Days @typedef {import("./market.js").Answer} Answer @typedef {import("./market.js").Run} Run @typedef {import("./draw.js").Paint} Paint @typedef {import("./draw.js").Lit} Lit */
 
-      // Where Bitcoin's market stands, each day (its states and trends computed in market.js), told and drawn.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      /** A mood's name with its tag beside it, written into a .named `at`: its parts' ids `${id}-name`, `-extreme`
-       * (hidden but on an extreme day) and `-tag`. The header's and the mood panel's; gives the name. */
       function named(/** @type {HTMLElement} */ at, /** @type {string} */ id) {
         at.insertAdjacentHTML("beforeend", `<span id="${id}-name"></span><span class="sr">, </span><span class="tag"><span class="extreme" id="${id}-extreme" hidden>extreme<span class="sr">,</span></span><span class="move" id="${id}-tag"></span></span>`);
         return /** @type {HTMLElement} */ (at.querySelector(`#${id}-name`));
       }
-      // (The header's name presses: it lights its mood's days.)
       Object.assign(named($("state"), "hero"), { role: "button", tabIndex: 0, ariaPressed: "false", ariaLabel: "Loading" });
       named($("mood-named"), "mood");
-      /** An element's markup, or one of its style's properties, written only when it changes: a day told often, as Play
-       * does, mostly changes little, and a write of the same words still lays the page out again. Kept as written, never
-       * read back: the style gives its own spelling back ("1.6px" for "1.60px"). @type {WeakMap<Element, Record<string, string>>} */
+      /** Written only when changed (the same words still relayout), kept as written: style reads back its own spelling. @type {WeakMap<Element, Record<string, string>>} */
       const given = new WeakMap();
       function give(/** @type {Element} */ at, /** @type {string} */ value, /** @type {string} */ property = "") {
         let held = given.get(at);
@@ -1674,7 +1552,7 @@
         held[property] = value;
         if (property) /** @type {HTMLElement} */ (at).style.setProperty(property, value);
         else {
-          // (Words alone written into the text already there: no parser, and the page keeps its laid-out text.)
+          // Words alone go into the text already there: no parser, and the page keeps its laid-out text.
           const text = at.firstChild?.nodeType === Node.TEXT_NODE && !at.firstChild.nextSibling ? /** @type {Text} */ (at.firstChild) : null;
           if (value.includes("<")) at.innerHTML = value;
           else if (text) text.data = value;
@@ -1686,31 +1564,15 @@
         if (!(e.metaKey || e.ctrlKey || e.altKey)) delete document.documentElement.dataset.pointer;
       }, { capture: true });
 
-      // ── The states ──
-
       const trendIcon = (/** @type {number} */ t) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${TRENDS[t].arrow}" /></svg>`;
-
-      // ── Days ──
 
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
       const usd = (/** @type {number} */ n) => (n < 10 ? `$${n.toFixed(2)}` : `$${grouped(n)}`);
 
-      // ── The data, and every day's state from it ──
-
-      /**
-       * Which coins the clouds count, each age group weighted: mobile, by how likely its coins are ever to be spent;
-       * awake, by how much of its coin days have been spent. (Chosen at the page's foot; nearly the same states.)
-       * @type {"mobile" | "awake"}
-       */
+      /** @type {"mobile" | "awake"} */
       let coins = "mobile";
       const WEIGHTING = { mobile: "each group weighted by how likely its coins are ever to be spent", awake: "each group weighted by how much of its coins’ held time has been spent" };
-      /**
-       * What the clouds are made from (chosen at the page's foot, like the coins): each of its three groups' 40th and 60th
-       * percentiles of the cost basis, by dollar (inside, a group split: 40 to 60% of its dollars in profit), with their
-       * averages or alone, their medians, their averages, or both. With the words beside the compass for each, and its chart in
-       * Studio.
-       */
       const BASES = {
         "percentiles-and-average": {
           what: "the prices 40% and 60% of their dollars were bought under, and their average cost",
@@ -1739,15 +1601,11 @@
       let days = null;
 
 
-      // ── Colours: draw.css's, as the screen's scheme resolves them (see paletteOf) ──
-
       /** @type {Paint} */
       let paint;
-      /** Bumped as the days, the colours or the fonts change: in every kept drawing's key (see baked), so each is made again. */
+      /** Bumped as the days, the colours or the fonts change: it's in every kept drawing's key. */
       let drawings = 0;
-      /** Each mood's colour as words on `at`'s `ground` (from its colour `property`), as --words-{mood}: color.js legible.
-       * Read on unshown copies of its class, the colour, the ground and the page's under one scheme, all in one style
-       * pass, the live one left alone. The header's is a guard (its nine come out as they are). */
+      /** Read on unshown copies in one style pass, the live one left alone. */
       function wordsOver(/** @type {HTMLElement} */ at, /** @type {string} */ property, /** @type {string} */ ground) {
         const probes = STATES.map((s) => Object.assign(document.createElement("i"), { className: at.className, style: `display: none; ${property}: var(--s-${s.id}); border-color: var(--s-${s.id}); color: ${ground}; background: var(--app)` }));
         document.body.append(...probes);
@@ -1764,25 +1622,18 @@
         drawings++;
         refreshDistribution();
       }
-      /**
-       * A canvas's still part kept in a bitmap of its own, made again (`paintBase`, given its context in CSS pixels)
-       * only as its size, its density, the days, the colours (see drawings) or what else it shows (`key`) change, and
-       * copied in at each draw: the canvas sized and cleared, the still part in, its context left in CSS pixels for
-       * what moves over it.
-       */
       function baked(/** @type {HTMLCanvasElement} */ canvas) {
         const base = document.createElement("canvas"), g = /** @type {CanvasRenderingContext2D} */ (base.getContext("2d")), on = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         let was = "";
         return (/** @type {number} */ w, /** @type {number} */ h, /** @type {number} */ dpr, /** @type {string} */ key, /** @type {(g: CanvasRenderingContext2D) => void} */ paintBase) => {
           const W = Math.round(w * dpr), H = Math.round(h * dpr), now = `${W}×${H}×${dpr}|${drawings}|${key}`;
           for (const c of [canvas, base]) if (c.width !== W || c.height !== H) (c.width = W), (c.height = H);
-          // (Not laid out yet, e.g. drawn as the page scrolls right after loading: nothing to show, and drawImage of an empty canvas throws.)
+          // Not laid out yet: nothing to show, and drawImage of an empty canvas throws.
           if (!W || !H) return;
           if (now !== was) {
             was = now;
             g.setTransform(dpr, 0, 0, dpr, 0, 0);
             g.clearRect(0, 0, w, h);
-            // (Whatever it sets left behind: the next drawing starts from the same state.)
             g.save();
             paintBase(g);
             g.restore();
@@ -1794,38 +1645,25 @@
         };
       }
 
-      // ── What's shown: the span, the day ──
-
       const still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** The span the chart opens on: 8 years, two halving cycles. */
       const SPAN = 2922;
-      /** The chart's span in days (0: all; -1: none, moved by hand). */
+      /** 0: all; -1: none, moved by hand. */
       let span = SPAN;
-      /** The day shown above: pinned (kept), or under the pointer for now; else the last. */
       let pinned = /** @type {number | null} */ (null), hovered = /** @type {number | null} */ (null);
-      /** The day shown, said above and tagged on the chart: the one pointed at, else the one kept, else the last in the
-       * chart's view as the library reads one at rest (where it's going, for an eased move): today, unless the view's
-       * been moved back from it. */
       const shownDay = () => {
         const d = /** @type {Days} */ (days), g = goal(), last = lastIn(d.close, g.from, g.to);
         return hovered ?? pinned ?? (last >= d.first ? last : d.last);
       };
-      /** The day by the clock (UTC, as the server's days are). */
       const clockDay = () => Math.floor((Date.now() - EPOCH) / DAY);
-      /** A day as the page names it: today "Today", any other its date, so a server behind by days isn't taken for today. */
+      /** A server behind by days isn't taken for today. */
       const dayName = (/** @type {Days} */ d, /** @type {number} */ day) => (day === d.last && day >= clockDay() ? "Today" : dated(day));
-      /** "extreme " before an extreme day's mood, where it's said (see market.js extremeOf); else nothing. */
       const extremeSaid = (/** @type {Days} */ d, /** @type {number} */ day) => (d.extreme[day] ? "extreme " : "");
 
-      /** A span's days (0: all of them), and its view: the first at the left, the room past the latest kept after them (the timeline's rightOffset). */
       const spanLength = (/** @type {number} */ s) => { const d = /** @type {Days} */ (days), all = d.last - d.first + 1; return s ? Math.min(s, all) : all; };
       const spanRange = (/** @type {number} */ s) => time.shown(spanLength(s));
 
-      // ── The address: the span and the day kept, so a link opens on them (?span=1y&day=2021-11-10) ──
-
       const SPANS = /** @type {Record<string, number>} */ ({ "3m": 91, "1y": 365, "4y": 1461, "8y": 2922, max: 0 });
       const iso = (/** @type {number} */ day) => dateOf(day).toISOString().slice(0, 10);
-      /** The span's button pressed, none once the chart's been moved by hand. */
       function pressSpans() {
         for (const button of document.querySelectorAll("[data-span]")) button.setAttribute("aria-pressed", String(Number(/** @type {HTMLElement} */ (button).dataset.span) === span));
       }
@@ -1835,50 +1673,31 @@
         if (pinned !== null) query.set("day", iso(pinned));
         if (coins !== "mobile") query.set("coins", coins);
         if (basis !== BASIS) query.set("clouds", basis);
-        // (Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.)
+        // Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.
         try {
           history.replaceState(history.state, "", query.size ? `?${query}` : location.pathname);
         } catch {}
       }
-      /** What a link asks for, what it can of it: a span it names, a day from the first to the last but one, the span
-       * widened to show it. */
       function readAddress() {
         const d = /** @type {Days} */ (days), query = new URLSearchParams(location.search), asked = query.get("span"), day = query.get("day");
         if (asked !== null && Object.hasOwn(SPANS, asked)) span = SPANS[asked];
         const at = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? (Date.parse(day) - EPOCH) / DAY : NaN;
         if (Number.isInteger(at) && at >= d.first && at < d.last && iso(at) === day) pinned = at;
-        // (A day before the span: the shortest span that shows it.)
         if (pinned !== null && span && pinned <= d.last - span) span = Object.values(SPANS).find((s) => !s || /** @type {number} */ (pinned) > d.last - s) ?? 0;
       }
 
-      // ── The chart: Studio's (bitview-charts' createChart), its motion the library's own ──
-
       const chartBox = $("chart");
-      /** The dates' row under the plot (the chart's time axis), in CSS pixels. (No price axis: the day's price is said above.) */
       const YEARS = 30;
-      /** The room a price's marks take past it, CSS pixels: the widest, the crosshair's dot on the line a finger's on,
-       * its glow 7 past its marker's 4.5 (its plain dot reaches 6.5, today's 5.5). */
+      /** The room a price's marks take past it: the crosshair's dot with its glow. */
       const MARK = 12;
-      /** A pressed move's time (a span, back to today, a jump, the keys' zoom): Studio's page move (its --dur-page) on the
-       * controller's curve; at once with reduced motion. */
       const GLIDE = 380;
       const glideTime = () => (still.matches ? 0 : GLIDE);
-      /** The chart's look from the page's colours: its ground the page's, its dates in the faint ink, no grid, separator
-       * or crosshair lines (see engine). */
       const themeOf = (/** @type {Paint} */ p) => ({ background: p.app, text: p.faint, grid: "transparent", font: FONTS.dates, crosshair: "transparent", across: "transparent", badge: "transparent", separator: "transparent", active: "transparent" });
-      /**
-       * The chart, as Studio's: its pan, flick, pinch, wheel, held finger's crosshair and eased moves the library's.
-       * Embedded: an upright swipe scrolls the page. No price axis (the day's price is said above), its dates its time axis.
-       * Its pointer's crosshair drawn as nothing and its date written as nothing: the header says the day, and the
-       * page's own marks show it (see marks); the owner's call, a tag under a finger being hidden by it.
-       */
+      /** Crosshair and date tag drawn as nothing: the page's own marks show the day, a tag under a finger being hidden. */
       const engine = createChart(chartBox, { axis: 0, leftAxis: 0, timeHeight: YEARS, embedded: true, dateFormat: () => "" });
       engine.theme = themeOf(paletteOf(matchMedia("(prefers-color-scheme: dark)").matches));
       const time = engine.time, controller = engine.controller;
       const pane = engine.addPane({ scale: { mode: "log", top: 0, bottom: 0 }, format: () => "" });
-      /** The prices kept between the words over the chart (the day's line, its box's foot under its words and their
-       * halo) and the plot's foot, a mark's room (MARK) from each: no price under the words. Measured as the chart or the
-       * words over it are laid out. */
       function fitPlot() {
         const h = pane.height, words = $("when").getBoundingClientRect().bottom - chartBox.getBoundingClientRect().top;
         if (h > 0) pane.setScale("right", { top: (words + MARK) / h, bottom: MARK / h }), engine.invalidate(true);
@@ -1886,12 +1705,10 @@
       new ResizeObserver(fitPlot).observe($("hero"));
       engine.onLayout(() => {
         fitPlot();
-        // (A span pressed: its days again at the new width, the room past the latest day being in pixels. Not while a move
-        // eases: it ends where it was sent.)
+        // Again at the new width, as the room past the latest day is in pixels; not mid-ease: it ends where sent.
         if (days && span !== -1 && !controller.target) engine.show(spanLength(span));
       });
-      /** What the chart's colours follow, the moods' unless a viewer chose the trends': kept in their browser (where it
-       * can't be kept, the moods' each visit). @type {import("./draw.js").ColorBy} */
+      /** @type {import("./draw.js").ColorBy} */
       let colorBy = "mood";
       const COLOR_BY = "compass-colors-by";
       try {
@@ -1907,10 +1724,7 @@
         } catch {}
         redraw();
       });
-      /** The chart's series as last placed (see placeHero), for the days, colours, what they follow and what's lit. */
       let heroPlaced = /** @type {ReturnType<typeof heroOf>} */ ([]), heroKey = "";
-      /** The chart's series for the days, the colours, what they follow and what's lit (see heroOf), placed again as any
-       * changes. */
       function placeHero() {
         const key = `${drawings}|${litKey(lit)}|${colorBy}`;
         if (!days || key === heroKey) return;
@@ -1919,29 +1733,21 @@
         for (const series of (heroPlaced = heroOf(days, paint, lit, colorBy))) pane.add(series);
         engine.invalidate(true);
       }
-      /**
-       * A line down the crosshair's day, firm where it's the day kept (the crosshair's own dot on the line its price):
-       * drawn with the crosshair, under its dot.
-       */
       pane.add(new Custom({
         draw(g, { time, scale }) {
           const at = engine.crosshair.index;
           if (!days || !(at >= time.from && at <= time.to)) return;
           const x = Math.round(time.x(at)) + 0.5, kept = at === pinned && hovered === null, w = kept ? 1.5 : 1;
-          // (One strength from the screen's top to the plot's foot, behind the words over the chart: haloed, see .hero.)
           g.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
           g.fillRect(x - w / 2, 0, w, scale.height);
         },
       }, { crosshair: true }));
-      /** Today's price ringed in its colour (its mood's or its trend's, as the chart's), at its point (moved with the line as it is): over the chart, drawn
-       * each frame. */
       const marks = pane.add(new Custom({
         draw(g, { time, scale }) {
           const d = days;
           if (!d || d.last < time.from || d.last > time.to) return;
           g.beginPath();
           g.arc(time.x(d.last), scale.y(d.close[d.last]), 4.5, 0, Math.PI * 2);
-          // (Today's price faded while the server isn't answering, as its words say: not a live one.)
           const color = colorAt(paint, d, d.last, colorBy);
           g.fillStyle = failing ? withAlpha(color, 0.35) : color;
           g.fill();
@@ -1951,8 +1757,6 @@
         },
       }, { over: true }));
 
-      /** Each day's time on the chart's timeline (an index a day since EPOCH), made again only as the days end elsewhere;
-       * its data held from their first day, as a chart's from its first point. */
       function onDays(/** @type {Days} */ d) {
         time.first = d.first;
         if (time.length === d.last + 1) return;
@@ -1961,21 +1765,16 @@
         engine.setTimes(times);
       }
 
-      /** Whether a pointer is a finger, as last pressed or moved on the chart: a held finger's crosshair ends Play, a
-       * mouse passing over doesn't. */
+      /** A held finger's crosshair ends Play; a mouse passing over doesn't. */
       let byTouch = false;
       for (const type of ["pointerdown", "pointermove"]) chartBox.addEventListener(type, (e) => (byTouch = /** @type {PointerEvent} */ (e).pointerType === "touch"), { capture: true, passive: true });
-      /** The view Play last left the chart at: moved from it by anything else, Play ends. */
       let playView = { from: NaN, to: NaN };
-      /** The view a span's press sends it to (its glide isn't a move by hand: the span stays pressed). @type {{ from: number, to: number } | null} */
+      /** A span's glide isn't a move by hand: the span stays pressed. @type {{ from: number, to: number } | null} */
       let spanGoal = null;
-      /** Whether the view is a span's (within a pixel at either end, as its glide leaves it). */
       const atSpan = (/** @type {number} */ from, /** @type {number} */ to) => {
         const g = spanRange(span);
         return Math.abs(g.from - from) * time.spacing < 1 && Math.abs(g.to - to) * time.spacing < 1;
       };
-      // (The view moved, whatever moved it: no span pressed once it's left the span's, Play ended once something else
-      // moved it, the day shown said again and the pan bar's window on it, in the frame that drew it.)
       engine.onRange((from, to) => {
         if (!days) return;
         if (span !== -1 && !(controller.target && controller.target === spanGoal) && !atSpan(from, to)) (span = -1), pressSpans(), remember();
@@ -1984,20 +1783,14 @@
         drawPan();
         launch();
       });
-      // (The crosshair's day, the header's: a mouse's or a held finger's, as Studio's legend reads its crosshair. A finger
-      // on the chart takes it from Play; a mouse reads a day while Play goes on, its day said again once it leaves.)
       engine.onCrosshair((index, _pane, _y, input) => {
         if (!days || !input) return;
         const next = index === index ? Math.max(days.first, Math.min(days.last, index)) : null;
         if (playing && next !== null && byTouch) endPlay();
-        // (Said now, in the frame that draws it: its marks are drawn after its listeners are told.)
+        // Said now, in the frame that draws it: its marks are drawn after its listeners are told.
         if (next !== hovered) (hovered = next), tell(), redraw();
       });
-      /** The last press let go on the chart, when and where (a second one soon after, near it, is a double click). */
       let lastPress = { at: -Infinity, x: 0 };
-      // (A press toggles play, as its button does: playing, it pauses on its day; paused there, it plays on. A second
-      // press soon after the first (a double click or tap): play stopped and the day let go, back to today. Anything
-      // else, a press keeps nothing.)
       engine.onClick((_index, _pane, _series, _y, x) => {
         if (!days) return;
         const now = performance.now(), second = now - lastPress.at < 400 && Math.abs(x - lastPress.x) < 24;
@@ -2006,10 +1799,8 @@
         if (playing) stopPlay(), show(true);
         else if (pinned !== null && pinned === pausedOn) play();
       });
-      // (The dates' row double-clicked or double-tapped, as Studio's: back to today.)
       engine.onTimeReset(() => days && backToToday());
 
-      /** Back to today: play stopped, the day let go, the view eased to the latest. */
       function backToToday() {
         const d = /** @type {Days} */ (days);
         stopPlay();
@@ -2017,27 +1808,18 @@
         keepVisible(d.last, true);
         show(true);
       }
-      /** A load's first frame drawn, or its read failed: out of loading, and a home screen's launch told that the page is
-       * ready to be seen (once: launch.js keeps to its first). */
+      /** Tells a home screen's launch the page is ready (launch.js keeps to its first). */
       function launch() {
         if (!chartBox.classList.contains("loading")) return;
         chartBox.classList.remove("loading");
         /** @type {any} */ (window).bitviewLaunch?.ready();
       }
-      /** The canvases' pixels to a CSS pixel: the screen's, 2 at most (a phone's 3 cost over twice the pixels to fill
-       * each frame, for a sharpness its eye can't tell). */
+      /** 2 at most: a phone's 3 costs over twice the pixels per frame, for a sharpness the eye can't tell. */
       const density = () => Math.min(2, devicePixelRatio || 1);
 
-      // ── Drawing: the page's own, once a frame (the chart draws itself) ──
-
       let queued = 0;
-      /** The sections on screen, by id. The compass (its cells' words, its trail, the strip, the panel: all as of
-       * told.day) follows the day shown, which a drag on the chart moves every frame; off screen it's told only for new
-       * days (at 4x CPU, telling it every frame was most of a drag's main thread: 1.8-2.4 s against 0.8 s without), and
-       * catches up as it comes into view. The index chart and its distribution, as of the day too, are drawn only on
-       * screen alike (at 4x CPU during Play, drawn off screen they were 2.5 ms of a frame's 3). */
+      /** Off screen the compass is told only new days (each frame was most of a drag's main thread), catching up in view. */
       const seen = new Set();
-      /** Whether the compass is behind the day told (told while off screen). */
       let compassBehind = false;
       const seeing = new IntersectionObserver((entries) => {
         for (const e of entries) e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id);
@@ -2046,8 +1828,6 @@
         refreshDistribution();
       });
       for (const id of ["atlas", "index-chart", "distribution"]) seeing.observe($(id));
-      /** The page's drawings, once a frame: a playing day moved on, the chart's series for what's lit, then the compass,
-       * the strip, the index and the pan bar. */
       function frame(/** @type {number} */ now) {
         queued = 0;
         if (!days) return;
@@ -2060,46 +1840,36 @@
         if (more) redraw();
       }
       const redraw = () => (queued ||= requestAnimationFrame(frame));
-      /** An element's client size, kept by a ResizeObserver (which answers after layout, so its read is free), then a
-       * redraw: a frame's draws never read layout, where a read after that frame's own writes (the header's words, the
-       * mood's colour) lays the page out a second time. */
+      /** Read by a ResizeObserver, after layout: a frame's draws never read layout, which would lay the page out twice. */
       function sized(/** @type {HTMLElement} */ element) {
         const box = { w: element.clientWidth, h: element.clientHeight };
         new ResizeObserver(() => ((box.w = element.clientWidth), (box.h = element.clientHeight), redraw())).observe(element);
         return box;
       }
-      // (A window moved to a screen of another density: drawn again at it, its size unchanged.)
       (function density() {
         matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener("change", () => (redraw(), density()), { once: true });
       })();
 
-      /** To a span: its days, glided there as Studio's range presets are; the span stays pressed while it goes. */
       function goTo(/** @type {number} */ s) {
         stopPlay();
         span = s;
         pressSpans();
         spanGoal = spanRange(s);
-        // (A kept day before the new span: its first, so what's said and drawn agree.)
         if (pinned !== null && pinned < spanGoal.from + 0.5) pinned = Math.ceil(spanGoal.from + 0.5);
         controller.viewTo(spanGoal, glideTime());
         remember();
         show();
       }
-      /** Where the view is going: an eased move's end, else where it is. */
       const goal = () => controller.target ?? { from: time.from, to: time.to };
-      /** The view `length` days wide from `from`, as the timeline holds it (see Timeline's within and held). */
       function fit(/** @type {number} */ from, /** @type {number} */ length) {
         length = time.within(length);
         const by = time.held(from, from + length);
         return { from: from + by, to: from + length + by };
       }
-      /** The view moved just enough to show a day (by its nearer end), as long as it is: glided there for a press (back
-       * to today, a jump), at once for a step (a key, Play, the slider), which follows the hand. */
       function keepVisible(/** @type {number} */ day, ease = false) {
         const g = goal(), length = g.to - g.from, room = (time.rightOffset / time.width) * length;
         const to = (/** @type {number} */ from) => controller.viewTo(fit(from, length), ease ? glideTime() : 0);
         if (day < Math.ceil(g.from + 0.5)) to(day - 0.5);
-        // (Past its right: brought in where the latest day sits, the room after it.)
         else if (day > Math.floor(g.to - room)) to(day + room - length + 0.5);
       }
 
@@ -2121,11 +1891,8 @@
           zoom(e.key === "-" ? 1.25 : 0.8);
         } else if (e.key === "Escape" && (pinned !== null || hovered !== null || d.last > goal().to)) backToToday();
       });
-      /** The chart's days made `by` times as many (more than 1 out, less in), about its middle, glided there as a span's
-       * change is (the − and + keys). */
       function zoom(/** @type {number} */ by) {
         stopPlay();
-        // (From where the view's going, so presses in a row add up.)
         const g = goal(), next = time.within((g.to - g.from) * by);
         controller.viewTo(fit((g.from + g.to) / 2 - next / 2, next), glideTime());
       }
@@ -2134,22 +1901,14 @@
       });
       $("today").addEventListener("click", () => days && backToToday());
 
-      // ── The pan bar: all the history, the chart's days a window on it; dragged to move, its ends to show more or
-      // fewer; pressed elsewhere, the window goes there ──
-
       const pan = $("pan"), panCanvas = /** @type {HTMLCanvasElement} */ ($("pan-canvas")), panContext = /** @type {CanvasRenderingContext2D} */ (panCanvas.getContext("2d")), panSize = sized(pan);
-      /** Its history drawn once (for a size, a density, colours), the window over it as it moves. */
       const bakePan = baked(panCanvas), panScale = new Scale({ mode: "log", top: 0, bottom: 0 });
-      /** Its window's least width, as Studio's (a finger's wider), and how near its edges a press takes them. */
       const TOUCH = matchMedia("(hover: none)").matches, PAN_LEAST = TOUCH ? 36 : 24;
-      /** All the history across it: each day a column, the first's left edge at its left. */
       const panSpan = () => { const d = /** @type {Days} */ (days); return { from: d.first - 0.5, to: d.last + 0.5 }; };
-      /** Its drags, Studio's navigator's (see Navigator): on the chart's view, a jump glided as the spans' presses are. */
       new Navigator(pan, engine, {
         overview: () => (days ? panSpan() : null),
         length: () => { const d = /** @type {Days} */ (days); return d.last - d.first + 1; },
         data: () => days,
-        // (A view as long as the chart lets one be: the end named kept, as a zoom's at the latest keeps its room.)
         within: ({ from, to }, keep) => {
           const over = to - from - time.within(to - from);
           return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
@@ -2160,17 +1919,11 @@
         grip: TOUCH ? 7 : 5,
         pressed: endPlay,
       });
-      /** All the history `w` wide (see historyTime), its colours (its moods' or its trends') drawn as the chart's are, at
-       * `alpha` (see fadedPalette), filling `scale`'s height. */
       const historyTime = new Timeline();
       function drawHistory(/** @type {CanvasRenderingContext2D} */ g, /** @type {Days} */ d, /** @type {number} */ w, /** @type {Scale} */ scale, /** @type {number} */ alpha, /** @type {number} */ dpr, /** @type {import("./draw.js").ColorBy} */ by) {
-        // (Its days set as its fields: a whole-history view, no times, nothing to limit.)
         (historyTime.from = d.first - 0.5), (historyTime.to = d.last + 0.5), (historyTime.width = w);
         new Shade({ values: d.close, colors: colorsOf(d, lit, by), palette: fadedPalette(paint, by, (color, k) => withAlpha(color, alpha * k)) }).draw(g, historyTime, scale, 0, w, dpr);
       }
-      /** What the pan bar was last drawn for: drawn again only as its window, size, density, days, colours, what they
-       * follow or lights change
-       * (not for a crosshair's move, which redraws the page's frame). */
       let panDrawn = "";
       function drawPan() {
         if (!days) return;
@@ -2180,15 +1933,13 @@
         if (now === panDrawn) return;
         panDrawn = now;
         bakePan(w, h, dpr, `${litKey(lit)}|${colorBy}`, (g) => {
-          // (All the history: its colours drawn as the chart's are, the price over them.)
           let lo = Infinity, hi = -Infinity;
           for (let i = d.first; i <= d.last; i++) (lo = Math.min(lo, d.close[i])), (hi = Math.max(hi, d.close[i]));
           (panScale.height = h), (panScale.above = 4), (panScale.below = 4), (panScale.lo = lo), (panScale.hi = hi);
           drawHistory(g, d, w, panScale, 0.35, dpr, colorBy);
           new Line({ values: d.close, color: paint.ink, width: 1 }).draw(g, historyTime, panScale, 0, w, dpr);
         });
-        // (Outside the window, dimmed: all of it but the window's own rounded shape, as its frame draws it (its least
-        // width, its corners 8px), so no bright corner shows past its frame.)
+        // Dimmed outside the window's rounded shape too: no bright corner shows past the frame.
         panContext.beginPath();
         panContext.rect(0, 0, w, h);
         panContext.roundRect(a, 0, b - a, h, 8);
@@ -2198,37 +1949,25 @@
         give(pan, `${b}px`, "--to");
       }
 
-      // ── Where it stands, above: the day shown's ──
-
-      /** "Back to today", there while another day's shown (kept, or the last in view) or today's out of the chart's view,
-       * not while one's pointed at. */
       function sayToday() {
         const d = /** @type {Days} */ (days);
         const hidden = (shownDay() === d.last && d.last <= goal().to) || hovered !== null;
         if ($("today").hidden !== hidden) $("today").hidden = hidden;
       }
-      /** The day shown, everywhere it's said and drawn. */
       function show(say = false) {
         tell(say);
         redraw();
-        // (Its marks on the chart: drawn by the chart's next frame.)
         engine.invalidate();
       }
-      /** When the server last answered the live reads, and whether it's stopped since: the day's words say so. */
       let readAt = 0, failing = false;
-      /** The day shown, everywhere it's said: above the chart, the compass and its panel, the index. The day last told,
-       * the days and whether reads were failing, as it was told: told again only when any changes (a span's change, a
-       * drag, keep the day, new days, the server stopping or answering again). */
       let toldDay = -1, toldDays = /** @type {Days | null} */ (null), toldFailing = failing;
       const clock = (/** @type {number} */ ms) => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
       function tell(say = false) {
         if (!days) return;
-        // (The day kept marked by the chart's crosshair, as a pointer's is, while none points.)
         if (hovered === null && !Object.is(engine.crosshair.index, pinned ?? NaN)) engine.setCrosshair(pinned ?? NaN);
         if (!say && shownDay() === toldDay && days === toldDays && failing === toldFailing) return sayToday();
         const anew = days !== toldDays;
         (toldDay = shownDay()), (toldDays = days), (toldFailing = failing);
-        // (The index and its distribution as of the day: drawn in the next frame.)
         refreshDistribution(), redraw();
         const d = days, day = shownDay(), s = d.state[day], state = STATES[s];
         sayToday();
@@ -2236,48 +1975,32 @@
         if ($("hero-extreme").hidden !== !d.extreme[day]) $("hero-extreme").hidden = !d.extreme[day];
         give($("stage"), `var(--s-${state.id})`, "--state");
         give($("stage"), `var(--words-${state.id})`, "--words");
-        // (What the name lights, and whether it's pressed: said again only when the day's mood changes.)
         if ($("hero-name").dataset.light !== String(s)) ($("hero-name").dataset.light = String(s)), sayLitAt($("hero-name"));
-        // (The day under the name, with its price: "Today", or its date, so the words under it aren't taken for today's;
-        // today's, while the server isn't answering, as of its last answer, so a reading that's stopped isn't taken for a
-        // live one.)
+        // "As of" while the server isn't answering, so a reading that's stopped isn't taken for a live one.
         const named = dayName(d, day), when = named === "Today" && failing ? `As of ${clock(readAt)}` : named;
         give($("day"), `${when} · `);
         give($("price"), usd(d.close[day]));
-        // (Beside the name, its move and its run's day up to the day shown: never past it, on any day what was known that day.)
+        // Never past the day shown: on any day, what was known that day.
         const runs = runsOf(d)[s];
         give($("hero-tag"), `${state.move} · Day ${day - runs[endedBy(runs, day)].first + 1}`);
-        // (Its index beside the price, none in the warm-up before there is one.)
         const index = Math.round(d.index[day]);
         if ($("index-at").hidden !== Number.isNaN(index)) $("index-at").hidden = Number.isNaN(index);
         give($("index-now"), String(index));
         give($("index-now"), `var(--s-${TRENDS[state.trend].color})`, "--trend");
         give($("index-read"), Number.isNaN(index) ? "Where the day sits on the compass." : `${named} <b>${index}</b>: where the day sits on the compass.`);
-        // (Off screen, the compass is told only for new days or a day set on purpose (the slider, the keys, a jump), not
-        // for a hand's drag or slide on the chart: see seen.)
         if (anew || say || seen.has("atlas")) tellCompass(day);
         else compassBehind = true;
         if (say) remember();
         if (say) $("said").textContent = `${dated(day)}: ${extremeSaid(d, day)}${state.name}, ${TRENDS[state.trend].name.toLowerCase()} trend${Number.isNaN(index) ? "" : `, index ${index}`}.`;
       }
 
-      // ── Moods lit: each pressed wherever it's named (its compass cell, a compass side, the words over the chart), as
-      // many as wanted; the days lit keep their colours wherever days are drawn (the chart's fills, the pan bar, the
-      // strip), every other day's faded, the price itself as it is; the compass's other cells dimmed. Pressed again,
-      // each let go; Escape, all ──
-
-      /** The moods lit (empty: none). @type {Lit} */
+      /** @type {Lit} */
       const lit = noneLit();
-      /** The moods a lighting key names: one ("3"), or a compass side's three ("0,1,2", the days above the long-term
-       * cloud). */
       const keyOf = (/** @type {string} */ key) => key.split(",").map(Number);
-      /** Whether all a key names are lit. */
       const allLit = (/** @type {string} */ key) => keyOf(key).every((i) => lit.state.has(i));
-      /** What a key names lit, or let go if all of it was. */
       function light(/** @type {string} */ key) {
         const ids = keyOf(key), on = !allLit(key);
         for (const i of ids) on ? lit.state.add(i) : lit.state.delete(i);
-        // (One mood pressed: the one told of beside the compass while it's lit, its run said aloud.)
         const one = ids.length === 1 && on;
         if (one) moodPressed = ids[0];
         tellMood();
@@ -2285,20 +2008,16 @@
         sayLit();
         redraw();
       }
-      /** What's lit, where it's named: pressed there, the others dimmed. */
       function sayLit() {
         for (const at of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-light]"))) sayLitAt(at);
         document.body.classList.toggle("lighting", lighting(lit));
       }
-      /** Whether one name's lit, said: written only where it changes (an attribute written restyles what reads it). */
+      /** Written only where it changes: an attribute written restyles what reads it. */
       function sayLitAt(/** @type {HTMLElement} */ at) {
         const on = allLit(/** @type {string} */ (at.dataset.light)), pressed = String(on);
         at.classList.toggle("lit", on);
         if (at.hasAttribute("role") && at.getAttribute("aria-pressed") !== pressed) at.setAttribute("aria-pressed", pressed);
       }
-      /** A press that lights its names: on one column, a mood lit from the compass scrolls just far enough to bring its
-       * panel's name into view under it (the panel's below it there; beside it, it's in view already), never so far
-       * that the cell pressed leaves the top: what was pressed and what it opened, seen together. */
       const oneColumn = matchMedia("(width < 900px)");
       function press(/** @type {HTMLElement | SVGElement} */ at) {
         const key = /** @type {string} */ (at.dataset.light);
@@ -2317,24 +2036,11 @@
         else if (e.key === "Escape" && lighting(lit)) lit.state.clear(), tellMood(), sayLit(), redraw();
       });
 
-      // ── The compass ──
-
-      /** A key's percent of the days counted, from the moods' whole percents: the sum of those of what it names. */
       const percentOf = (/** @type {string} */ key, /** @type {number[]} */ shown) => `${keyOf(key).reduce((sum, i) => sum + shown[i], 0)}%`;
       const compass = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("compass")));
-      /**
-       * The compass's parts a day changes, found once as it's built (null before the days are read): those it's drawn
-       * with (see compassParts); each share and its key.
-       * @type {ReturnType<typeof compassParts> & { shares: [Element, string][] } | null}
-       */
+      /** @type {ReturnType<typeof compassParts> & { shares: [Element, string][] } | null} */
       let parts = null;
 
-      /** The compass: before the days are read, its cells alone, their shares dashes (written by tellCompass, as of the
-       * day shown). */
-      // (The trends' key, their arrows from TRENDS, as the compass draws them.)
-      // (The how's key: the compass's nine cells as it lays them out (see buildCompass), rows by the long-term cloud
-      // down from above it, columns by the short-term one out from below it, each in its trend's colour, as the words
-      // under it name them.)
       const ROWS = /** @type {const} */ ([1, 0, -1]), COLUMNS = /** @type {const} */ ([-1, 0, 1]);
       $("moods-key").innerHTML = `<thead><tr><th>Long-term</th><th scope="colgroup" colspan="3">Short-term</th></tr><tr><td></td>${COLUMNS.map((c) => `<th scope="col">${SIDE_WORDS[c]}</th>`).join("")}</tr></thead><tbody>${ROWS.map((r) => `<tr><th scope="row">${SIDE_WORDS[r]}</th>${COLUMNS.map((c) => STATES[stateOf(r, c)]).map((s) => `<td style="--c: var(--s-${TRENDS[s.trend].color})">${s.name}</td>`).join("")}</tr>`).join("")}</tbody>`;
       const trendKeys = TRENDS.map((t) => `<svg viewBox="0 0 16 16" aria-hidden="true" stroke="var(--s-${t.color})"><path d="${t.arrow}" /></svg> ${t.name.toLowerCase()}`);
@@ -2352,9 +2058,8 @@
       new ResizeObserver(() => fitCompass(compass)).observe(compass);
       document.fonts.ready.then(() => fitCompass(compass));
 
-      /** The day the compass was last drawn for (-1: drawn again whatever the day). */
+      /** -1: drawn again whatever the day. */
       let compassDrawn = -1;
-      /** The compass on the day shown (see drawCompassDay), once a day. */
       function drawCompass() {
         if (!days || !parts || !told || told.day === compassDrawn) return;
         const d = days, day = (compassDrawn = told.day), s = STATES[d.state[day]];
@@ -2362,18 +2067,13 @@
         compass.setAttribute("aria-label", `The nine moods as a compass: ${dated(day)}, ${extremeSaid(d, day)}${s.name}, ${TRENDS[s.trend].name.toLowerCase()} trend.`);
       }
 
-      // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the compass's day ──
-
       const strip = /** @type {HTMLCanvasElement} */ ($("strip")), stripContext = /** @type {CanvasRenderingContext2D} */ (strip.getContext("2d")), stripSize = sized(strip);
       const stripTrack = $("strip-track"), slider = /** @type {HTMLInputElement} */ ($("slider"));
       const stripScale = new Scale({ mode: "linear", top: 0, bottom: 0 });
-      /** What the strip was last drawn for: still (its handle's the page's, over it), it's drawn again only as its size,
-       * its density, the days, the colours (see drawings) or what's lit change. */
       let stripDrawn = "";
       function drawStrip() {
         if (!days) return;
         const d = days, all = d.last - d.first + 1, dpr = density(), { w, h } = stripSize;
-        // (The handle on the day.)
         give(stripTrack, `${((((told?.day ?? shownDay()) - d.first + 0.5) / all) * w).toFixed(1)}px`, "--at");
         const now = `${Math.round(w * dpr)}×${Math.round(h * dpr)}×${dpr}|${drawings}|${litKey(lit)}`;
         if (now === stripDrawn) return;
@@ -2381,8 +2081,7 @@
         (strip.width = Math.round(w * dpr)), (strip.height = Math.round(h * dpr));
         const g = stripContext, band = stripTrack.clientHeight;
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        // (The moods drawn as the chart's are, tinted as the compass's cells are, not at full strength; held to the
-        // track's rounded box, as a pane holds its series: a stretch's half day of room reaches past its ends.)
+        // Held to the track's rounded box: a stretch's half day of room reaches past its ends.
         g.save();
         g.beginPath();
         g.roundRect(0, 0, w, band, parseFloat(getComputedStyle(stripTrack).borderRadius));
@@ -2390,7 +2089,6 @@
         stripScale.height = band;
         drawHistory(g, d, w, stripScale, 0.5, dpr, "mood");
         g.restore();
-        // (Its years along its foot at their first days: every one that fits, else every 2nd, 4th, 5th or 10th.)
         const per = (w * 365.25) / all, every = [1, 2, 4, 5, 10].find((k) => per * k >= 40) ?? 20;
         (g.font = FONTS.dates), (g.fillStyle = paint.faint), (g.textAlign = "center"), (g.textBaseline = "alphabetic");
         for (let y = Math.ceil((dateOf(d.first).getUTCFullYear() + 1) / every) * every; y <= dateOf(d.last).getUTCFullYear(); y += every) {
@@ -2399,30 +2097,18 @@
         }
       }
 
-      // ── The index, in a part of its own: every day from a year after the first to today, in its trends' colours, on a
-      // chart of its own as the price's is (Studio's), as of the day told: that day ringed, the days after it faded; its
-      // value tagged on its axis and its date and price along its foot, both for the day it reads (indexDay) ──
-
       const indexChart = $("index-chart");
-      /** Its room over 100 (CSS pixels: its number's words, more than a mark's room, MARK), its tags' axis' least width, its dates' row,
-       * and the room past the blank after its last day kept for its quarters' numbers (with the phone's 18px blank, a
-       * "100" clear of today's ring). */
       const INDEX_LAYOUT = { top: 16, right: 46, dates: 26, numbers: 14 };
       const indexThemeOf = (/** @type {Paint} */ p) => ({ ...themeOf(p), crosshair: withAlpha(p.ink, 0.28), badge: p.ink });
       const indexEngine = createChart(indexChart, { axis: INDEX_LAYOUT.right, leftAxis: 0, timeHeight: INDEX_LAYOUT.dates, embedded: true, dateFormat: () => { const day = indexDay(); return `${dated(day)} · ${usd(/** @type {Days} */ (days).close[day])}`; } });
       indexEngine.theme = indexThemeOf(paletteOf(matchMedia("(prefers-color-scheme: dark)").matches));
       indexEngine.time.reserve = INDEX_LAYOUT.numbers;
       const indexPane = indexEngine.addPane({ scale: { mode: "linear", top: 0, bottom: 0 }, format: () => "" });
-      /** The day its tags and its date read: the crosshair's (on the indexed days: past today, today's, as the header
-       * reads the hero's), else the day told. */
       function indexDay() {
         const d = /** @type {Days} */ (days), at = indexEngine.crosshair.index;
         return at === at ? Math.max(indexEngine.time.first, Math.min(d.last, at)) : toldDay;
       }
-      /** The days after the day told veiled by an element over its plot (.later, under the crosshair), so a new day
-       * draws none of the line again; its quarters' lines over that, whole, and their numbers by its axis, in the room
-       * past its last day, clear of the line; the day told ringed; its value on the day read tagged on its axis, in
-       * that day's trend's colour. */
+      /** Later days are veiled by an element over the plot, so a new day redraws none of the line. */
       const indexLater = indexPane.frame.appendChild(document.createElement("div"));
       indexLater.className = "later";
       const indexMarks = indexPane.add(new Custom({
@@ -2445,19 +2131,13 @@
           const d = days, day = indexDay(), value = d.index[day];
           if (value === value) add(scale.y(value), String(Math.round(value)), colorAt(paint, d, day, "trend"), paint.dark ? paint.app : "#fff");
         },
-        // (Room past 100 and 0: the line's marks whole there, the held crosshair's dot and its glow too, as the hero's.)
         margins(_spacing, out) {
           (out[0] = INDEX_LAYOUT.top), (out[1] = MARK);
         },
       }, { over: true }));
-      /** Its scale 0 to 100 whatever's in view: a fit, its pane fitted each frame (a range set by hand would slide with a
-       * drag's drift up or down, as Studio's axis dragged by hand does). */
+      /** A fit, its pane fitted each frame: a range set by hand would slide with a drag's drift up or down. */
       indexMarks.fit = (_a, _b, _positive, out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
-      // (Its tags read the crosshair's day: told again as it moves.)
       indexEngine.onCrosshair(() => (indexMarks.changed(), indexEngine.invalidate()));
-      /** Its line and quarters, for its days, colours and what's lit (a new day told only moves its veil and ring); its
-       * timeline on the indexed days, all of them in view as they begin elsewhere (a new day moves a view ending on it
-       * with it). */
       let indexKey = "", indexTold = -1, indexPlaced = /** @type {ReturnType<typeof indexOf> | null} */ (null);
       function placeIndex() {
         const d = /** @type {Days} */ (days), key = `${drawings}|${litKey(lit)}`, from = indexedFrom(d), time = indexEngine.time;
@@ -2479,7 +2159,6 @@
         indexMarks.changed();
         indexEngine.invalidate(true);
       }
-      /** The distribution's pointers: a mouse hovers, a finger holds and slides. */
       function inspectPointers(/** @type {HTMLElement} */ element, /** @type {(event: PointerEvent) => void} */ point, /** @type {() => void} */ leave, focus = () => {}) {
         element.addEventListener("pointerdown", (e) => {
           if (e.pointerType === "mouse") focus();
@@ -2491,16 +2170,10 @@
         element.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") leave(); });
       }
 
-      // ── The index's daily distribution ──
-
       const DISTRIBUTION_BINS = 50, DISTRIBUTION_WIDTH = 100 / DISTRIBUTION_BINS;
       const distributionValue = (/** @type {number} */ value) => Number.isFinite(value) && value >= 0 && value <= 100 ? value : NaN;
       const bucketOf = (/** @type {number} */ value) => Math.min(DISTRIBUTION_BINS - 1, Math.floor(value / DISTRIBUTION_WIDTH));
-      /** A distribution: each bar's time (its days, each weighted by recency) and days, the time up to each bar's top,
-       * and the whole time. */
       const emptyDistribution = () => ({ counts: new Float64Array(DISTRIBUTION_BINS), days: new Uint32Array(DISTRIBUTION_BINS), cumulative: new Float64Array(DISTRIBUTION_BINS), total: 0 });
-      /** Each indexed day's bar in its trend (trend × bars + bar; -1, none: no value) and its weight, as the index ranks
-       * it: found once for the days, so a count as of another day is one pass over typed arrays. */
       function slotsOf(/** @type {Days} */ d) {
         const from = indexedFrom(d), slots = new Int16Array(Math.max(0, d.last - from + 1)).fill(-1), weights = new Float64Array(slots.length);
         for (let i = from; i <= d.last; i++) {
@@ -2511,9 +2184,7 @@
         }
         return { from, slots, weights };
       }
-      /** The distribution as of `day`: the indexed days up to it, what was known then. Counts and cumulative counts share
-       * exactly the same eligible days and denominator; each day by its weight (a later day's own weights are these
-       * times a constant, so its shares are the same). */
+      /** A later day's weights are these times a constant, so its shares are the same. */
       function distributionOf(/** @type {ReturnType<typeof slotsOf>} */ { from, slots, weights }, /** @type {number} */ day) {
         const trends = TRENDS.map(emptyDistribution);
         for (let k = 0, end = Math.min(slots.length, day - from + 1); k < end; k++) {
@@ -2541,7 +2212,6 @@
         return combined;
       }
 
-      /** Keeps the distribution's state, cached drawing and input handling together. */
       const refreshDistribution = (() => {
         const trends = $("distribution-trends"), spanLabel = $("distribution-span"), bucketLabel = $("distribution-bucket");
         const input = /** @type {HTMLInputElement} */ ($("distribution-input")), canvas = /** @type {HTMLCanvasElement} */ ($("distribution-canvas"));
@@ -2555,22 +2225,17 @@
           if (count < total && (total - count) * 1000 < total) return ">99.9%";
           return percent.format(count / total);
         };
-        // (The days' slots, found again for new days; the day counted to, the day told, counted again as it changes.)
         let source = /** @type {Days | null} */ (null), slotted = /** @type {ReturnType<typeof slotsOf>} */ ({ from: 0, slots: new Int16Array(), weights: new Float64Array() });
         let counted = NaN, histogram = /** @type {ReturnType<typeof distributionOf>} */ ([]);
         let selected = /** @type {number | null} */ (null), pending = 0;
         let combined = emptyDistribution();
-        // (Its figures led by the bar they're at.)
         trends.innerHTML = TRENDS.map((t, i) => `<button class="distribution-entry" type="button" data-trend="${i}" aria-pressed="true" style="--trend: var(--s-${t.color})">${trendIcon(i)}${t.name}<span class="distribution-count"></span></button>`).join("");
         const counts = [...trends.querySelectorAll(".distribution-count")];
-        /** A distribution's time below bar `b`, under its lower edge (the curve's height there). */
         const belowOf = (/** @type {ReturnType<typeof emptyDistribution>} */ trend, /** @type {number} */ b) => (b ? trend.cumulative[b - 1] : 0);
         input.max = String(DISTRIBUTION_BINS - 1);
         const margins = { left: 6, right: 40, top: 24, bottom: 30 };
-        // (Its size as last laid out, a draw reading no layout: see sized.)
         const size = sized(canvas);
         const layout = () => ({ left: margins.left, right: size.w - margins.right, top: margins.top, bottom: size.h - margins.bottom });
-        /** The index on the day counted to, none in the warm-up before there is one. */
         const valueOn = (/** @type {Days} */ d) => (counted >= indexedFrom(d) ? distributionValue(d.index[counted]) : NaN);
         const schedule = () => { pending ||= requestAnimationFrame(() => { pending = 0; draw(); }); };
         const inspect = (/** @type {number | null} */ bucket) => {
@@ -2605,14 +2270,11 @@
         function paintBase(/** @type {CanvasRenderingContext2D} */ g, /** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined, /** @type {number} */ dpr) {
           const { w, h } = size, { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS;
           const bar = barStyle(step);
-          // (Its bars in percents of the time shown.)
           const percentOf = 100 / (combined.total || 1), maximum = Math.max(...combined.counts) * percentOf, increment = Math.max(2, 10 ** Math.floor(Math.log10(maximum || 1)) / 2);
           const ceiling = Math.max(2, Math.ceil(Math.ceil(maximum / increment) * increment / 2) * 2);
           const y = (/** @type {number} */ fraction) => bottom - fraction * (bottom - top);
           g.font = FONTS.small;
           g.textBaseline = "middle";
-          // (One scale, the curve's, on the right: the share of time below, the answer the chart is for; the bars' heights
-          // are read from the figures above them, so the 0, 50 and 100% lines serve both.)
           for (const fraction of [0, 0.5, 1]) {
             const cy = Math.round(y(fraction)) + 0.5;
             g.strokeStyle = withAlpha(paint.ink, 0.07); g.lineWidth = 1;
@@ -2622,7 +2284,6 @@
           g.fillStyle = paint.faint; g.textAlign = "right"; g.fillText("Share of time below", w, 7);
           g.textAlign = "center";
           for (const value of [0, 20, 40, 60, 80, 100]) g.fillText(String(value), left + value / 100 * (right - left), h - 8);
-          // (The day's bar whole, the rest a little quieter.)
           const dayValue = valueOn(d), dayBar = Number.isFinite(dayValue) ? bucketOf(dayValue) : -1;
           for (let b = 0; b < DISTRIBUTION_BINS; b++) {
             const center = left + (b + 0.5) * step;
@@ -2641,14 +2302,11 @@
               sum += count;
             }
           }
-          // The share of the time shown below each value, on the right's scale: through each bar's top, to 100%.
           if (combined.total) {
             g.beginPath(); g.moveTo(left, bottom);
             combined.cumulative.forEach((count, b) => g.lineTo(left + (b + 1) * step, y(count / combined.total)));
             (g.strokeStyle = paint.ink), (g.lineWidth = 1.8), g.stroke();
           }
-          // The day's value: its mark and its name ("Today" or its date) under the axis (the side with room) over its bar,
-          // drawn stronger; the curve ringed where it meets the bar, its share below there said beside it (the side with room).
           if (Number.isFinite(dayValue) && maximum) {
             const x = left + dayValue / 100 * (right - left);
             g.fillStyle = paint.ink; g.beginPath(); g.moveTo(x, bottom + 5); g.lineTo(x - 4, bottom + 11); g.lineTo(x + 4, bottom + 11); g.closePath(); g.fill();
@@ -2656,12 +2314,9 @@
             const named = dayName(d, counted), after = x + 9 + g.measureText(named).width <= right;
             (g.textAlign = after ? "left" : "right"), g.fillText(named, after ? x + 9 : x - 9, bottom + 9);
             if (combined.total) {
-              // (Nothing below it: the headline says so, the dot on the axis needs no number.)
               const b = bucketOf(dayValue), cx = left + b * step, cy = y(belowOf(combined, b) / combined.total), said = share(belowOf(combined, b), combined.total);
               g.beginPath(), g.arc(cx, cy, 3.5, 0, Math.PI * 2), (g.fillStyle = paint.ink), g.fill(), (g.lineWidth = 2), g.stroke();
               if (belowOf(combined, b)) {
-                // (At the ring, on the line: over it to its left, else to its right, else under it either side, the first
-                // spot in the plot clear of the bars; none clear, over it to its left all the same, haloed over them.)
                 const wide = g.measureText(said).width;
                 const clear = (/** @type {number} */ x0, /** @type {number} */ base) => {
                   if (x0 < left || x0 + wide > right || base > bottom) return false;
@@ -2682,25 +2337,18 @@
 
         function readBucket(/** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined) {
           const dayValue = valueOn(d), b = selected ?? bucketOf(dayValue), valid = Number.isFinite(b);
-          // (Said as of the day: today's in the present, an earlier day's in the past.)
           const named = dayName(d, counted), has = named === "Today" ? "has" : "had";
           const interval = `${b * DISTRIBUTION_WIDTH}–${(b + 1) * DISTRIBUTION_WIDTH}`;
-          // (The answer in a sentence, the value and the share apart: how much of the time the line sat lower, the curve's
-          // height at the bar; none, "in a lower bar" (a bar's own days are as low as the bar), and the rest by the share's own words.)
           const lower = valid && combined.total ? belowOf(combined, b) : NaN;
           const time = !lower ? "" : share(lower, combined.total).replace("<", "under ").replace(">", "over ");
-          // (Nothing to read: no trend shown, no day counted yet (the warm-up year) or none in the trends shown; as the
-          // plot says.)
           const headline = !visible.some(Boolean) ? "Choose a trend above"
             : !histogram.some((t) => t.total) ? "No days yet"
             : !combined.total ? "No days in these trends"
             : selected === null ? `${named === "Today" ? "Today’s index is" : `On ${named} the index was`} ${Math.round(dayValue)}: ${lower ? `it ${has} been lower for ${time} of the time.` : `no day ${has} sat in a lower bar.`}`
             : lower ? `The index ${has} been lower than this bar for ${time} of the time.` : `The index ${has} never been lower than this bar.`;
           give(bucketLabel, headline);
-          // (Its days, and when they're all one trend's, which: each trend's own count in its pill, only when it has some.)
           const held = valid ? combined.days[b] : 0, trended = TRENDS.flatMap((_, t) => (valid && visible[t] && histogram[t].days[b] ? [t] : []));
           counts.forEach((count, t) => give(count, trended.includes(t) ? grouped(histogram[t].days[b]) : ""));
-          // (No bar to read: its line kept empty, its room held.)
           give($("distribution-at"), !valid ? "" : `At ${interval}: ${held ? `${grouped(held)} day${held === 1 ? "" : "s"}${trended.length === 1 ? `, all ${TRENDS[trended[0]].name.toLowerCase()}` : ""}` : "no days"}`);
           const said = [headline.replace(/\.$/, ""), ...(valid ? [$("distribution-at").textContent] : []), ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
           input.disabled = !valid;
@@ -2714,13 +2362,11 @@
           if (source !== d) (source = d), (slotted = slotsOf(d)), (counted = NaN);
           if (counted !== toldDay) (counted = toldDay), (histogram = distributionOf(slotted, counted));
           combined = combinedDistribution(histogram, visible);
-          // (Its words told wherever it is, their lines set before it comes into view; its picture drawn only on screen.)
           give(spanLabel, counted < slotted.from ? "No days yet" : `${grouped(histogram.reduce((n, p) => n + p.days.reduce((a, b) => a + b, 0), 0))} days, ${dated(slotted.from)} to ${dated(counted)}, each counting half as much every four years back.`);
           readBucket(d, histogram, combined);
           if (!seen.has("distribution")) return;
           const dpr = density();
           bake(w, h, dpr, `${visible}|${counted}`, (g) => paintBase(g, d, histogram, combined, dpr));
-          // (A bar picked outlined; the day's has its own marks.)
           if (selected !== null) {
             const { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS, x = left + selected * step;
             context.strokeStyle = withAlpha(paint.ink, 0.45); context.lineWidth = 1; context.strokeRect(x + 0.5, top + 0.5, step - 1, bottom - top - 1);
@@ -2729,24 +2375,15 @@
         return schedule;
       })();
 
-      // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
-      // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it or
-      // plays on, a double click lets its day go, a drag on the chart or the pan bar ends it, today shown again ──
-
-      /** How long play takes over the chart's span, in ms. */
       const PLAY = 60_000;
       let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
-      /** The day play last stopped on: still the kept day, it's paused there (a click on the chart plays on). */
       let pausedOn = /** @type {number | null} */ (null);
-      /** Play, disabled while there are no days. */
       const chartPlay = /** @type {HTMLButtonElement} */ (document.querySelector(".replay"));
       const PLAY_ICON = '<svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4.75 4v8l8-4z" fill="currentColor" stroke="currentColor" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><g fill="currentColor" stroke="none"><rect x="4" y="3" width="3" height="10" rx="1" /><rect x="9" y="3" width="3" height="10" rx="1" /></g></svg>';
-      /** A play button says whether it plays: Pause while it does. */
       function saidPlaying(/** @type {HTMLButtonElement} */ button, /** @type {boolean} */ on) {
         button.setAttribute("aria-label", on ? "Pause" : "Play");
         button.innerHTML = on ? PAUSE_ICON : PLAY_ICON;
       }
-      /** Play stopped, and a flick with it: whatever else moves the day or the view takes over. */
       function stopPlay() {
         controller.halt();
         if (!playing) return;
@@ -2754,20 +2391,17 @@
         pausedOn = pinned;
         saidPlaying(chartPlay, false);
       }
-      /** Play ended outright, not paused (a hand took the chart from it: its view moved, a finger held on it, the pan
-       * bar pressed): its day let go too, today shown again, the next play from the chart's first day. The hand's motion
-       * goes on. */
+      /** Ended, not paused: a hand took the chart, so its day is let go too. */
       function endPlay() {
         if (!playing) return;
         stopPlay();
         pinned = null;
         show(true);
       }
-      /** A frame's step of play: the day for now, the chart kept on it; false once it's reached today. */
       function advance(/** @type {number} */ now) {
         const d = /** @type {Days} */ (days), day = Math.min(d.last, Math.round(playFrom + (now - playAt) * playSpeed));
         if (day < d.last) {
-          // (Said again only for a new day: at a short span, several frames show one.)
+          // Said again only for a new day: several frames can show one.
           if (day !== pinned) (pinned = day), keepVisible(day), (playView = { from: time.from, to: time.to }), tell(), engine.invalidate();
           return true;
         }
@@ -2785,8 +2419,7 @@
         stopPlay();
         show(true);
       });
-      /** Play started: from the day kept, where a pause left it, never the one a mouse is over (that's passing, and
-       * near today it would end the play at once); from today, at the chart's first day. */
+      /** From the day kept, never the one a mouse is over: that's passing, and near today it would end the play at once. */
       function play() {
         const d = /** @type {Days} */ (days), at = pinned ?? d.last;
         const g = goal();
@@ -2802,12 +2435,9 @@
         show();
       }
 
-      // ── Under the compass: its slider keeps a day, as a pause or a key does ──
-
-      // (A finger's press is a pick only once it isn't a page's scroll: Chromium moves a range to the press, and says so,
-      // before the browser tells a slide from a scroll, which then cancels the press. Its first day's held till it slides
-      // on or lifts, and dropped as the press turns into a scroll: no day kept, no chart moved, by a scroll past.)
-      /** A finger's first day on the slider, held (null: none yet); undefined, no finger down or it's sliding. @type {number | null | undefined} */
+      // Chromium moves a range to a finger's press before telling a slide from a scroll: the first day is held
+      // till it slides or lifts, and dropped if the press turns into a scroll.
+      /** null: none yet; undefined: no finger down or it's sliding. @type {number | null | undefined} */
       let firstDay;
       slider.addEventListener("pointerdown", (e) => (firstDay = e.pointerType === "touch" ? null : undefined));
       slider.addEventListener("pointerup", () => {
@@ -2825,7 +2455,6 @@
         firstDay = undefined;
         pick(day);
       });
-      /** The slider's day kept, as a pause or a key does, the chart moved to it. */
       function pick(/** @type {number} */ day) {
         if (!days) return;
         stopPlay();
@@ -2834,8 +2463,6 @@
         keepVisible(day);
         show(true);
       }
-      /** The day under the compass, its slider on it, and every share on the compass as of it: the days from the first
-       * to it. */
       function tellCompass(/** @type {number} */ day) {
         const d = /** @type {Days} */ (days);
         give($("scrub-day"), dayName(d, day));
@@ -2847,35 +2474,23 @@
         tellMood();
       }
 
-      // ── Beside the compass: one mood (a cell's under a mouse, else the one last pressed, else the day's), as of the
-      // compass's day: its run (going on, or its last), against its spells' lengths; what it's turned into; its time ──
-
-      /** The compass's day, its moods' spells and whole percents, as last told. @type {{ day: number, spells: ReturnType<typeof spellsOf>, percents: number[] } | null} */
+      /** @type {{ day: number, spells: ReturnType<typeof spellsOf>, percents: number[] } | null} */
       let told = null;
-      /** The run lengths the panel's histogram counts in, by their shortest; its ranges named from them, once. */
       const BINS = [1, 2, 3, 5, 8, 15, 31];
       const binOf = (/** @type {number} */ n) => BINS.findLastIndex((from) => n >= from);
       $("mood-hist").innerHTML = BINS.map((from, b) => `<li><i></i>${b === BINS.length - 1 ? `${from}+` : BINS[b + 1] - 1 === from ? from : `${from}–${BINS[b + 1] - 1}`}</li>`).join("");
       const monthOf = (/** @type {number} */ day) => { const d = dateOf(day); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
-      /** The mood under a mouse, and the one last pressed (told only while it's lit), or null. @type {number | null} */
+      /** @type {number | null} */
       let moodPointed = null, moodPressed = null;
-      /**
-       * Beside the compass, one mood as of the day shown, from its runs ended by then (none after it is looked at): the
-       * run told (the one going on, or its last), against the runs before it; its runs by length; those as long; and
-       * what its runs turned into.
-       */
       function tellMood() {
         if (!told) return;
         const d = /** @type {Days} */ (days), pressed = moodPressed !== null && lit.state.has(moodPressed) ? moodPressed : null;
         const { day, spells, percents: shares } = told, i = moodPointed ?? pressed ?? spells.now.mood, s = STATES[i];
         const all = runsOf(d)[i], going = spells.now.mood === i, ended = endedBy(all, day);
-        // (The run told, and how many ended before it: all ended ones if it's going, else all but itself.)
         const run = going ? { first: spells.now.first, length: day - spells.now.first + 1 } : all[ended - 1], before = going ? ended : ended - 1;
         give($("mood"), `var(--s-${s.id})`, "--c");
         give($("mood"), `var(--words-${s.id})`, "--words");
         give($("mood-name"), s.name);
-        // (As the header tells the day's: its move beside its name ("extreme" over it on the day's own mood, if extreme), and
-        // where its price is under it; its run told in the lead.)
         const where = coinsWords(s);
         give($("mood-tag"), s.move);
         give($("mood-where"), `${where[0].toUpperCase()}${where.slice(1)}`);
@@ -2884,42 +2499,32 @@
         const shorter = shareOf(all, before, (r) => r.length < (run?.length ?? 0));
         const ranked = !before ? "the first run" : shorter === 1 ? "longer than every run before it" : !shorter ? "no longer than any run before it" : `longer than ${tenths(shorter)} in 10 runs before it`;
         give($("mood-lead"), !run ? "No run yet." : going ? `${lengthWords(run.length)} so far, ${ranked}.` : `Its last run lasted ${lengthWords(run.length)}, to ${dated(/** @type {Run} */ (run).last)}, ${ranked}.`);
-        // (Its ended runs by length, each by its weight as the lead ranks it; the told run's range marked.)
         const counts = BINS.map(() => 0);
         for (let r = 0; r < ended; r++) counts[binOf(all[r].length)] += weight(all[r].last);
         const most = Math.max(...counts) || 1, at = run ? binOf(run.length) : -1;
-        // (A range with none a stub, 2% high.)
-        // (The ranges longer than the run's faded: what's left bright is what it's longer than, the lead's "8 in 10".)
         for (const [b, range] of [...$("mood-hist").children].entries()) range.classList.toggle("at", b === at), range.classList.toggle("longer", at >= 0 && b > at), give(/** @type {Element} */ (range.firstElementChild), Math.max(0.02, counts[b] / most).toFixed(3), "--h");
         give($("mood-hist-said"), ended ? `${ended} ${s.name} run${ended === 1 ? "" : "s"} by length in days, recent ones counting more\u00a0· median run ${lengthWords(medianOf(all, ended))}\u00a0· ${shares[i]}% of all days` : `${shares[i]}% of all days`);
-        // (Those before it at least as long, newest first.)
         const long = [];
         let asLong = 0;
         for (let r = before - 1; r >= 0; r--) if (all[r].length >= (run?.length ?? Infinity) && asLong++ < 5) long.push(all[r]);
-        // (All shown turned into one mood: said once, not on each row.)
         const into = long.length > 1 && long.every((r) => r.next === long[0].next) ? STATES[long[0].next].name : "";
         const shown = asLong > long.length ? `The latest ${long.length} of ${asLong}` : long.length > 1 ? `All ${long.length}` : "";
         give($("mood-long-said"), !long.length ? "" : `${shown ? `${shown}${into ? `, each turned into ${into}` : ""}; e` : "E"}ach bar against the longest shown.`);
-        // (Each a bar of its length against the longest shown, the run told first. Its row is kept and written in
-        // place, as it grows a day at a time; the others' markup changes only as they do.)
         const dayWords = (/** @type {number} */ n) => `${n} day${n === 1 ? "" : "s"}`;
         const toldRow = $("mood-told"), [toldWhen, , , toldLength, toldTo] = toldRow.children;
         if (toldRow.hidden !== !run) toldRow.hidden = !run;
         if (run) {
           give(toldWhen, monthOf(run.first));
           give(toldLength, dayWords(run.length));
-          // (Going on that day: today's "now"; another day's "this run", as of it, never past it.)
           give(toldTo, going ? (day === d.last ? " now" : " this run") : ` → ${STATES[/** @type {Run} */ (run).next].name}`);
           give(toldRow, String(run.length), "--len");
         }
         give(/** @type {Element} */ ($("mood-long").parentElement), String(Math.max(run?.length ?? 1, ...long.map((r) => r.length))), "--longest");
         give($("mood-long"), long.length ? long.map((r) => `<li style="--len: ${r.length}"><time>${monthOf(r.first)}</time><span class="sr"> · </span><i></i><span>${dayWords(r.length)}</span>${into ? "" : `<span class="to" style="--to: var(--s-${STATES[r.next].id})"> → ${STATES[r.next].name}</span>`}</li>`).join("") : `<li class="none">${run && before ? `None: the longest ${s.name} run so far.` : "None yet."}</li>`);
-        // (What its ended runs turned into.)
         const turned = ended ? STATES.map((_, j) => ({ j, share: shareOf(all, ended, (r) => r.next === j) })).filter((x) => x.share).sort((a, b) => b.share - a.share) : [], next = turned.slice(0, 3);
         const top = next[0];
         give($("mood-next-said"), !top ? "" : `${s.name} turned into ${STATES[top.j].name} ${top.share === 1 ? "every time" : `${tenths(top.share)} times in 10`} (${ended} run${ended === 1 ? "" : "s"}).`);
         give($("mood-split"), turned.map(({ j, share }) => `<i style="--to: var(--s-${STATES[j].id}); --w: ${share.toFixed(3)}"></i>`).join(""));
-        // (Its shares listed where there's more than the one the sentence names.)
         give($("mood-next"), next.length < 2 ? "" : next.map(({ j, share }) => `<li style="--to: var(--s-${STATES[j].id})"><span>${STATES[j].name}</span><b>${Math.round(share * 100)}%</b></li>`).join(""));
       }
       compass.addEventListener("pointermove", (e) => {
@@ -2931,9 +2536,6 @@
         if (moodPointed !== null) (moodPointed = null), tellMood();
       });
 
-      // ── Which coins the clouds count: the page's foot switches, everything's computed again in place ──
-
-      /** The pressed words, and the words beside the compass for them. */
       function pressCoins() {
         for (const button of document.querySelectorAll("[data-coins]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.coins === coins));
         for (const button of document.querySelectorAll("[data-basis]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.basis === basis));
@@ -2941,14 +2543,12 @@
         const b = BASES[basis];
         $("cloud-what").textContent = b.what;
         $("cloud-reads").textContent = b.reads;
-        // (Studio's chart of the same basis: its presets named as the bases are.)
         /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/valuation/compass/${basis}`;
       }
       let switching = false;
-      /** Other coins or another basis: everything computed again in place, once the new clouds are read and usable. */
       async function choose(/** @type {"mobile" | "awake"} */ nextCoins, /** @type {Basis} */ nextBasis) {
         if (!days || switching || (nextCoins === coins && nextBasis === basis)) return;
-        // (The day kept as it was pressed; the page's choice changed only once the new clouds are read, and usable.)
+        // The page's choice changes only once the new clouds are read and usable.
         stopPlay();
         switching = true;
         chartPlay.disabled = true;
@@ -2959,7 +2559,7 @@
           computed = compute(await readAll(nextCoins, nextBasis), nextCoins, nextBasis);
           if (computed.first < 0) throw new Error("they have no days yet");
         } catch (error) {
-          // (Its clouds' answers forgotten, so another try asks the server again.)
+          // Forgotten, so another try asks the server again.
           for (const id of [...cloudIds("long", nextCoins, nextBasis), ...cloudIds("short", nextCoins, nextBasis)]) answers.delete(id);
           $("coins-said").textContent = ` Those clouds’ series couldn’t be read: ${error instanceof Error ? error.message : error}.`;
           return;
@@ -2974,9 +2574,7 @@
         remember();
         show(true);
       }
-      /** New days (other coins, another basis, the live price, a new day): the same span and day on them, their
-       * drawings made again; the compass and the lists built again only for other coins or another basis (built
-       * again, they'd fade back in: the live price updates them where they are). */
+      /** Rebuilt only for other coins or another basis: rebuilt, they'd fade back in. */
       function use(/** @type {Days} */ computed, rebuild = true) {
         const before = /** @type {Days} */ (days);
         days = computed;
@@ -2984,8 +2582,7 @@
         slider.min = String(days.first);
         slider.max = String(days.last);
         if (pinned !== null) pinned = Math.max(days.first, Math.min(days.last - 1, pinned));
-        // (Days that begin or end elsewhere: the chart's on them (a view at the latest keeps there), a span pressed
-        // showing them all again. The same days, as a new price makes, move nothing.)
+        // Days that begin or end elsewhere: the chart's on them; the same days, as a new price makes, move nothing.
         if (days.first !== before.first || days.last !== before.last) {
           onDays(days);
           if (span !== -1 && !controller.target) engine.show(spanLength(span));
@@ -2993,27 +2590,21 @@
         drawings++;
         if (rebuild) setUpCompass();
         else compassDrawn = -1;
-        // (New days: told again whatever the day, the compass's shares with them.)
         tell();
         redraw();
       }
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-basis]"))) button.addEventListener("click", () => choose(coins, /** @type {Basis} */ (button.dataset.basis)));
 
-      // ── Live: every 10 seconds, today's price, and with a new block every series' last day (a new day's too, once
-      // the server has its first block), today's state and trend with them ──
-
       const LIVE = 10_000;
       let living = false;
-      /** The block and price the days shown were made from. */
       let liveKey = "";
       async function live() {
         const was = days, wasFailing = failing;
         if (!was || living || switching || document.hidden) return;
         living = true;
         try {
-          // (Nothing read: said over the reading, and tried again in 10 seconds. Anything past the reading is a bug,
-          // thrown to the console, not shown as the server's.)
+          // Anything past the reading is a bug: thrown to the console, not shown as the server's.
           const read = await Promise.all([readAll(coins, basis), ask("/api/oracle/price").then((response) => response.text()).then(Number)]).catch(() => null);
           if (!read) {
             failing = true;
@@ -3022,31 +2613,28 @@
           const [answered, price] = read;
           (readAt = Date.now()), (failing = false);
           const close = answered[SERIES.close];
-          // (A new day not in yet, in the clock's and not the server's: nothing to show before its first block.)
+          // A new day by the clock, not yet the server's: nothing to show before its first block.
           if (clockDay() > close.start + close.data.length - 1) return;
           const key = `${close.tip}|${price}`;
           if (key === liveKey) return;
           if (price > 0) {
-            // (Today's close so far: kept in what's read, so a switch of coins keeps it too.)
+            // Today's close so far: kept in what's read, so a switch of coins keeps it too.
             close.data[close.data.length - 1] = price;
           }
           const computed = compute(answered, coins, basis);
-          // (Something else changed the days meanwhile, or the new ones have none: left as they are.)
+          // Something else changed the days meanwhile, or the new ones have none: left as they are.
           if (days !== was || switching || computed.first < 0) return;
           liveKey = key;
           use(computed, false);
           show();
         } finally {
           living = false;
-          // (Stopped or answering again: the price says so.)
           if (failing !== wasFailing) tell(), engine.invalidate();
           redraw();
         }
       }
       setInterval(live, LIVE);
       document.addEventListener("visibilitychange", live);
-
-      // ── Loading ──
 
       for (const button of document.querySelectorAll("[data-span]")) button.addEventListener("click", () => {
         if (days) goTo(Number(/** @type {HTMLElement} */ (button).dataset.span));
@@ -3060,7 +2648,6 @@
         $("failed").hidden = true;
         chartBox.classList.add("loading");
         try {
-          // (The coins a link asks for, before anything's read.)
           const asked = new URLSearchParams(location.search), clouds = asked.get("clouds");
           if (asked.get("coins") === "awake") coins = "awake";
           if (clouds !== null && clouds !== BASIS && Object.hasOwn(BASES, clouds)) basis = /** @type {Basis} */ (clouds);
@@ -3083,7 +2670,7 @@
           show();
           live();
         } catch (error) {
-          // (What it read forgotten, so Try again asks the server again.)
+          // Forgotten, so Try again asks the server again.
           answers.clear();
           $("hero-name").removeAttribute("aria-label");
           give($("hero-name"), "—");
@@ -3094,7 +2681,7 @@
             Object.assign(document.createElement("button"), { type: "button", textContent: "Try again", onclick: load }),
           );
           $("failed").hidden = false;
-          // (Unread, it says so: the launch hands over to that.)
+          // Unread, it says so: the launch hands over to that.
           launch();
         }
       }

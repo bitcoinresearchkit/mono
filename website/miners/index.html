@@ -92,7 +92,6 @@
         font-weight: 100 700;
         font-display: swap;
       }
-      /* (The front page's ground, ink and lines: the two read as one site.) */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f1ec, #0d0c0b);
@@ -101,16 +100,13 @@
         --line: light-dark(rgb(22 19 15 / 0.09), rgb(246 243 238 / 0.08));
         --live: light-dark(#0c7642, #3ccf7c);
         --mono: Lilex, "Lilex Fallback", ui-monospace, monospace;
-        /* (A control's ground, and a bar's empty part.) */
         --tank: color-mix(in srgb, var(--ink) 6%, var(--app));
         --faint: color-mix(in srgb, var(--ink) 16%, var(--app));
         --gutter: 18px;
-        /* The page's width: the bar and every section share its two edges. */
         --page: 1120px;
         @media (min-width: 641px) {
           --gutter: 40px;
         }
-        /* (The page's sides: the gutter, or a notch's inset where that's wider.) */
         --side-left: max(var(--gutter), env(safe-area-inset-left));
         --side-right: max(var(--gutter), env(safe-area-inset-right));
       }
@@ -150,7 +146,6 @@
         white-space: nowrap;
       }
 
-      /* The bar: the brand, and the chain's height in the front page's pill, here the way into the Explorer. */
       .bar {
         position: sticky;
         top: 0;
@@ -201,7 +196,6 @@
         margin: 0 auto;
         padding: 0 var(--side-right) 72px var(--side-left);
       }
-      /* The page's name, quiet: the tables are what people came for. */
       .intro {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -220,10 +214,8 @@
       section {
         padding: 28px 0 36px;
         border-top: 1px solid var(--line);
-        /* (Under the bar, when a link jumps here.) */
         scroll-margin-top: 59px;
       }
-      /* A section's head: what it is on the left, what it adds up to on the right. */
       .sechead {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -245,7 +237,6 @@
           color: var(--soft);
           font-size: 13px;
         }
-        /* The section's one figure, its words under it: room kept for both before they're read. */
         .reach {
           grid-area: 1 / 2 / 3 / 3;
           min-width: 220px;
@@ -265,7 +256,6 @@
         }
       }
 
-      /* Rows of a table: a quiet head, a hairline over each row, a finger's height. */
       .rows {
         width: 100%;
         border-collapse: collapse;
@@ -288,7 +278,6 @@
           padding-right: 0;
           text-align: right;
         }
-        /* A sum to eight places, so a column of them lines up; the zeros that say nothing, softer. */
         .zeros {
           color: var(--soft);
         }
@@ -298,7 +287,6 @@
         align-items: center;
         gap: 8px;
         white-space: normal;
-        /* (A name longer than a narrow column breaks inside a word, and only then.) */
         overflow-wrap: anywhere;
         picture {
           display: flex;
@@ -310,7 +298,6 @@
           border-radius: 4px;
         }
       }
-      /* When something happened: its day, then its block, the two one link to the block. */
       .when {
         display: inline-flex;
         white-space: nowrap;
@@ -331,11 +318,9 @@
       .none {
         color: var(--soft);
       }
-      /* Pools down, new things across: in each cell how many of the pool's recent blocks did the thing, and since when. */
       .matrix {
         thead th {
           vertical-align: bottom;
-          /* (Under the bar, when something jumps to a column.) */
           scroll-margin-top: 76px;
         }
         .narrow {
@@ -350,7 +335,6 @@
           color: var(--soft);
           font-size: 12px;
         }
-        /* The count, and a bar of the part it is. */
         i {
           display: inline-block;
           width: 48px;
@@ -360,7 +344,6 @@
           background: linear-gradient(to right, var(--ink) calc(var(--part) * 100%), var(--faint) 0);
           vertical-align: middle;
         }
-        /* (A row's name, its header, read as the row's first cell.) */
         tbody th {
           padding: 0 24px 0 0;
           border-top: 1px solid var(--line);
@@ -371,7 +354,6 @@
         .all :is(th, td span) {
           font-weight: 600;
         }
-        /* A pool's name opens its record; the whole row does too, under a pointer or a finger. */
         .line {
           cursor: pointer;
           @media (hover: hover) {
@@ -406,12 +388,10 @@
             rotate: 45deg;
           }
         }
-        /* (A record sits under its pool's line with no rule between them.) */
         tr:not(.line, .all) > td {
           height: auto;
           border: 0;
         }
-        /* A pool's record: each thing, when it first did it and how much in all. */
         .record {
           display: grid;
           grid-template-columns: 150px minmax(0, 1fr);
@@ -443,14 +423,12 @@
           }
         }
       }
-      /* Every block that left coins, by its day and its sum: the sums on a scale of tens. */
       .chart {
         margin: 0 0 28px;
         svg {
           display: block;
           width: 100%;
           height: 200px;
-          /* (The years sit under the picture's foot.) */
           margin-bottom: 26px;
           overflow: visible;
         }
@@ -474,16 +452,13 @@
       [data-table="matrix"] {
         container: matrix / inline-size;
       }
-      /* (Three equal columns, so the list's columns stay put as its order and length change.) */
       [data-table="unclaimed"] .rows {
         table-layout: fixed;
       }
-      /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
-         place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
       main:not(:has(:target)) section:has(.wait) ~ section,
       main:has(.wait):not(:has(:target)) + footer {
         visibility: hidden;
-        /* (Shown anyway after 4 s: a table that slow, or a script that never ran, never keeps the page hidden.) */
+        /* Shown anyway after a while: a script that never ran must not keep the page hidden. */
         animation: shown 0s 4s forwards;
       }
       @keyframes shown {
@@ -491,12 +466,10 @@
           visibility: visible;
         }
       }
-      /* A table to come: its first rows' room, ruled, so what's under it moves less when it lands. */
       .wait {
         min-height: 220px;
         background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--line) 43px 44px);
       }
-      /* A choice between two orders. */
       .seg {
         display: inline-flex;
         margin-bottom: 14px;
@@ -523,7 +496,6 @@
           }
         }
       }
-      /* The button for the rest of a list. */
       .more {
         min-height: 36px;
         margin-top: 16px;
@@ -540,7 +512,6 @@
           min-height: 44px;
         }
       }
-      /* (For fingers: the bar's links reach 44, unseen. A table's links are that tall; a record's get theirs where it stacks.) */
       @media (pointer: coarse) {
         :is(.brand, .tip) {
           position: relative;
@@ -583,7 +554,6 @@
             padding-right: 0;
           }
         }
-        /* A day over its block: two short lines where one long one would push the table off the screen. */
         .when {
           flex-direction: column;
           justify-content: center;
@@ -591,9 +561,6 @@
           line-height: 1.35;
         }
       }
-      /* Where seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar.
-         (The wide table needs 852 px to keep today's longest pool name on one line in the page's own Inter, measured; a
-         longer name wraps at its spaces until it fits.) */
       @container matrix (width < 852px) {
         .matrix {
           &,
@@ -643,7 +610,6 @@
             height: 44px;
             border: 0;
           }
-          /* (The pool's blocks, under its name.) */
           td:nth-child(2) {
             grid-area: 2 / 1;
             padding: 0 0 8px 23px;
@@ -674,7 +640,6 @@
             div {
               padding: 5px 0;
             }
-            /* (A link here is a line from the next, so a finger's reach of 44, unseen, stays its own.) */
             @media (pointer: coarse) {
               .when {
                 position: relative;
@@ -719,15 +684,10 @@
     <footer>Every number here is read from the chain by this server. Each day and block opens its block.</footer>
     <script type="module">
       import { logo as poolLogo } from "/assets/pools/logos.js";
-      /** Rows a single request may hold: 8-byte counts and amounts, 1-byte pools. */
       const COUNT_PAGE = 40_000, POOL_PAGE = 320_000;
-      /** The pool rows of nearby blocks are read as one range, up to this gap. */
       const POOL_READ_GAP = 2016;
-      /** A long list opens on its first rows. */
       const LIST_ROWS = 20;
-      /** The blocks "recent" means: one difficulty period, about two weeks (every new thing begins long before it). */
       const RECENT = 2016;
-      /** The day BIP-110 was assigned version bit 4: its count starts there, as BIP-91 signaled on the same bit in 2017. */
       const BIP110_ASSIGNED = Date.UTC(2025, 11, 3);
 
       const json = async (path) => {
@@ -746,11 +706,8 @@
         const targetTop = target?.getBoundingClientRect().top;
         place.classList.remove("wait");
         place.innerHTML = html;
-        // (A section a link asked for, in view, stays where it is as a table above it fills, where the browser doesn't
-        // anchor the scroll itself.)
+        // The browser doesn't scroll-anchor here: a section asked for, in view, is held in place by hand.
         if (target && targetTop >= 0 && targetTop < innerHeight) scrollBy(0, target.getBoundingClientRect().top - targetTop);
-        // (An address naming something the table just drew, an old section's column among them, lands on it, unless the
-        // reader has scrolled meanwhile.)
         else if (!scrollY) {
           const linked = document.getElementById(location.hash.slice(1));
           if (place.contains(linked)) linked.scrollIntoView();
@@ -758,13 +715,11 @@
       };
       const fail = (name) => fill(name, '<p class="none">This table couldn’t be read from the server. Reload to try again.</p>');
 
-      /** The first day a running total is above zero, or null while it never has been (a node still syncing). */
+      /** null: never above zero (a node still syncing) */
       const firstDay = (id) => json(`/api/series/${id}/day1`).then(({ data }) => {
         const day = data.findIndex((value) => value > 0);
         return day < 0 ? null : day;
       });
-      // (What every table needs, read at once: the height each day begins at, the tip, the pools' names. Without them no
-      // table can be built, so each says so. A new thing's own first-day read is separate: it fails that column alone.)
       const [dayStarts, tip, names] = await Promise.all([
         json("/api/series/block_count_cumulative/day1").then(({ data }) => data),
         json("/api/blocks/tip/height").then((height) => Math.round(height) + 1),
@@ -773,14 +728,9 @@
         for (const place of document.querySelectorAll("[data-table]")) fail(place.dataset.table);
         throw error;
       });
-      /** The first of the recent blocks. */
       const recentFrom = tip - RECENT;
-      /** The day number of a time (days since 2009-01-01, the day1 series' index). */
       const dayNumber = (ms) => (ms - Date.UTC(2009, 0, 1)) / 86_400_000;
-      /** The first block of day `day` (days since 2009-01-01). */
       const dayStart = (day) => (day <= 0 ? 0 : dayStarts[day - 1]);
-      /** Each new thing's first block, or null before there is one, its own promise: its series' first day's, and
-       * BIP-110's assignment day's (null on a node not yet past that day). */
       const firstOf = (id) => firstDay(id).then((day) => (day === null ? null : dayStart(day)));
       const firsts = [
         firstOf("p2a_output_count_cumulative"),
@@ -788,7 +738,6 @@
         firstOf("bip54_coinbase_locktime_block_count_cumulative"),
         Promise.resolve(dayStart(dayNumber(BIP110_ASSIGNED)) ?? null),
       ];
-      /** The day a block was mined on (days since 2009-01-01). */
       const dayOf = (height) => {
         let low = 0, high = dayStarts.length - 1;
         while (low < high) {
@@ -803,7 +752,6 @@
       const number = (value) => value.toLocaleString("en-US");
       const percent = (part) => `${(part * 100).toFixed(1)}%`;
       document.getElementById("tip").textContent = number(tip);
-      /** A pool's name after its logo, the one drawn for the ground in use. */
       const pool = (slug) => {
         const [dark, light] = [poolLogo(slug, false), poolLogo(slug, true)];
         const lightSource = light === dark ? "" : `<source media="(prefers-color-scheme: light)" srcset="${light}" />`;
@@ -812,9 +760,6 @@
       const when = (height) => `<a class="when" href="/explorer/block/${height}"><time>${dateOf(height)}</time><small>${number(height)}</small></a>`;
       const table = (columns, rows) => `<table class="rows"><thead><tr>${columns.map(([label, num]) => `<th${num ? ' class="num"' : ""}>${label}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
 
-      /** Every block's pool, as a lookup by height, from the earliest first block that could be read (the recent blocks
-       * at least), and how many of the recent blocks each pool mined: one read every column shares. A failed first-day
-       * read only fails its own column. */
       const pools = Promise.allSettled(firsts).then(async (results) => {
         const from = Math.min(recentFrom, ...results.filter((result) => result.status === "fulfilled" && result.value !== null).map((result) => result.value));
         const slugs = await heights("block_pool", from, tip, POOL_PAGE);
@@ -823,23 +768,15 @@
         return { poolOf: (height) => slugs[height - from], mined };
       });
 
-      /** Each block's own count since a thing's first block, by `read` from that block on; none before there is one. */
       const since = async (first, read) => {
         const start = await first;
         return { start, counts: start === null ? [] : await read(start) };
       };
-      /** A count read as it is. */
       const each = (id, first) => since(first, (start) => heights(id, start, tip, COUNT_PAGE));
-      /** A count from the rows of a running total. */
       const steps = (id, first) => since(first, async (start) => {
         const [rows, [baseline = 0]] = await Promise.all([heights(id, start, tip, COUNT_PAGE), start > 0 ? heights(id, start - 1, start, COUNT_PAGE) : []]);
         return rows.map((row, i) => row - (i ? rows[i - 1] : baseline));
       });
-      /**
-       * The new things a pool's block can do, a column each: the old section's address, its name, its short one for a
-       * narrow screen, how to read its count in each block, what a pool's count in all counts (its blocks, or the inputs
-       * or outputs in them), and the words of its line in a pool's record.
-       */
       const THINGS = [
         { id: "p2a", name: "P2A spent", short: "P2A in", read: () => each("p2a_input_count", firsts[0]), unit: "inputs", did: "spent a pay&#8209;to&#8209;anchor output" },
         { name: "P2A created", short: "P2A out", read: () => each("p2a_output_count", firsts[0]), unit: "outputs", did: "created a pay&#8209;to&#8209;anchor output" },
@@ -850,10 +787,8 @@
 
       async function matrix() {
         try {
-          // (Every thing read at once, beside the pools. One that can't be read leaves its column unread, the others standing.)
           const reads = THINGS.map(({ read }) => read().catch((error) => console.error(error)));
           const { poolOf, mined } = await pools;
-          // (Each thing by pool: its first block, its count in all, and how many of the pool's recent blocks have it.)
           const columns = await Promise.all(reads.map(async (read, t) => {
             const got = await read;
             if (!got) return null;
@@ -867,8 +802,6 @@
             });
             return byPool;
           }));
-          // (A row for every pool that mined a recent block or ever did one of the things: the largest first, then
-          // those with no recent block by their earliest first.)
           const earliest = (slug) => Math.min(...columns.map((column) => column?.get(slug)?.first ?? Infinity));
           const slugs = [...new Set([...mined.keys(), ...columns.flatMap((column) => [...(column?.keys() ?? [])])])]
             .sort((a, b) => (mined.get(b) ?? 0) - (mined.get(a) ?? 0) || earliest(a) - earliest(b));
@@ -909,7 +842,6 @@
         }
       }
 
-      /** A sum in bitcoin to eight places, its closing zeros apart: every row's reads against the next. */
       const amount = (btc) => {
         const [, digits, zeros] = btc.toFixed(8).match(/^(.*?)(0*)$/);
         return `${digits}<span class="zeros">${zeros}</span>`;
@@ -917,7 +849,6 @@
 
       async function unclaimedTable() {
         try {
-          // (The running total by day first, then the blocks of the days it rose on alone: about a tenth of the chain.)
           const { data: totals } = await json("/api/series/unclaimed_rewards_cumulative/day1");
           const ranges = [];
           let lost = 0;
@@ -939,8 +870,6 @@
             });
           }));
           document.querySelector("#unclaimed .reach").innerHTML = `<b>${lost.toFixed(8)} BTC</b>left unclaimed by ${number(values.size)} blocks`;
-          // (The picture: a dot a block, across by its day, up by the tens in its sum, from one sat to 10^9.5, about 32 bitcoin.
-          // Places are shares of the picture's box, so it needs no redraw as the window's width changes.)
           const days = dayStarts.length, TENS = 9.5;
           const across = (day) => `${((day / days) * 100).toFixed(2)}%`, up = (sats) => `${(100 - (Math.log10(sats) / TENS) * 100).toFixed(2)}%`;
           const years = [];
@@ -949,7 +878,6 @@
           const dots = [...values].map(([height, btc]) => `<circle cx="${across(dayOf(height))}" cy="${up(Math.round(btc * 1e8))}" r="2.5" />`);
           const chart = `<figure class="chart"><svg role="img" aria-label="${number(values.size)} blocks that left coins unclaimed, each by its day and its sum">${scale.join("")}${dots.join("")}${years.join("")}</svg><figcaption>Each dot is a block: across by the day it was mined, up by how much it left.</figcaption></figure>`;
           const row = (height) => `<tr><td>${when(height)}</td><td>${pool(slugs.get(height))}</td><td class="num">${amount(values.get(height))}</td></tr>`;
-          // (Two orders, the largest first: two blocks hold most of the sum, and the latest are a few sats each.)
           const orders = {
             Largest: [...values.keys()].sort((a, b) => values.get(b) - values.get(a) || b - a),
             Latest: [...values.keys()].sort((a, b) => b - a),
@@ -969,7 +897,6 @@
             else if (more) all = true;
             else return;
             render();
-            // (The button that showed the rest is gone: the reader goes on from the first row it showed.)
             if (more) list.querySelectorAll("tbody a")[LIST_ROWS].focus();
           };
           render();

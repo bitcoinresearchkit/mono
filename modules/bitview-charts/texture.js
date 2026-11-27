@@ -1,27 +1,18 @@
 // @ts-check
-// Textures: a fill's color as the ground of a small tile of marks drawn by code (no image), filled as a repeating
-// CanvasPattern. Each tile is made once for its texture, color and density, then only moved: anchored to the data (the
-// timeline's first point across, the scale's 1 or 0 down), so it pans with the picture a pan moves and the strip drawn
-// beside it meets it seamlessly. Its marks keep their size in pixels as the view zooms (a material's grain, not a
-// picture stretched).
+// A tile is made once per texture, color and density, then only moved: anchored to the data, so a pan moves it with
+// the picture and the strip drawn beside it meets it seamlessly.
 
 /** @typedef {"grain" | "speckle" | "current" | "shale" | "sandstone" | "conglomerate" | "granite"} TextureKind */
 /**
- * A texture: its marks' `kind`, their `ink`, and `light`, a second ink for highlights (a pebble's lit side, a glint);
- * `seed`, another draw of the same kind; `amount`, how many marks and how strong, 1 by default (water a layer deeper
- * takes less). One object a look: its tile is kept by identity, so pass the same object again rather than a new one
- * each time.
+ * Its tile is kept by identity: pass the same object again, not a new one each time.
  * @typedef {{ kind: TextureKind, ink: string, light?: string, seed?: number, amount?: number }} Texture
  */
 /** @typedef {{ ink: string, light: string, r: () => number, amount: number, fade: number }} Pen */
 
-/**
- * Each kind's tile, CSS pixels: wider than a phone's chart where its marks run across (water, bedded rock), so no
- * repeat shows there; square where they don't.
- */
+/** Wider than a phone's chart where the marks run across, so no repeat shows there. */
 const SIZE = /** @type {const} */ ({ grain: [64, 64], speckle: [96, 96], current: [400, 96], shale: [400, 64], sandstone: [400, 96], conglomerate: [192, 192], granite: [160, 160] });
 
-/** A small seeded random (mulberry32): the same tile each time it's made. @param {number} seed */
+/** Seeded, so the same tile each time. @param {number} seed */
 function random(seed) {
   let a = seed >>> 0;
   return () => {
@@ -33,22 +24,21 @@ function random(seed) {
 }
 
 /**
- * A mark drawn wrapped: at its place and once more past each edge it crosses, so the tile repeats without a seam.
- * @param {number} w @param {number} h @param {number} x @param {number} y @param {number} reachX how far the mark spreads across from (x, y)
- * @param {number} reachY and how far down
+ * Drawn once more past each edge a mark crosses, so the tile repeats without a seam.
+ * @param {number} w @param {number} h @param {number} x @param {number} y @param {number} reachX @param {number} reachY
  * @param {(dx: number, dy: number) => void} draw
  */
 function wrapped(w, h, x, y, reachX, reachY, draw) {
   for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) if (x + dx + reachX >= 0 && x + dx - reachX <= w && y + dy + reachY >= 0 && y + dy - reachY <= h) draw(dx, dy);
 }
 
-/** A gentle wave across a tile `w` wide that meets itself at the edges: `x`'s rise, at most about `size`. @param {number} w @param {number} size @param {() => number} r */
+/** Meets itself at the tile's edges. @param {number} w @param {number} size @param {() => number} r */
 function bend(w, size, r) {
   const a = r() * 6.283, b = r() * 6.283, k = 6.283 / w;
   return (/** @type {number} */ x) => size * (0.7 * Math.sin(k * x + a) + 0.3 * Math.sin(2 * k * x + b));
 }
 
-/** A line along `rise` from x0 to x1 at y, `step` pixels a segment. @param {CanvasRenderingContext2D} g @param {number} x0 @param {number} x1 @param {number} y @param {(x: number) => number} rise */
+/** @param {CanvasRenderingContext2D} g @param {number} x0 @param {number} x1 @param {number} y @param {(x: number) => number} rise */
 function along(g, x0, x1, y, rise, step = 4) {
   g.beginPath();
   g.moveTo(x0, y + rise(x0));
@@ -56,7 +46,7 @@ function along(g, x0, x1, y, rise, step = 4) {
   g.stroke();
 }
 
-/** A rare short crack, across a few laminae: dark, a hair of light beside it. @param {CanvasRenderingContext2D} g @param {number} w @param {number} h @param {Pen} p */
+/** @param {CanvasRenderingContext2D} g @param {number} w @param {number} h @param {Pen} p */
 function fracture(g, w, h, p) {
   const r = p.r, x = r() * w, y = r() * h, length = 5 + r() * 9, turn = 1.25 + r() * 0.65, steps = 3;
   const points = [[x, y]];
@@ -73,9 +63,8 @@ function fracture(g, w, h, p) {
   });
 }
 
-/** Each kind's marks on a tile `w` by `h` CSS pixels. @type {Record<TextureKind, (g: CanvasRenderingContext2D, w: number, h: number, p: Pen) => void>} */
+/** @type {Record<TextureKind, (g: CanvasRenderingContext2D, w: number, h: number, p: Pen) => void>} */
 const MARKS = {
-  // (Fine grain, as of sandstone or paper: single points, dark and light, faint.)
   grain(g, w, h, p) {
     const r = p.r;
     for (let k = 0, n = Math.round(w * h * 0.22 * p.amount); k < n; k++) {
@@ -84,7 +73,6 @@ const MARKS = {
       g.fillRect(Math.floor(r() * w), Math.floor(r() * h), 1, 1);
     }
   },
-  // (Soil: pebbles and crumbs of every size, dark, a few catching the light, over a fine grain.)
   speckle(g, w, h, p) {
     MARKS.grain(g, w, h, p);
     const r = p.r;
@@ -99,8 +87,6 @@ const MARKS = {
       });
     }
   },
-  // (Water: long, thin lines across, barely wavy, fading in and out at their ends as a surface's sheen does, a few
-  // short glints where light catches it; less of both with depth, through `amount`.)
   current(g, w, h, p) {
     const r = p.r;
     g.lineCap = "round";
@@ -110,7 +96,6 @@ const MARKS = {
       wrapped(w, h, x + length / 2, y, length / 2 + 1, rise + 1, (dx, dy) => {
         g.strokeStyle = dark ? p.ink : p.light;
         g.lineWidth = dark ? 0.8 : 0.6;
-        // (In 4-pixel pieces, each as strong as the sine of its place along the line, so it fades in and out.)
         for (let s = 0; s < length; s += 4) {
           const t0 = s / length, t1 = Math.min(s + 4, length) / length;
           g.globalAlpha = alpha * Math.sin(Math.PI * (t0 + t1) * 0.5);
@@ -134,8 +119,6 @@ const MARKS = {
       });
     }
   },
-  // (Shale: thin beds a shade apart, flat and parallel, bending together only a hair; a few hair-thin laminae
-  // across them, broken here and there; a bedding plane or two with a lit lip, and now and then a short crack.)
   shale(g, w, h, p) {
     const r = p.r, rise = bend(w, 1.1, r);
     let y = r() * 4;
@@ -174,8 +157,6 @@ const MARKS = {
     }
     if (r() < 0.7 * p.amount) fracture(g, w, h, p);
   },
-  // (Sandstone: grain, in beds a finger thick split by bedding planes, each bed crossed by faint sets of inclined
-  // laminae curving down onto the plane under them, as dunes leave them; now and then a crack.)
   sandstone(g, w, h, p) {
     MARKS.grain(g, w, h, { ...p, amount: p.amount * 0.7 });
     const r = p.r, beds = [];
@@ -212,7 +193,6 @@ const MARKS = {
     }
     if (r() < 0.6 * p.amount) fracture(g, w, h, p);
   },
-  // (Conglomerate: rounded pebbles of every size set apart in a gritty matrix, each shaded under and lit above.)
   conglomerate(g, w, h, p) {
     MARKS.grain(g, w, h, p);
     const r = p.r, placed = /** @type {number[][]} */ ([]);
@@ -241,7 +221,6 @@ const MARKS = {
       });
     }
   },
-  // (Granite: interlocking angular crystals: dark mica, pale quartz, feldspar a shade off the ground, larger.)
   granite(g, w, h, p) {
     MARKS.grain(g, w, h, p);
     const r = p.r;
@@ -262,8 +241,7 @@ const MARKS = {
 };
 
 /**
- * `texture`'s tile over `color`, `dpr` canvas pixels a CSS pixel (whole pixels, so it repeats without a seam): a
- * chart's fill's, or a page's own (a swatch, a CSS background) in the same look.
+ * Whole canvas pixels, so it repeats without a seam.
  * @param {Texture} texture @param {string} color @param {number} dpr
  */
 function tile(texture, color, dpr) {
@@ -278,18 +256,16 @@ function tile(texture, color, dpr) {
   return made;
 }
 
-/** The patterns' maker: a context of its own, so any context can fill with them. */
+/** A context of its own, so any context can fill with the patterns. */
 let pen = /** @type {CanvasRenderingContext2D | null} */ (null);
 /**
- * Each texture's patterns by color and density, made once and shared by every fill in that look (a page making its
- * bands again, a picture painted again, finds them made).
+ * Made once and shared by every fill in that look.
  * @type {WeakMap<Texture, Map<string, { pattern: CanvasPattern | null, a: number, d: number }>>}
  */
 const patterns = new WeakMap();
 
 /**
- * `texture`'s pattern over `color` at `dpr`, made once and shared, with `a` and `d`, the scale that brings its tile's
- * pixels to CSS pixels: a chart's fill moves it to the data each draw (TextureFill); a page's own picture sets it once.
+ * `a` and `d` scale its tile's pixels to CSS pixels.
  * @param {Texture} texture @param {string} color @param {number} dpr
  */
 export function patternOf(texture, color, dpr) {
@@ -305,13 +281,10 @@ export function patternOf(texture, color, dpr) {
   return made;
 }
 
-/** `n` modulo `m`, never negative. @param {number} n @param {number} m */
+/** @param {number} n @param {number} m */
 const mod = (n, m) => n - Math.floor(n / m) * m;
 
-/**
- * A texture's fill for one series: its pattern made again only as its texture, its color or the density change (one
- * tile, then nothing made a frame), moved each draw to the data.
- */
+/** Its pattern is made again only as its texture, color or density change, so a draw makes none. */
 export class TextureFill {
   constructor() {
     /** @type {CanvasPattern | null} */
@@ -320,21 +293,18 @@ export class TextureFill {
     this.texture = null;
     this.color = "";
     this.dpr = 0;
-    /** Its pattern's place: a tile's pixels to CSS pixels, then the anchor (reused, a draw each). */
     this.matrix = new DOMMatrix();
   }
 
   /**
-   * `texture`'s marks over `color` at `dpr`, anchored to `time` and `scale` as they are now, to fill on `g`; on a
-   * recording context (a hit's measure, see recorder.js), its color: only its shape counts there, and its tile, made
-   * for the screen's density, stays made.
+   * On a recording context (see recorder.js) the color: only the shape counts there, and the screen's tile stays made.
    * @param {CanvasRenderingContext2D} g @param {Texture} texture @param {string} color @param {number} dpr
    * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @returns {CanvasPattern | string}
    */
   style(g, texture, color, dpr, time, scale) {
     if (!(g instanceof CanvasRenderingContext2D)) return color;
-    // (Read by index, not destructured: without a JIT an array's destructuring walks an iterator, made each draw.)
+    // Read by index: without a JIT, destructuring walks an iterator made each draw.
     const size = SIZE[texture.kind], w = size[0], h = size[1];
     if (this.texture !== texture || this.color !== color || this.dpr !== dpr) {
       (this.texture = texture), (this.color = color), (this.dpr = dpr);
@@ -342,7 +312,6 @@ export class TextureFill {
       (this.pattern = made.pattern), (this.matrix.a = made.a), (this.matrix.d = made.d);
     }
     if (!this.pattern) return color;
-    // (Anchored to the data: the first point's x, and on a log scale 1's height, else 0's, each brought within a tile.)
     (this.matrix.e = mod(time.x(0), w)), (this.matrix.f = mod(scale.y(scale.mode === "log" ? 1 : 0), h));
     this.pattern.setTransform(this.matrix);
     return this.pattern;

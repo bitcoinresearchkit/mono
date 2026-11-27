@@ -1,26 +1,17 @@
-// How a series id of one release reads in the next, shared by the page's lookup and scripts/api-changes.mjs, which finds the rules
-// from the two servers and keeps only those this reads back exactly. An id is a cohort's prefix, then a measure, maybe
-// ending in a suffix (its unit): a prefix is renamed whole (`utxos_2y_to_3y_old_` to `age_2y_to_3y_`), a measure whole
-// or word by word (`addrs` to `address_count`), a suffix whole, its values maybe multiplied (`cents` to `usd`, by
-// 0.01); an id none of them explains is written out.
+// Shared by the page's lookup and scripts/api-changes.mjs.
 
 /**
- * @typedef {[string, string, number]} Rename What was renamed, as it was, as it is, and how many ids it renamed.
- * @typedef {[string, string, number, number]} MeasureRename A measure or a suffix, as it was, as it is (a suffix empty:
- *   dropped), what its values were multiplied by, and how many ids it renamed. A suffix may read two ways (`cents` as
- *   `usd` where the measure counts bitcoin, dropped where it counts dollars): both are kept, the one renaming more first.
+ * @typedef {[string, string, number]} Rename
+ * @typedef {[string, string, number, number]} MeasureRename
  * @typedef {MeasureRename} SuffixRename
- * @typedef {[string, string, number]} IdRename An id, as it was, as it is, and what its values were multiplied by.
+ * @typedef {[string, string, number]} IdRename
  * @typedef {{ cohorts: Rename[], measures: MeasureRename[], words: Rename[], suffixes: SuffixRename[], ids: IdRename[] }} Rules
  * @typedef {{ id: string, factor: number, cohort?: Rename, measure?: MeasureRename, words?: Rename[],
  *   suffix?: SuffixRename, exact?: true }} Reading
  */
 
 /**
- * The rules, ready to read with: cohorts longest first (`utxos_2y_to_3y_old_` before `utxos_`); suffixes longest first,
- * then those read as another before those dropped (`cents` as `usd` if the next release serves that, else dropped: a
- * measure counting bitcoin has its dollars apart, one counting dollars has nothing to drop them for), then the likeliest;
- * words by their first word.
+ * Longest first, so `utxos_2y_to_3y_old_` is tried before `utxos_`.
  * @param {Rules} rules
  */
 export function index(rules) {
@@ -40,7 +31,6 @@ export function index(rules) {
 }
 
 /**
- * `measure` with its words renamed, each rule where its words stand in it, the longest first; and the rules used.
  * @param {string} measure
  * @param {Map<string, Rename[]>} words
  */
@@ -60,9 +50,7 @@ function renameWords(measure, words) {
 }
 
 /**
- * What `id` may read as in the next release, likeliest first: written out if it's an exception; else its cohort's
- * prefix renamed, then its measure renamed whole, or with each reading of its suffix (and last none) its words renamed,
- * then as they were. The first that the next release serves is the one (an id no rule touches reads as itself).
+ * Likeliest first: the first the next release serves is the one.
  * @param {string} id
  * @param {ReturnType<typeof index>} rules
  * @returns {Reading[]}

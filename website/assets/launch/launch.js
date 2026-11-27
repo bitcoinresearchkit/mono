@@ -1,42 +1,21 @@
 // @ts-check
-// Every showcase's launch from a phone's home screen, in one place: each page loads this first in its head
-// (`<script src="/assets/launch/launch.js"></script>`, `data-wait` for a page that says itself when it's ready: see
-// `bitviewLaunch.ready`).
-//
-// - Each showcase is an app of its own, the one added: its folder its start and its scope, named by the page
-//   (`data-app="Studio"`: "Bitview Studio", "Studio" under its icon; `data-color`, its design's own colour, Bitview's
-//   stamped cube in it); the front page, at "/", is Bitview, in its orange. Its manifest made and its icon linked here,
-//   for all of them; iOS takes them and its launch screen from the page it's added from, at that moment.
-// - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
-//   white else while the app starts), made as soon as the page starts, not once it has loaded: added to a home screen
-//   before then, an app would launch white for good.
-// - Launched from there (not a page it goes to after, nor a reload): the same orange over the page from its first frame,
-//   that frame the orange alone (for iOS to hand over to it without a flash of white). Once the page is ready and on
-//   the screen, the orange is Bitview's cube seen up close, which draws back as a camera would (evenly to the eye,
-//   eased in and out) and fades over its second half, never coming to rest, the page sharpening behind it (a layer
-//   blurring what's behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status
-//   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
-// - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
+// A showcase's home-screen launch, loaded first in each head (`data-wait`: `bitviewLaunch.ready`).
+// iOS takes the manifest, icon and launch screen from the page when it is added: made as the page starts, else an app added earlier launches white for good.
 (() => {
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
   const standalone = /** @type {any} */ (navigator).standalone;
-  // The site's files beside this one's, at its address (a release's, `/v/<release>/`, as the page names it).
   const asset = (/** @type {string} */ path) => new URL(`../${path}`, /** @type {HTMLScriptElement} */ (script).src).href;
-  // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: asset("version/version.js") }));
-  // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
   const app = script?.dataset.app, name = app ? `Bitview ${app}` : "Bitview", short = app ?? name;
   const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;
   for (const [tag, attributes] of /** @type {const} */ ([
     ["meta", { name: "application-name", content: name }],
     ["meta", { name: "apple-mobile-web-app-title", content: short }],
-    // (iOS uses a launch screen only for a page that says it's an app.)
+    // iOS uses a launch screen only for a page that says it's an app.
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
-  // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
-  // `data-color` by scripts/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
-  // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
+  // Its icon is a file (made by scripts/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode.
   const icon = asset(`favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`);
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
   link("apple-touch-icon", icon);
@@ -61,17 +40,11 @@
       document.head.append(link);
     });
   }
-  /** Said by a page that waits (`data-wait`): it's ready. Else as it loads. */
   const api = { ready: () => {} };
   /** @type {any} */ (window).bitviewLaunch = api;
   if (!standalone) return;
-  // Installed, its status bar solid in the page's own color, never blurred: iOS (26 on) colors it from the first fixed
-  // box at the screen's top edge, and finding the launch's full-screen blur there (its closing step) kept a blur of the
-  // page under the status bar up to the first reload. That box here, a few pixels tall, over everything (the launch's
-  // layers too): the launch's orange while it runs, then the page's theme-color for its color scheme (else its
-  // ground), followed as the page changes it (Studio's theme).
-  // (iOS reads its color as the box comes: a new one for each color, the old one's kept else (tried on an iPhone: a
-  // color changed in place left the launch's orange there).)
+  // iOS (26 on) colors its status bar from the first fixed box at the top edge: a full-screen blur there kept a blur under the bar until a reload. So this box is the launch's orange, then the page's color.
+  // iOS reads its color as the box comes: a new box for each color (a color changed in place left the launch's orange).
   let status = document.createElement("div"), striped = "";
   const strip = (/** @type {string} */ color) => {
     if (color === striped) return;
@@ -85,21 +58,14 @@
   let launching = false;
   const paint = () => {
     if (launching) return;
-    // (The page's own ground, the body's, else the root's: what's under the bar, exactly (a theme-color can drift from
-    // it: Calendar's grey over its beige); none (a page all canvas), its theme-color, else black: a strip see-through
-    // would leave iOS its blur.)
+    // The page's own ground (body's, else root's), not theme-color, which can drift from it; a see-through strip would leave iOS its blur.
     const meta = /** @type {HTMLMetaElement[]} */ ([...document.querySelectorAll('meta[name="theme-color"]')]).find((tag) => !tag.media || matchMedia(tag.media).matches);
     const ground = [document.body, root].map((element) => (element ? getComputedStyle(element).backgroundColor : "")).find((color) => color && color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color));
     const color = ground || meta?.content || "#000";
     if (color) strip(color);
-    // (Its edge in the same color: after this script's run, once the edge is made.)
     queueMicrotask(() => edge.isConnected && edged());
   };
   paint();
-  // Under it, what scrolls up to it dissolves, not cut: a soft edge 28px tall, the page blurred more and more toward the
-  // top (four layers) and its color over it, as iOS's own bars end. In by how far the page has scrolled (none at its
-  // top, where nothing's cut: over a header's words none), whole by 28px; none on a page that doesn't scroll (an app's
-  // own frame: Studio, Trail), nor while the page's own bar (fixed or sticky) is up there, its edge its own.
   const edge = document.createElement("div");
   edge.setAttribute("aria-hidden", "true");
   edge.style.cssText = "position: fixed; inset: 0 0 auto; z-index: 2147483000; height: 28px; pointer-events: none";
@@ -107,7 +73,6 @@
   const tint = /** @type {HTMLElement} */ (edge.lastElementChild);
   const edged = () => {
     tint.style.background = `linear-gradient(${striped}, color-mix(in srgb, ${striped} 70%, transparent) 30%, color-mix(in srgb, ${striped} 25%, transparent) 65%, transparent)`;
-    // (The page's own bar at the top: its edge is its own.)
     let own = false;
     for (let element = document.elementFromPoint(innerWidth / 2, 12); element && element !== document.body && element !== root; element = element.parentElement) {
       const position = getComputedStyle(element).position;
@@ -115,7 +80,7 @@
       if (!element) break;
     }
     const shown = own || document.documentElement.scrollHeight <= innerHeight + 1 ? 0 : Math.min(1, Math.max(0, scrollY / 28));
-    // (On each layer: an opacity on the whole would cut them off from the page behind, nothing to blur till it's 1.)
+    // On each layer: an opacity on the whole would cut them off from the page behind, leaving nothing to blur.
     const opacity = String(Math.round(shown * 100) / 100);
     for (const layer of /** @type {HTMLElement[]} */ ([...edge.children])) if (layer.style.opacity !== opacity) layer.style.opacity = opacity;
   };
@@ -126,7 +91,6 @@
   addEventListener("load", paint, { once: true });
   new MutationObserver(paint).observe(document.head ?? root, { subtree: true, childList: true, attributes: true, attributeFilter: ["content", "media"] });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paint);
-  // The app's launch only, not each page it goes to after: once a session, as its sessionStorage says.
   try {
     if (sessionStorage.getItem("bitview-launched") !== null) return;
     sessionStorage.setItem("bitview-launched", "");
@@ -134,9 +98,7 @@
 
   root.dataset.launch = "";
   const top = 2147483600;
-  // (The root orange too, under the cover until the page shows: on a phone (Lockdown's, slow), iOS starts an app drawn
-  // under its status bar with the page a status bar's height short of the screen, and grows it a moment later; the
-  // cover fills the page alone, and the strip left at the foot showed the page's own ground, dark.)
+  // The root orange too: iOS starts an app with the page a status bar's height short and grows it later; the foot would show the page's ground.
   const style = document.createElement("style");
   style.textContent = `
     html[data-launch]::after { content: ""; position: fixed; inset: 0; z-index: ${top}; background: ${ORANGE}; pointer-events: none; animation: bitview-launch-out 450ms ease 6s forwards; }
@@ -148,27 +110,19 @@
     html[data-launch="out"]::before { content: ""; position: fixed; inset: 0; z-index: ${top - 1}; pointer-events: none; }
     @keyframes bitview-launch-out { to { opacity: 0; } }`;
   document.head.append(style);
-  // (The status bar the launch's orange meanwhile: the strip's, see status.)
   launching = true;
   strip(ORANGE);
   const pageBar = () => ((launching = false), paint());
   const gone = () => (delete root.dataset.launch, pageBar());
-  // (Faded by itself, the page never ready: the root its own as the fade starts (the page's size long settled), gone at
-  // its end.)
   root.addEventListener("animationstart", (event) => event.target === root && event.pseudoElement === "::after" && (root.dataset.launch = "fade"));
   root.addEventListener("animationend", (event) => event.target === root && event.pseudoElement === "::after" && gone());
-  // The page drawn only once a frame of the orange alone is on the screen. iOS fades its launch screen out at the page's
-  // first frame, and a page drawn into that frame makes it reach the screen late, the blank web view showing through
-  // white meanwhile (the home page, in the iOS 27 Simulator: 6 frames, to half white; with it hidden, none, and no hold
-  // before that frame helps further). Hidden, it's laid out all the same, for its scripts to measure; hidden from a
-  // layer, whose !important outranks any page's own visibility, however specific (Trail's scene, Studio's touch
-  // counts). Left on a phone: 2-4 frames to ~10%, the blank web view fading in before even that first frame arrives,
-  // with an orange page background, theme-color or manifest background alike.
+  // Drawn only once a frame of the orange alone is on screen: a page in the frame iOS fades its launch screen at arrives late, white.
+  // Hidden from a layer, whose !important outranks any page's own visibility.
   const shown = new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
     if (root.dataset.launch === "") root.dataset.launch = "page";
     resolve(undefined);
   })));
-  // The cube, the logo's, in the launch's orange, decoded before it's shown (shown undecoded, a frame of nothing).
+  // The cube, decoded before it's shown (shown undecoded, a frame of nothing).
   const cube = fetch(asset("logo/logo.svg")).then((response) => response.text()).then(async (text) => {
     const url = `url("data:image/svg+xml,${encodeURIComponent(text.replace(/fill="[^"]*"/, `fill="${ORANGE}"`))}")`, image = new Image();
     image.src = url.slice(5, -2);
@@ -180,15 +134,11 @@
     if (started || !("launch" in root.dataset)) return;
     started = true;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return gone();
-    // (Two frames on: iOS shows a page's first frame late, a motion begun at once would be most of the way through
-    // unseen.)
+    // Two frames on: iOS shows a page's first frame late, a motion begun at once would be mostly unseen.
     Promise.all([cube, shown]).then(([url]) => requestAnimationFrame(() => requestAnimationFrame(() => {
       if (!("launch" in root.dataset)) return;
       root.style.setProperty("--bitview-launch-cube", url);
       root.dataset.launch = "out";
-      // Scales of its 400px box (the logo's 92px at 1): at first, close enough for the screen to be inside its solid
-      // front (half the screen's height within a fifth of its unit, half its width within half), whatever its shape;
-      // at last, a little over the logo's size.
       const unit = 92 / 1.26, first = (1.05 * Math.max(innerHeight / 2 / 0.2, innerWidth / 2 / 0.5)) / unit, last = 2.4, box = 400 / 92, steps = 24;
       const frames = Array.from({ length: steps + 1 }, (_, k) => ({ transform: `scale(${(first ** (1 - k / steps) * last ** (k / steps)) / box})` }));
       const timing = { pseudoElement: "::after", duration: 900, fill: /** @type {const} */ ("forwards") };
@@ -197,9 +147,7 @@
       const blur = (/** @type {number} */ px, /** @type {number} */ offset) => ({ backdropFilter: `blur(${px}px)`, webkitBackdropFilter: `blur(${px}px)`, offset });
       root.animate([blur(24, 0), blur(24, 0.2), blur(0, 1)], { ...timing, pseudoElement: "::before", easing: "cubic-bezier(.3, 0, .2, 1)" });
       drawn.finished.then(gone, gone);
-      // The status bar the page's own once the page shows at the top edge's middle, where iOS reads it: the cube's top
-      // face come down past it (its unit's 0.08 above the point it's drawn back to, 0.15 under its middle), read as it
-      // goes.
+      // iOS reads the top edge's middle: the status bar becomes the page's own once the page shows there.
       const perUnit = 400 / 1.26;
       const follow = () => {
         if (!("launch" in root.dataset)) return;

@@ -29,21 +29,17 @@
     <div id="chart"></div>
     <p id="note">Loading…</p>
     <script type="module">
-      // bitview-charts' bench, not Studio: the price (log) over the age bands' supply shares, stacked to 100% (23 bands
-      // filled, each one's top edge a line; ?lines, the lines alone), from columns, to measure what a pan costs against the gates (ENGINE-PLAN.md): frames,
-      // collections, a step's script. Pan by dragging, zoom by pinching or the wheel. Hooks for the measuring scripts:
-      // __bench(steps) (steps drawn at once: ms a step), __pan(frames, dir) and __zoom(frames, dir) (at frames: their gaps).
+      // bitview-charts' bench, not Studio. Hooks for the measuring scripts: __bench(steps) returns ms a step, __pan(frames, dir)
+      // and __zoom(frames, dir) return the frames' gaps in ms.
       import { compact, createChart, stack } from "/modules/bitview-charts/index.js";
 
       const BANDS = ["under_1h", "1h_to_1d", "1d_to_1w", "1w_to_1m", "1m_to_2m", "2m_to_3m", "3m_to_4m", "4m_to_5m", "5m_to_6m", "6m_to_9m", "9m_to_1y", "1y_to_18m", "18m_to_2y", "2y_to_3y", "3y_to_4y", "4y_to_5y", "5y_to_6y", "6y_to_7y", "7y_to_8y", "8y_to_10y", "10y_to_12y", "12y_to_15y", "over_15y"];
-      // (day1's first date: 1 January 2009, the genesis block's year.)
       const DAY = 86400, FIRST = Date.UTC(2009, 0, 1) / 1000;
       const get = async (name) => (await fetch(`/api/series/${name}/day1`)).json();
       const [price, ...bands] = await Promise.all([get("price_ohlc"), ...BANDS.map((b) => get(`age_${b}_supply`))]);
       const n = price.end, times = Float64Array.from({ length: n }, (_, i) => FIRST + i * DAY);
       const close = new Float64Array(n).fill(NaN);
       for (let i = price.start; i < price.end; i++) { const c = price.data[i - price.start][3]; if (c > 0) close[i] = c; }
-      // (Each band's top and foot: the shares of it and every band under it, and of those under it.)
       const { tops, feet } = stack(bands.map((b) => Float64Array.from({ length: n }, (_, i) => (i >= b.start && i < b.end && b.data[i - b.start] > 0 ? b.data[i - b.start] : NaN))), { percent: true });
 
       const chart = createChart(document.getElementById("chart"));
@@ -52,7 +48,6 @@
       top.addLine({ values: close, color: "#f7f8f8", width: 1.5, tag: true, priceLine: true });
       const shares = chart.addPane({ share: 3, scale: { top: 0.02, bottom: 0.02 }, format: (v, step) => `${compact(v, step)}%` });
       shares.setRange(0, 100);
-      // (Each band filled between its lower edge and its own, under the lines; ?lines: the lines alone.)
       const hue = (k) => Math.round(25 + (295 * k) / (tops.length - 1));
       if (!new URLSearchParams(location.search).has("lines")) tops.forEach((upper, k) => shares.addBand({ lower: feet[k], upper, color: `oklch(0.72 0.15 ${hue(k)} / 0.42)` }));
       tops.forEach((values, k) => shares.addLine({ values, color: `oklch(0.72 0.15 ${hue(k)})`, width: 1, tag: true }));
@@ -61,7 +56,6 @@
 
       Object.assign(window, {
         chart,
-        // (A zoom at frames, out (dir 1) or in (-1) by 1% a frame about the plot's middle: the frames' gaps, in ms.)
         __zoom: async (frames = 120, dir = 1) => {
           const gaps = [];
           let last = performance.now();
@@ -75,13 +69,11 @@
           }
           return gaps;
         },
-        // (Steps of a pixel drawn at once, not at frames: a step's script, in ms.)
         __bench: (steps = 60, dir = -1) => {
           const t = performance.now();
           for (let k = 0; k < steps; k++) (chart.time.pan(dir), chart.render());
           return (performance.now() - t) / steps;
         },
-        // (A pan at frames, a pixel each: the frames' gaps, in ms.)
         __pan: async (frames = 120, dir = -1) => {
           const gaps = [];
           let last = performance.now();

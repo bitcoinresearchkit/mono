@@ -1,28 +1,21 @@
 // @ts-check
-// Words on a color: white or black by one rule (see whiteOn), each color measured once; a tag's look (its fill as it
-// is, its words), and words in a color over the data (outlined). And a fill's or a stroke's style as a vertical gradient
-// (a fade, or colors by value hard-edged at their heights), kept till it changes.
 
 const ink = new Map();
-/** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
+/** @type {CanvasRenderingContext2D | null} */
 let pen = null;
 
 const solids = new Map();
 
 /**
- * `color` without its alpha (a tag's ground, as the chart library's: a line drawn at half opacity tagged in its full
- * color), each color read once.
  * @param {string} color
  */
 export function solid(color) {
   let full = solids.get(color);
   if (full !== undefined) return full;
   pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-  // (As a canvas writes it back: #rrggbb opaque, rgba(…) with an alpha, other spaces in their own form with "/ alpha"
-  // (oklch, display-p3): that alpha dropped, exactly.)
+  // (As a canvas writes it back: #rrggbb opaque, rgba(…) with an alpha, other spaces with "/ alpha": that alpha dropped.)
   pen.fillStyle = "#000";
   pen.fillStyle = color;
-  // (None at all (transparent): as it is, nothing to show.)
   const read = String(pen.fillStyle), m = /^rgba\((\d+), (\d+), (\d+), ([^)]+)\)$/.exec(read);
   const slash = m ? null : /\s*\/\s*([^)/]+)\)$/.exec(read), alpha = m ? Number(m[4]) : slash ? parseFloat(slash[1]) / (slash[1].trim().endsWith("%") ? 100 : 1) : 1;
   full = !(alpha > 0) ? color : m ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : slash ? read.slice(0, slash.index) + ")" : read;
@@ -31,7 +24,7 @@ export function solid(color) {
   return full;
 }
 
-/** White or black words on `color` (see whiteOn). @param {string} color */
+/** @param {string} color */
 export function inkOn(color) {
   let text = ink.get(color);
   if (text !== undefined) return text;
@@ -44,10 +37,7 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look in `color` (a series' on its axis, a mark's words by its dot): its fill that very color, as named, its
- * opacity left out; its words white or dark (see whiteOn), with a whisper of its hue where that still reads (see
- * wordsOn). No edge: a series the ground's color is the page's choice. A see-through color, none (nothing shown).
- * Each color worked out once.
+ * No edge: a series the ground's color is the page's choice.
  * @param {string} color
  * @returns {{ fill: string, ink: string }}
  */
@@ -66,9 +56,6 @@ export function tint(color) {
 }
 
 /**
- * Words in `color` over the data (a mark's placed over its series): a pill of the chart's `ground` (opaque), edged in
- * that color as named (its opacity left out), its words in it, kept legible on the ground (see legible). A see-through
- * color, none (nothing shown).
  * @param {string} color @param {string} ground
  * @returns {{ fill: string, ink: string, edge: string }}
  */
@@ -79,11 +66,7 @@ export function outlined(color, ground) {
 
 const overs = new Map();
 
-/**
- * `color` laid over `ground` as a canvas paints it (its opacity's share of it, the rest the ground's), as #rrggbb: a
- * see-through color as an opaque one that covers what's under it. Each pair worked out once.
- * @param {string} color @param {string} ground
- */
+/** @param {string} color @param {string} ground */
 export function over(color, ground) {
   const key = `${color}|${ground}`;
   let out = overs.get(key);
@@ -98,9 +81,7 @@ export function over(color, ground) {
 const legibles = new Map();
 
 /**
- * `color` as words on `ground` (opaque): itself where it reads there (see FLOOR), else its lightness (OKLab) moved
- * toward white or black, whichever reads better on the ground, just as far as that takes, its hue kept: words as quiet
- * as they can be and still read. Each pair worked out once.
+ * Its OKLab lightness moved toward white or black just as far as it takes to read.
  * @param {string} color @param {string} ground
  */
 export function legible(color, ground) {
@@ -115,25 +96,29 @@ export function legible(color, ground) {
   return out;
 }
 
-/** sRGB channels' (0 to 255) relative luminance (WCAG 2's). @param {number[]} c */
+/**
+ * WCAG 2's relative luminance.
+ * @param {number[]} c
+ */
 function luminance(c) {
   const f = (/** @type {number} */ v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
   return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
 }
 
-/** The contrast (WCAG 2's) between two colors' sRGB channels (0 to 255). @param {number[]} x @param {number[]} y */
+/**
+ * WCAG 2's contrast.
+ * @param {number[]} x @param {number[]} y
+ */
 function ratio(x, y) {
   const a = luminance(x), b = luminance(y);
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-/** The least contrast words on the chart keep with what's under them: WCAG 2's floor for small words (12 px). */
+/** WCAG 2's floor for small words (12 px). */
 const FLOOR = 4.5;
 
 /**
- * Words on `fill` (sRGB channels, 0 to 255), white or dark (see whiteOn), given back a whisper of its hue in OKLCH
- * (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there); where that falls short
- * of FLOOR on it, moved toward pure white or black just as far as that takes (see toward), as sRGB channels.
+ * A whisper of the fill's hue in OKLCH; where that falls short of FLOOR, moved toward pure white or black just as far.
  * @param {number[]} fill
  */
 function wordsOn(fill) {
@@ -142,11 +127,7 @@ function wordsOn(fill) {
   return reads(ink) ? ink : toward(L, white ? 1 : 0, hue, chroma, reads);
 }
 
-/**
- * The most vivid color sRGB holds at OKLab lightness `l` in `hue` (radians), its chroma `most` at most, as sRGB channels
- * (0 to 255).
- * @param {number} l @param {number} hue @param {number} most
- */
+/** @param {number} l @param {number} hue @param {number} most */
 function vivid(l, hue, most) {
   const at = (/** @type {number} */ c) => lin(l, c * Math.cos(hue), c * Math.sin(hue));
   let lo = 0, hi = most;
@@ -161,8 +142,7 @@ function vivid(l, hue, most) {
 }
 
 /**
- * A color of lightness (OKLab) `L`, short of what `reads` asks, moved toward `to` (1: white; 0: black) just as far as
- * it takes (found by halves), its hue kept and its chroma the most sRGB allows there (never more than `chroma`).
+ * Found by halves, its hue kept.
  * @param {number} L @param {number} to @param {number} hue @param {number} chroma @param {(c: number[]) => boolean} reads
  */
 function toward(L, to, hue, chroma, reads) {
@@ -176,8 +156,7 @@ function toward(L, to, hue, chroma, reads) {
 }
 
 /**
- * APCA's lightness contrast of `text` on `back` (sRGB channels, 0 to 255), its size alone: its offsets and clamp left
- * out, as only two inks on one fill are compared with it.
+ * APCA's lightness contrast without its offsets and clamp: only two inks on one fill are compared.
  * @param {number[]} text @param {number[]} back
  */
 function lc(text, back) {
@@ -189,14 +168,10 @@ function lc(text, back) {
   return b > t ? b ** 0.56 - t ** 0.57 : t ** 0.62 - b ** 0.65;
 }
 
-/** Pure white and black, as sRGB channels. */
 const WHITE = [255, 255, 255], BLACK = [0, 0, 0];
 
 /**
- * Whether words on `back` (sRGB channels, 0 to 255) are white, the chart's one rule for words on a color (its tags',
- * its marks' pills', Studio's): APCA's pick of white or black (see lc), unless that ink falls short of FLOOR on it
- * (WCAG 2's ratio), even pure; then the other, which never does (pure white's and black's ratios on one color
- * multiply to 21, so the better is 4.58 or more).
+ * APCA's pick, unless under FLOOR (WCAG 2); then the other, never under it (white's and black's ratios multiply to 21).
  * @param {number[]} back
  */
 function whiteOn(back) {
@@ -204,20 +179,16 @@ function whiteOn(back) {
   return ratio(white ? WHITE : BLACK, back) >= FLOOR ? white : !white;
 }
 
-/** sRGB channels (0 to 255) from linear ones, or a read color's first three. @param {ArrayLike<number>} c */
+/** @param {ArrayLike<number>} c */
 function rgb(c) {
   return c.length === 4 ? [c[0], c[1], c[2]] : Array.from(c, (v) => Math.round(255 * (Math.min(1, Math.max(0, v)) <= 0.0031308 ? 12.92 * Math.min(1, Math.max(0, v)) : 1.055 * Math.min(1, Math.max(0, v)) ** (1 / 2.4) - 0.055)));
 }
 
-/** At or under this chroma a color has no hue of its own (a gray, as a page writes one: `oklch(0.76 0.02 250)`): mixed, it takes its neighbor's. */
+/** At or under it a color has no hue of its own (a gray): mixed, it takes its neighbor's. */
 const GRAY = 0.02;
 
 /**
- * A gradient's `steps` colors (256 unless asked), evenly from 0% to 100%, as `oklch(…)` (any canvas or CSS takes it,
- * a page can tone it for its theme): its `stops` (each where it is, 0 to 100, and any CSS color; in order) mixed in
- * OKLCH, lightness and chroma straight and hue the shorter way round (a gray one taking its neighbor's), so two far
- * apart stay vivid between (OKLab took blue to yellow through gray); their opacities straight, a see-through stop the
- * color of the one it fades to or from (a fade not through black); past its outer ones, theirs.
+ * In OKLCH the shorter way round, vivid between; a see-through stop takes its neighbor's color (no fade to black).
  * @param {readonly (readonly [number, string])[]} stops @param {number} [steps]
  * @returns {string[]}
  */
@@ -229,11 +200,7 @@ export function gradientTable(stops, steps = 256) {
   });
 }
 
-/**
- * A gradient's `steps` colors (see gradientTable) as OKLCH and opacity, a color each 4: lightness, chroma, hue in
- * degrees, opacity 0 to 255.
- * @param {readonly (readonly [number, string])[]} stops @param {number} steps
- */
+/** @param {readonly (readonly [number, string])[]} stops @param {number} steps */
 function mixes(stops, steps) {
   const lchs = stops.map(([, color]) => lchOf(color)), rows = new Float64Array(steps * 4), last = stops.length - 1;
   for (let k = 0; k < steps; k++) {
@@ -248,8 +215,7 @@ function mixes(stops, steps) {
 }
 
 /**
- * A CSS color as OKLCH and opacity (lightness, chroma, hue in degrees, opacity 0 to 255): an `oklch(…)` read as
- * written (none of its chroma clipped to sRGB, as a canvas's writing would), any other as the canvas reads it.
+ * An `oklch(…)` read as written: none of its chroma clipped to sRGB, as a canvas's writing would.
  * @param {string} color @returns {number[]}
  */
 function lchOf(color) {
@@ -260,15 +226,11 @@ function lchOf(color) {
   return [L, Math.hypot(a, b), ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, channels[3]];
 }
 
-/** Where a place (0 to 1, clamped) falls in a gradient's `n` colors: the nearest one's index. @param {number} place @param {number} n */
+/** @param {number} place @param {number} n */
 export const placeIndex = (place, n) => Math.round((place < 0 ? 0 : place > 1 ? 1 : place) * (n - 1));
 
 /**
- * A color's sRGB channels and opacity (0 to 255), as the canvas reads it: from the canvas's own writing of it (#rrggbb,
- * rgb() or rgba(), oklch(), oklab(), lab(), lch(), color() in any of CSS's spaces: any CSS color comes back as one,
- * wide-gamut ones clipped to sRGB), never from
- * a pixel drawn and read (a browser resisting fingerprinting, as Mullvad does, gives a read pixel noise). Anything else,
- * black.
+ * From the canvas's own writing of it, never a read pixel: an anti-fingerprinting browser (Mullvad) adds noise.
  * @param {string} color
  */
 export function channels(color) {
@@ -283,7 +245,7 @@ function read(color) {
   return parsed(String(pen.fillStyle));
 }
 
-/** A canvas's writing of a color as its sRGB channels and opacity (0 to 255; see read). @param {string} text */
+/** @param {string} text */
 function parsed(text) {
   if (text[0] === "#") {
     const hex = (/** @type {number} */ at) => parseInt(text.slice(at, at + 2), 16);
@@ -292,7 +254,6 @@ function parsed(text) {
   const call = /^([a-z0-9-]+)\((.*)\)$/.exec(text.trim());
   if (!call) return [0, 0, 0, 255];
   const [, name, body] = call, parts = body.replace("/", " / ").split(/[\s,]+/).filter(Boolean), slash = parts.indexOf("/");
-  // (A number, a percentage of `whole`, or none.)
   const num = (/** @type {string | undefined} */ part, /** @type {number} */ whole) => (part === undefined || part === "none" ? 0 : part.endsWith("%") ? (parseFloat(part) / 100) * whole : parseFloat(part));
   const values = slash >= 0 ? parts.slice(0, slash) : parts, alpha = slash >= 0 ? num(parts[slash + 1], 1) : (name === "rgba" || name === "rgb") && parts.length === 4 ? num(parts[3], 1) : 1;
   /** @type {number[]} */
@@ -302,21 +263,19 @@ function parsed(text) {
     const l = num(values[0], 1), first = num(values[1], 0.4), second = name === "oklch" ? (num(values[2], 360) * Math.PI) / 180 : num(values[2], 0.4);
     channels = rgb(name === "oklch" ? lin(l, first * Math.cos(second), first * Math.sin(second)) : lin(l, first, second));
   } else if (name === "lab" || name === "lch") {
-    // (CIE Lab (D50): to XYZ, adapted to D65, to linear sRGB.)
     const l = num(values[0], 100), first = num(values[1], name === "lab" ? 125 : 150), second = name === "lch" ? (num(values[2], 360) * Math.PI) / 180 : num(values[2], 125);
     const a = name === "lab" ? first : first * Math.cos(second), b = name === "lab" ? second : first * Math.sin(second), fy = (l + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
     const inv = (/** @type {number} */ t) => (t ** 3 > 216 / 24389 ? t ** 3 : (116 * t - 16) / (24389 / 27));
     channels = rgb(fromXYZ(d50to65([0.3457 / 0.3585 * inv(fx), l > 8 ? fy ** 3 : l / (24389 / 27), ((1 - 0.3457 - 0.3585) / 0.3585) * inv(fz)])));
   } else if (name === "color") {
     const space = values[0], [x, y, z] = values.slice(1, 4).map((part) => num(part, 1));
-    // (sRGB's curve, and Display P3's and A98's (as sRGB's; A98's a power) undone to linear.)
     const srgb = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) <= 0.04045 ? Math.abs(v) / 12.92 : ((Math.abs(v) + 0.055) / 1.055) ** 2.4);
     if (space === "srgb") channels = [x * 255, y * 255, z * 255];
     else if (space === "srgb-linear") channels = rgb([x, y, z]);
     else if (space === "display-p3") channels = rgb(fromXYZ(times(P3, [srgb(x), srgb(y), srgb(z)])));
     else if (space === "a98-rgb") channels = rgb(fromXYZ(times(A98, [x, y, z].map((v) => Math.sign(v) * Math.abs(v) ** (563 / 256)))));
     else if (space === "rec2020") {
-      // (Its curve as browsers draw it (Chromium's pixels match this one, 2026), not the 2.4 gamma CSS Color 4 moved to.)
+      // (Its curve as browsers draw it (Chromium's pixels match it), not the 2.4 gamma CSS Color 4 moved to.)
       const f = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) < 0.081242858298635 ? Math.abs(v) / 4.5 : ((Math.abs(v) + 0.0992968268094) / 1.0992968268094) ** (1 / 0.45));
       channels = rgb(fromXYZ(times(REC2020, [f(x), f(y), f(z)])));
     } else if (space === "prophoto-rgb") {
@@ -328,7 +287,6 @@ function parsed(text) {
   return [...channels.map((v) => Math.round(Math.min(255, Math.max(0, v)))), Math.round(Math.min(1, Math.max(0, alpha)) * 255)];
 }
 
-// (CSS Color 4's matrices: each space's linear channels to XYZ (D65; ProPhoto's D50), D50 to D65, XYZ to linear sRGB.)
 const P3 = [0.4865709486482162, 0.26566769316909306, 0.1982172852343625, 0.2289745640697488, 0.6917385218365064, 0.079286914093745, 0, 0.04511338185890264, 1.043944368900976];
 const A98 = [0.5766690429101305, 0.1855582379065463, 0.1882286462349947, 0.29734497525053605, 0.6273635662554661, 0.07529145849399788, 0.02703136138641234, 0.07068885253582723, 0.9913375368376388];
 const REC2020 = [0.6369580483012914, 0.14461690358620832, 0.1688809751641721, 0.2627002120112671, 0.6779980715188708, 0.05930171646986196, 0, 0.028072693049087428, 1.060985057710791];
@@ -337,9 +295,9 @@ const D50TO65 = [0.955473421488075, -0.02309845494876471, 0.06325924320057072, -
 const TOSRGB = [3.2409699419045226, -1.537383177570094, -0.4986107602930034, -0.9692436362808796, 1.8759675015077202, 0.04155505740717559, 0.05563007969699366, -0.20397695888897652, 1.0569715142428786];
 /** A 3x3 matrix (by rows) times a vector. @param {number[]} m @param {number[]} v */
 const times = (m, v) => [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
-/** XYZ (D50) as XYZ (D65). @param {number[]} v */
+/** @param {number[]} v */
 const d50to65 = (v) => times(D50TO65, v);
-/** XYZ (D65) as linear sRGB. @param {number[]} v */
+/** @param {number[]} v */
 const fromXYZ = (v) => times(TOSRGB, v);
 
 /** sRGB channels (0 to 255) as OKLab. @param {ArrayLike<number>} rgb */
@@ -365,12 +323,11 @@ function hex(c) {
   return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
-/** Two colors' blends, by the pair. @type {Map<string, string[]>} */
+/** @type {Map<string, string[]>} */
 const blends = new Map();
 
 /**
- * A fade's stops from `from` to `to`, nine evenly apart, mixed in OKLCH (see gradientTable): worked out once a pair,
- * so a gradient made anew (its heights changed: a baseline's base as its scale refits) costs only its stops.
+ * Worked out once a pair, so a gradient made anew as its scale refits costs only its stops.
  * @param {string} from @param {string} to
  */
 function blended(from, to) {
@@ -384,12 +341,6 @@ function blended(from, to) {
   return stops;
 }
 
-/**
- * Colors by value along a gradient: `colors` (any CSS colors, evenly apart: a gradientTable's), a value's the one
- * nearest its place from `lo` (0) to `hi` (1), past them the outer ones' (`lo` and `hi` the same: the middle one).
- * Continuous marks take it by height (a line's stroke, an area's fill: see Fill's graded), discrete ones each its own
- * (dots, bars: see index).
- */
 export class Gradient {
   /** @param {readonly string[]} colors @param {number} lo @param {number} hi */
   constructor(colors, lo, hi) {
@@ -400,40 +351,36 @@ export class Gradient {
     this.lo = lo;
     /** @readonly */
     this.hi = hi;
-    /** Its colors' sRGB channels and opacity (0 to 255), read once a style needs them. @type {number[][] | null} */
+    /** @type {number[][] | null} */
     this.rgba = null;
   }
 
-  /** The index of `v`'s color, by its place from its `lo` (0) to its `hi` (1) (none: NaN). @param {number} v */
+  /** @param {number} v */
   index(v) {
     return placeIndex(this.hi > this.lo ? (v - this.lo) / (this.hi - this.lo) : 0.5, this.colors.length);
   }
 
-  /** `v`'s color (none: null). @param {number} v */
+  /** @param {number} v */
   color(v) {
     return v === v ? this.colors[this.index(v)] : null;
   }
 
-  /** Each of `values`' color's index (none: 0), into `out` where it's as long. @param {Float64Array} values @param {Uint16Array | null} out */
+  /** @param {Float64Array} values @param {Uint16Array | null} out */
   indexes(values, out) {
     const n = values.length, into = out && out.length === n ? out : new Uint16Array(n);
     for (let i = 0; i < n; i++) into[i] = values[i] === values[i] ? this.index(values[i]) : 0;
     return into;
   }
 
-  /** Its colors' channels (see read). */
   channels() {
     return (this.rgba ??= this.colors.map(read));
   }
 }
 
-/** @typedef {{ value: number, color: string }} Zone a color from a value up (see Fill's zoned) */
+/** @typedef {{ value: number, color: string }} Zone */
 
 /**
- * Where `zones` (low to high, each its color from its value up) lie on a pane `height` tall, by its `scale` (its y of a
- * value), bottom up: for each shown, its index (-1: under them all), its top and its foot, as triples into `out`. A
- * zone's value under the foot, or one its scale can't show (a log scale's 0 or under), holds all from there up; one
- * over the top, none (nor those above it).
+ * As triples into `out`, bottom up. A value under the foot or unshowable holds all from there up; over the top, none.
  * @param {readonly { value: number }[]} zones @param {{ y: (v: number) => number }} scale @param {number} height @param {number[]} out
  */
 export function zoneSpans(zones, scale, height, out) {
@@ -453,18 +400,14 @@ export function zoneSpans(zones, scale, height, out) {
   return out;
 }
 
-/** A fill's or a stroke's style: a color, or a vertical gradient (CSS pixels) kept till its colors or heights change. */
+/** Kept till its colors or heights change. */
 export class Fill {
   constructor() {
     /** @type {CanvasGradient | null} */
     this.gradient = null;
-    /** What its gradient was made of (its colors and heights). */
     this.key = "";
-    // (A zoned style's spans (see zoneSpans): reused, a draw each.)
     /** @type {number[]} */
     this.spans = [];
-    // (A graded style (see graded), apart from the others, and what it was made of: its gradients, its height and
-    // where its scale put its ends and middle; its colors' heights, reused.)
     /** @type {CanvasGradient | string | null} */
     this.byValue = null;
     /** @type {Gradient | null} */
@@ -476,15 +419,10 @@ export class Fill {
   }
 
   /**
-   * Colors by value, by height: `gradient`'s colors where `scale` puts their values on a canvas `height` tall (any
-   * scale: a log one's too; one it can't show, a log scale's 0 or under, none), mixed straight between them as the
-   * canvas mixes; past its ends, theirs. With `fade` (a gradient as long, each color what its own fades to at the
-   * foot: an area's), each height's mixed toward its own there, as far as it is down the canvas. Made again only as
-   * either gradient, the height or the scale change: three of its heights read a draw (its top's, half its top's and
-   * its foot's: two shown on any scale whose top is, enough to tell a linear one's or a log one's mapping), nothing made.
-   * @param {CanvasRenderingContext2D} g @param {Gradient} gradient @param {{ y: (v: number) => number }} scale @param {number} height @param {Gradient | null} [fade]
-   * @returns {CanvasGradient | string}
-   */
+     * Made again only as either gradient, the height or the scale change, told by three heights read a draw.
+     * @param {CanvasRenderingContext2D} g @param {Gradient} gradient @param {{ y: (v: number) => number }} scale @param {number} height @param {Gradient | null} [fade]
+     * @returns {CanvasGradient | string}
+     */
   graded(g, gradient, scale, height, fade = null) {
     const lo = gradient.lo, hi = gradient.hi, ya = scale.y(lo), yb = scale.y(hi), ym = scale.y(hi > 0 ? hi / 2 : (lo + hi) / 2);
     if (this.byValue && this.of === gradient && this.fadeOf === fade && this.seen === height && Object.is(this.ya, ya) && Object.is(this.yb, yb) && Object.is(this.ym, ym)) return this.byValue;
@@ -493,7 +431,6 @@ export class Fill {
     if (!(hi > lo)) return (this.byValue = fade ? this.style(g, colors[mid], fade.colors[mid], 0, height) : colors[mid]);
     if (!(height > 0)) return (this.byValue = colors[mid]);
     const ys = this.ys.length >= n ? this.ys : (this.ys = new Float64Array(n));
-    // (Its colors' heights; the first and last shown.)
     let f = -1, l = -1;
     for (let k = 0; k < n; k++) {
       const y = (ys[k] = scale.y(n > 1 ? lo + ((hi - lo) * k) / (n - 1) : lo));
@@ -501,8 +438,7 @@ export class Fill {
     }
     if (f < 0) return (this.byValue = colors[0]);
     const top = gradient.channels(), foot = fade ? fade.channels() : null, s = ys[l] > ys[f] ? 1 : -1, made = g.createLinearGradient(0, 0, 0, height);
-    // (Where height `y` falls among its colors, as an index: between the two either side of it, by pixels, as the
-    // canvas mixes; past them, the end's.)
+    // (By pixels, as the canvas mixes; past them, the end's.)
     const at = (/** @type {number} */ y) => {
       if (f === l || (y - ys[f]) * s <= 0) return f;
       if ((y - ys[l]) * s >= 0) return l;
@@ -511,7 +447,6 @@ export class Fill {
       const d = ys[k + 1] - ys[k];
       return d ? k + (y - ys[k]) / d : k;
     };
-    // (Channel `c` at index `p` (between its two colors), `down` of the way down the pane to its fade's.)
     const mix = (/** @type {number} */ p, /** @type {number} */ down, /** @type {number} */ c) => {
       const k = Math.floor(p), t = p - k, j = Math.min(k + 1, n - 1), over = top[k][c] + (top[j][c] - top[k][c]) * t;
       return foot ? over + (foot[k][c] + (foot[j][c] - foot[k][c]) * t - over) * down : over;
@@ -525,7 +460,6 @@ export class Fill {
   }
 
   /**
-   * `color`, or where it fades to `fade` (none: none), a gradient from height `top` to `bottom`.
    * @param {CanvasRenderingContext2D} g @param {string} color @param {string | null} fade @param {number} top @param {number} bottom
    */
   style(g, color, fade, top, bottom) {
@@ -534,10 +468,7 @@ export class Fill {
   }
 
   /**
-   * Its colors by value, hard-edged where a value crosses into another's zone (a line or an area colored by its levels, a
-   * baseline's line by its base): `own` under every zone, each zone's color from its value up (`zones` low to high), on
-   * a canvas `height` tall, by its `scale` (its y of a value). A zone's value its scale can't show (a log scale's 0 or
-   * under) holds all of it. One color throughout: that color.
+   * A zone's value its scale can't show (a log scale's 0 or under) holds all of it.
    * @param {CanvasRenderingContext2D} g @param {string} own @param {readonly Zone[]} zones @param {{ y: (v: number) => number }} scale @param {number} height
    * @returns {string | CanvasGradient}
    */
@@ -548,8 +479,7 @@ export class Fill {
     if (one || !(height > 0)) return colorOf(spans[0]);
     if (!this.gradient || this.key !== key) {
       const gradient = g.createLinearGradient(0, 0, 0, height);
-      // (Its spans bottom up, their stops added top down. Drawn, not measured: a measure strokes each zone apart, see
-      // Line's stroke.)
+      // (Drawn, not measured: a measure strokes each zone apart.)
       for (let s = spans.length - 3; s >= 0; s -= 3) gradient.addColorStop(spans[s + 1] / height, colorOf(spans[s])), gradient.addColorStop(spans[s + 2] / height, colorOf(spans[s]));
       (this.gradient = gradient), (this.key = key);
     }
@@ -561,7 +491,7 @@ export class Fill {
     const key = `${from}|${to}|${top}|${bottom}`;
     if (!this.gradient || this.key !== key) {
       const gradient = g.createLinearGradient(0, top, 0, bottom);
-      // (Mixed in OKLCH (see gradientTable), not the canvas's sRGB: nine stops, an eighth apart.)
+      // (Mixed in OKLCH, not the canvas's sRGB.)
       const stops = blended(from, to);
       for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
       const above = painted(from), below = painted(to);
@@ -572,10 +502,7 @@ export class Fill {
   }
 }
 
-/**
- * Whether a style paints something (a known gradient: some visible height; a color: not fully transparent), each color read once.
- * @param {any} style
- */
+/** @param {any} style */
 export function painted(style) {
   if (typeof style !== "string") {
     const bounds = gradientPaint.get(style);
@@ -593,14 +520,16 @@ export function painted(style) {
   }
   return seen;
 }
-/** Each color's painted() (see it). @type {Map<string, boolean>} */
+/** @type {Map<string, boolean>} */
 const paints = new Map();
 
-/** Intersect a box with a known gradient's painted heights; unknown styles leave it as it is.
- * @param {CanvasGradient} style @param {Float64Array} box */
+/**
+ * Unknown styles leave it as it is.
+ * @param {CanvasGradient} style @param {Float64Array} box
+ */
 export function clipPaint(style, box) {
   const bounds = gradientPaint.get(style);
   if (bounds) (box[1] = Math.max(box[1], bounds[0])), (box[3] = Math.min(box[3], bounds[1]));
 }
-/** Native gradients and their nontransparent height range (no pixel reads). @type {WeakMap<CanvasGradient, number[]>} */
+/** Their painted heights: no pixel reads. @type {WeakMap<CanvasGradient, number[]>} */
 const gradientPaint = new WeakMap();

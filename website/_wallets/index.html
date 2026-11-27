@@ -83,7 +83,6 @@
       :root {
         color-scheme: dark;
 
-        /* A vault: green-black ink, cream paper, brass fittings. */
         --white: oklch(93% 0.025 85);
         --gray: oklch(64% 0.025 160);
         --black: oklch(17% 0.02 165);
@@ -119,7 +118,6 @@
 
         --page-x: 2rem;
         --transition-duration: 150ms;
-        /* How far a dialog or toast slides in as it fades: none for a reader who asked for less motion. */
         --slide: 1;
       }
 
@@ -306,8 +304,6 @@
         scrollbar-color: var(--gray) transparent;
       }
 
-      /* Header ------------------------------------------------------------ */
-
       .site-header {
         display: flex;
         align-items: center;
@@ -409,8 +405,6 @@
         }
       }
 
-      /* Dialogs ----------------------------------------------------------- */
-
       dialog[data-dialog] {
         --dialog-space: 1.5rem;
 
@@ -464,8 +458,6 @@
         }
       }
 
-      /* Page -------------------------------------------------------------- */
-
       main {
         --offset: 4rem;
 
@@ -509,8 +501,6 @@
         color: color-mix(in oklch, currentColor 45%, transparent);
       }
 
-      /* Hold-to-confirm buttons */
-
       [data-hold] {
         --hold-progress: 0%;
 
@@ -526,7 +516,6 @@
           position: absolute;
           inset: 0;
           opacity: 0;
-          /* The fill and the label wipe in together as the hold goes on. */
           clip-path: inset(0 calc(100% - var(--hold-progress)) 0 0);
         }
 
@@ -564,8 +553,6 @@
           opacity: 1;
         }
       }
-
-      /* Start */
 
       [data-start] {
         display: grid;
@@ -726,8 +713,6 @@
         }
       }
 
-      /* Empty */
-
       [data-empty] {
         display: grid;
         gap: 1rem;
@@ -756,8 +741,6 @@
         }
       }
 
-      /* Add */
-
       [data-add] {
         display: grid;
         gap: 1.25rem;
@@ -780,8 +763,6 @@
         }
       }
 
-      /* Selector */
-
       [data-selector] {
         min-width: 0;
 
@@ -801,7 +782,6 @@
             line-height: 1;
           }
 
-          /* Wallet names read as names, not commands. */
           > button[aria-pressed] {
             font-size: var(--font-size-sm);
             letter-spacing: 0;
@@ -825,8 +805,6 @@
           }
         }
       }
-
-      /* Wallet */
 
       [data-summary] {
         display: flex;
@@ -906,7 +884,6 @@
           }
         }
 
-        /* The tabs already name each panel. */
         [role="tabpanel"] h2 {
           position: absolute;
           width: 1px;
@@ -955,7 +932,6 @@
         border-bottom: 1px solid var(--line);
       }
 
-      /* Balance over time, rebuilt from the wallet's own history. */
       [data-balance-chart] {
         display: grid;
         gap: 0.5rem;
@@ -1211,13 +1187,10 @@
 
     <noscript><p>JavaScript is required: addresses are derived on your device.</p></noscript>
 
-    <!-- Styles and code are inline, keys never leave the page. The generated client and the QR
-         encoder load from ../modules; everything else is derived here. -->
+    <!-- Styles and code are inline: keys never leave the page. -->
     <script type="module">
       // @ts-check
-      // Config ---------------------------------------------------------------
 
-      // The server that serves the page.
       const DEFAULT_SERVER = location.origin;
 
       /** Local and private-network hosts: your own node, which sees every address anyway. */
@@ -1234,11 +1207,7 @@
         );
       }
 
-      /**
-       * `?server=http://localhost:3110` sends lookups to your own node instead. Only private hosts are
-       * honored: a link could otherwise route every address to a server that unmasks them. Code
-       * comes from ../modules, never from the data server.
-       */
+      /** Only private hosts are honored: a link could otherwise route every address to a server that unmasks them. */
       const SERVER = (() => {
         try {
           const url = new URL(new URLSearchParams(location.search).get("server") ?? "");
@@ -1262,8 +1231,6 @@
       const MAX_PREFIX_NIBBLES = 16;
       const BUCKET_CONCURRENCY = 2;
       const MEMBER_CONCURRENCY = 4;
-
-      // DOM ------------------------------------------------------------------
 
       /**
        * @template {keyof HTMLElementTagNameMap} K
@@ -1340,7 +1307,6 @@
         dialog.showModal();
       }
 
-      /** Runs `fn` over `items` with at most `limit` in flight, keeping order. */
       async function mapConcurrent(items, limit, fn) {
         const results = [];
         let next = 0;
@@ -1354,8 +1320,6 @@
 
         return results;
       }
-
-      // Network --------------------------------------------------------------
 
       /** @template T @param {() => Promise<T>} load @returns {() => Promise<T>} */
       function lazy(load) {
@@ -1384,8 +1348,6 @@
 
       const isNotFound = (error) => error?.status === 404;
 
-      // Amounts --------------------------------------------------------------
-
       const MASK = "*****";
 
       function pushPart(parts, text, muted) {
@@ -1394,7 +1356,6 @@
         else parts.push({ text, muted });
       }
 
-      /** ₿ amounts with insignificant digits muted, grouped 2·3·3 after the point. */
       function btcParts(sats, signed = false) {
         const parts = [];
         const absolute = Math.abs(sats);
@@ -1434,8 +1395,6 @@
         new Intl.NumberFormat("en-US", { currency: "USD", maximumFractionDigits: 0, style: "currency" }).format(dollars);
       const plural = (count, one, many) => `${formatNumber(count)} ${count === 1 ? one : many}`;
       const shortTxid = (txid) => (txid.length > 16 ? `${txid.slice(0, 8)}...${txid.slice(-8)}` : txid);
-
-      // Privacy mode: every sensitive value re-renders when toggled ----------------------
 
       const redaction = (() => {
         let hidden = false;
@@ -1485,7 +1444,6 @@
         });
       }
 
-      /** Groups of four, digits dimmed: easier to compare by eye. */
       function groupedAddress(text) {
         const element = el("code", { "data-grouped": true });
         const groups = text.match(/.{1,4}/g) ?? [];
@@ -1504,8 +1462,6 @@
           element.replaceChildren(...groupedAddress(redaction.isHidden() ? redaction.mask(address) : address).childNodes);
         });
       }
-
-      // Bytes and hashes -----------------------------------------------------
 
       function concatBytes(parts) {
         const bytes = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
@@ -1596,8 +1552,6 @@
         return sha256(concatBytes([tagHash, tagHash, bytes]));
       }
 
-      // Base58Check ------------------------------------------------------------
-
       const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
       async function decodeBase58Check(text) {
@@ -1627,8 +1581,6 @@
         for (; value > 0n; value /= 58n) text = BASE58[Number(value % 58n)] + text;
         return "1".repeat(bytes.findIndex((byte) => byte !== 0) === -1 ? bytes.length : bytes.findIndex((byte) => byte !== 0)) + text;
       }
-
-      // Bech32 / Bech32m -------------------------------------------------------
 
       const BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
       const BECH32_GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
@@ -1662,8 +1614,6 @@
 
         return `${prefix}1${[...values, ...checksumValues].map((value) => BECH32[value]).join("")}`;
       }
-
-      // secp256k1: Jacobian coordinates, one inversion per point ---------------------------
 
       const secp256k1 = (() => {
         const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
@@ -1739,7 +1689,6 @@
           return { x: mod(point.x * inverse2), y: mod(point.y * inverse2 * inverse), z: 1n };
         }
 
-        /** 2^i·G, built once: scalar multiplication becomes additions only. */
         let table = null;
         function multiplyG(scalar) {
           if (!table) {
@@ -1773,7 +1722,6 @@
 
         return {
           xOnly: (publicKey) => bigIntToBytes(evenY(parse(publicKey)).x, 32),
-          /** BIP32 child: parent + tweak·G, compressed. */
           addTweak(publicKey, tweak) {
             const child = toAffine(add(parse(publicKey), multiplyG(scalarOf(tweak, false))));
             if (!child) throw new Error("Invalid secp256k1 child public key");
@@ -1782,7 +1730,6 @@
             out.set(bigIntToBytes(child.x, 32), 1);
             return out;
           },
-          /** BIP341 output key: even-y internal key + tweak·G, x-only. */
           addXOnlyTweak(publicKey, tweak) {
             const scalar = scalarOf(tweak, true);
             const output = toAffine(add(evenY(parse(publicKey)), scalar === 0n ? null : multiplyG(scalar)));
@@ -1791,8 +1738,6 @@
           },
         };
       })();
-
-      // Extended public keys (BIP32) -------------------------------------------------------
 
       const KEY_VERSIONS = [
         { version: 0x0488b21e, network: "mainnet", script: "p2pkh" },
@@ -1832,8 +1777,6 @@
         return children;
       }
 
-      // Addresses ----------------------------------------------------------------
-
       const ADDRESS_SCRIPTS = [
         { id: "v0_p2wpkh", label: "P2WPKH" },
         { id: "v1_p2tr", label: "P2TR" },
@@ -1870,12 +1813,9 @@
         throw new Error("Expected a single-key address script");
       }
 
-      // Descriptors: wsh(sortedmulti(k, [origin]xpub/…/*, …)) ---------------------------------
-
       const DESCRIPTOR_PREFIX = "wsh(sortedmulti(";
       const MAX_MULTISIG_KEYS = 20;
 
-      /** Every supported descriptor in the text (checksums and whitespace ignored). */
       function extractDescriptors(text) {
         const value = text.trim().replace(/\s+/g, "");
         const descriptors = [];
@@ -1951,7 +1891,6 @@
         return { script: "v0_p2wsh_sortedmulti", threshold, keys };
       }
 
-      /** receive (…/0/*) or change (…/1/*), when every key agrees. */
       function descriptorBranch(descriptor) {
         const branches = new Set(parseDescriptor(descriptor).keys.map(({ path }) => path.at(-1)));
         if (branches.size !== 1) return undefined;
@@ -1965,7 +1904,6 @@
       }
 
       function sortedMultisigScript(publicKeys, threshold) {
-        // OP_1…OP_16, else a one-byte push (up to 20 keys).
         const number = (value) => (value <= 16 ? Uint8Array.of(0x50 + value) : Uint8Array.of(0x01, value));
         const sorted = [...publicKeys].sort((left, right) => {
           const index = left.findIndex((byte, position) => byte !== right[position]);
@@ -2017,7 +1955,6 @@
 
       const XPUB_PATTERN = /\b(?:xpub|ypub|zpub|tpub|upub|vpub)[1-9A-HJ-NP-Za-km-z]{20,}\b/;
 
-      /** Accepts a descriptor or anything containing an xpub (e.g. a wallet export). */
       function readWalletSource(text) {
         const value = text.trim();
         // Other multisig forms would otherwise match as wsh(sortedmulti) or as their first xpub.
@@ -2030,10 +1967,7 @@
         throw new Error("Expected an xpub or descriptor");
       }
 
-      // Lookups: anonymity sets -------------------------------------------------------------
-      // A public server only learns a short hash prefix of each derived address and answers
-      // with every address sharing it. Metadata, history and UTXOs are then fetched for the
-      // whole set, so the server can't tell which member is ours.
+      // A public server learns only a hash prefix and answers every address sharing it, so it can't tell which is ours.
 
       const statsReceived = (stats) => stats.chainStats.fundedTxoSum + stats.mempoolStats.fundedTxoSum;
       const statsSent = (stats) => stats.chainStats.spentTxoSum + stats.mempoolStats.spentTxoSum;
@@ -2067,7 +2001,6 @@
         throw new Error("Address prefix bucket is too large");
       }
 
-      /** Address stats, deduplicated across a scan. */
       function createMetadata(client, signal) {
         const cache = new Map();
         return (address) => {
@@ -2096,8 +2029,6 @@
 
         return walletAddress(generated, stats[bucket.indexOf(generated.address)], historyAddresses, bucket.length);
       }
-
-      // Scanning: each script type × branch until GAP_LIMIT unused addresses in a row -----------
 
       const KEY_BRANCHES = [
         { id: "receive", label: "Receive", path: [0] },
@@ -2150,7 +2081,6 @@
         };
       }
 
-      /** ypub/zpub-style keys declare their script; plain xpubs receive where the wallet is most used. */
       async function receiveScan(source, scans) {
         if (!isDescriptor(source)) {
           const { version } = await parseXpub(source);
@@ -2181,8 +2111,6 @@
         };
       }
 
-      // History and holdings: fetched for whole anonymity sets ------------------------------
-
       const bucketKey = (addresses) => [...addresses].sort().join("\n");
 
       /** Session state: aborted and dropped on lock or clear, so nothing outlives the vault. */
@@ -2197,11 +2125,7 @@
         session = createSession();
       }
 
-      /**
-       * Fetches `fetchMember` for every member of every bucket holding a used wallet address, at most
-       * once per session. Which buckets get fetched never depends on our own address (its balance or
-       * activity): that choice would tell the server which member is ours.
-       */
+      /** Which buckets get fetched never depends on our own address: that choice would tell the server which member is ours. */
       async function loadBuckets(current, addresses, cache, fetchMember) {
         const { signal } = current;
         signal.throwIfAborted();
@@ -2255,7 +2179,7 @@
         };
       }
 
-      /** The API returns each address's latest transactions (up to 50). */
+      /** The API returns only each address's latest transactions. */
       async function loadHistory(addresses) {
         const current = session;
         const client = await loadClient();
@@ -2289,8 +2213,6 @@
           .flatMap((address) => utxosOf(address).map((utxo) => ({ address, txid: utxo.txid, vout: utxo.vout, value: utxo.value, confirmed: utxo.status?.confirmed === true })))
           .sort((a, b) => b.value - a.value || a.txid.localeCompare(b.txid) || a.vout - b.vout);
       }
-
-      // Vault: AES-GCM with a PBKDF2 key, in localStorage --------------------------------------
 
       const vaultCrypto = (() => {
         const ITERATIONS = 250_000;
@@ -2344,7 +2266,6 @@
         },
       };
 
-      /** One scan per wallet, kept for the session. */
       function createRuntime(source) {
         let scan = null;
         let pending = null;
@@ -2459,8 +2380,6 @@
         };
       }
 
-      // Hold-to-confirm ----------------------------------------------------------------
-
       function holdButton(label, title, onHold) {
         const FILL_MS = 2_000;
         const DRAIN_MS = 600;
@@ -2532,8 +2451,6 @@
         return button;
       }
 
-      // Views ---------------------------------------------------------------------------
-
       function startView({ mode, onPassword, onEphemeral, onReset }) {
         const unlock = mode === "unlock";
         const password = el("input", {
@@ -2586,7 +2503,6 @@
               "Use a VPN for extra network privacy.",
               el("br"),
               "On-chain address links will reduce anonymity.",
-              // (Already a local server: nothing to point at.)
               ...(isLocalServer ? [] : [el("br"), "Own node on this machine or network: open ", el("a", { href: localExample }, "?server=http://localhost:3110"), "."]),
             ),
           ),
@@ -2717,7 +2633,6 @@
       const SVG_NS = "http://www.w3.org/2000/svg";
       const chartDate = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" });
 
-      /** Balance over time: walked back from the confirmed balance through the confirmed history. */
       function balanceChart(transactions, balance, incomplete) {
         const confirmed = transactions.filter(({ time }) => time !== undefined).toSorted((a, b) => a.time - b.time);
         if (!confirmed.length) return null;
@@ -2868,7 +2783,6 @@
         };
       }
 
-      /** Tabs mount on first selection only. */
       function tabsView(tabs) {
         const nav = el("nav", { role: "tablist", "aria-label": "Wallet sections" });
         const mounted = new Set();
@@ -2905,8 +2819,6 @@
 
         return el("section", { "data-tabs": true }, nav, el("div", null, ...tabs.map(({ panel }) => panel)));
       }
-
-      // Page ------------------------------------------------------------------------------
 
       function createWalletsPage(main) {
         const vault = createVault();
@@ -3061,7 +2973,6 @@
           render();
         });
 
-        // The wallet centered after a swipe becomes the selected one.
         nav.addEventListener("scrollend", () => {
           if (!selectorButtons.length) return;
           const box = nav.getBoundingClientRect();

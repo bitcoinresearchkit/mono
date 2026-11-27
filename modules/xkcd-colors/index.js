@@ -1,7 +1,5 @@
-// The xkcd color survey (https://xkcd.com/color/rgb.txt, public domain, CC0): the names people use for colors, from
-// Randall Munroe's 2010 survey. Kept as is but for: crude and pejorative names and pop-culture ones dropped, slash names
-// ("blue/green") dropped, run-together ones spaced ("lightblue"), "grey" spelled "gray", and the duplicates those made
-// dropped. 878 names.
+// xkcd color survey (https://xkcd.com/color/rgb.txt, CC0), kept as is but for: crude, pejorative and pop-culture names dropped,
+// slash names dropped, run-together ones spaced, "grey" spelled "gray", and the duplicates those made dropped.
 
 /** @type {[string, string][]} name and sRGB hex */
 export default [

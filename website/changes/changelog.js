@@ -1,21 +1,14 @@
-// The changelog (docs/CHANGELOG.md, linked beside this page as CHANGELOG.md) read into its releases, for the page to
-// show with each release's API changes: a release's heading (`## [v0.12.2](url) - 2026-09-01`, or `## Unreleased`),
-// what's said of it, and its notes by kind (`### Breaking Changes`) and topic (`#### \`brk_types\``), each a list item,
-// its wrapped lines joined, maybe with items of its own beneath it. Its Markdown is the little the changelog uses:
-// code, links, bold, italics. Anything else is text (`<window>` too), so nothing in it is markup.
+// Reads docs/CHANGELOG.md; its Markdown is only code, links, bold and italics, the rest is text.
 
 /**
- * @typedef {{ html: string, text: string }} Note Something said, as shown and as searched.
- * @typedef {{ kind: string, topic?: Note, said: string[], notes: Note[] }} Group A kind's notes, of a topic or not;
- *   what's said before them, as HTML.
- * @typedef {{ version?: string, date?: string, said: string[], groups: Group[] }} Release Its version (`v0.12.2`),
- *   none if not released yet; what's said of it, as HTML (how to upgrade, its changes on GitHub).
+ * @typedef {{ html: string, text: string }} Note
+ * @typedef {{ kind: string, topic?: Note, said: string[], notes: Note[] }} Group
+ * @typedef {{ version?: string, date?: string, said: string[], groups: Group[] }} Release
  */
 
 const escape = (/** @type {string} */ text) =>
   text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 
-/** A line's Markdown as HTML: its code first, kept as written; then links (to the web or this site), bold, italics. */
 export function inline(/** @type {string} */ text) {
   /** @type {string[]} */
   const codes = [];
@@ -26,11 +19,9 @@ export function inline(/** @type {string} */ text) {
   return html.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escape(codes[Number(i)])}</code>`);
 }
 
-/** A line's Markdown as the words searched for. */
 const plain = (/** @type {string} */ text) => text.replace(/\[([^\]]+)\]\([^)\s]*\)/g, "$1").replace(/[`*]/g, "");
 
 /**
- * The changelog's releases, newest first, as written; what comes before the first (its title) left out.
  * @param {string} markdown
  * @returns {Release[]}
  */
@@ -41,7 +32,6 @@ export function releases(markdown) {
   let release;
   /** @type {Group | undefined} */
   let group;
-  // The item being read, as its lines, then those of each item beneath it; and the paragraph being read.
   /** @type {string[][] | undefined} */
   let item;
   /** @type {string[] | undefined} */
@@ -57,7 +47,7 @@ export function releases(markdown) {
     }
     item = undefined;
   };
-  // (Said before a kind's notes, it's the kind's; after them, or before any, the release's.)
+  // Said before a kind's notes it's the kind's, else the release's.
   const endParagraph = () => {
     if (paragraph && release) (group && !group.notes.length ? group : release).said.push(inline(paragraph.join(" ")));
     paragraph = undefined;
@@ -83,7 +73,7 @@ export function releases(markdown) {
     } else if ((match = line.match(/^#{4,6} (.+)/))) {
       end();
       const topic = { html: inline(match[1].trim()), text: plain(match[1].trim()) };
-      // (A kind's first topic is its notes' if it has none of its own yet.)
+      // A kind's first topic is its notes' unless it already has notes or words of its own.
       if (group && !group.topic && !group.notes.length && !group.said.length) group.topic = topic;
       else release.groups.push((group = { kind: group?.kind ?? "", topic, said: [], notes: [] }));
     } else if ((match = line.match(/^( *)(?:[-*+]|\d+\.) (.*)/))) {

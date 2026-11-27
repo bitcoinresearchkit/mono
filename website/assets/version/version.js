@@ -1,24 +1,14 @@
 // @ts-check
-// Every showcase's word that a newer version of it is served, in one place (loaded by `/assets/launch/launch.js`,
-// which each page loads first).
-//
-// - The page's version is the `Bitview-Version` header the server sends with it (a hash of the page; a release
-//   server's: a debug one sends none, and nothing's said). Not its ETag: a CDN that rewrites pages drops that.
-// - Read as the page loads, then again as it's come back to and every half hour while it's seen, online: a HEAD
-//   request, its headers alone (a few hundred bytes).
-// - Newer, it's said (at the top on a phone, in the bottom corner on a desk), Reload a press away; never reloaded on
-//   its own (the page's state is the reader's). Said once a version: dismissed, or reloaded to a page still the old
-//   one, it isn't said again; a newer one still is.
+// Says a newer version is served (loaded by `/assets/launch/launch.js`).
+// The version is the `Bitview-Version` header, not the ETag, which a CDN that rewrites pages drops.
+// Never reloaded on its own; said once a version, even after a dismissal or a reload to a still-old page.
 (() => {
-  /** The logo, beside this file (at its release's address, as launch.js loads it). */
   const logo = new URL("../logo/logo.svg", /** @type {HTMLScriptElement} */ (document.currentScript).src).href;
   const TOLD = `bitview-version-told:${location.pathname}`;
   const url = location.href.split("#")[0];
   const served = () => fetch(url, { method: "HEAD", cache: "no-store" }).then((response) => response.headers.get("bitview-version"));
-  /** The page's version as loaded: read as it loads (a deploy in the moment between the page and this read is
-   * missed), else on the next look (the read failed, or a CDN's copy from before the header). */
+  /** Read as the page loads: a deploy between the page and this read is missed. */
   let was = served().catch(() => null);
-  /** Shown, not yet dismissed: nothing more's looked at meanwhile. */
   let showing = false;
 
   async function look() {
@@ -31,7 +21,7 @@
       const now = await served();
       if (!now || now === (await was) || now === told() || showing) return;
       showing = true;
-      // (Before the page's body, it waits for it: told only once it's shown.)
+      // Before the page's body, it waits for it: told only once it's shown.
       if (!document.body) await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
       say();
       tell(now);
@@ -50,14 +40,10 @@
     } catch {}
   };
 
-  /** A phone's layout: the notice at its top, as a phone's own come, clear of whatever a page keeps at its bottom
-   * (Studio's tab bar, its toasts' Undo); on a desk, in the bottom corner, off the middle a page's toasts take and its
-   * sidebar's foot. */
+  /** On a phone at the top, clear of what a page keeps at its bottom (Studio's tab bar, toasts' Undo); on a desk, the bottom corner. */
   const phone = matchMedia("(max-width: 760px)");
 
-  /** The notice, its look in a shadow root: the page's styles don't reach into it, nor its the page's. Its colours
-   * are custom properties of names no page has (custom properties, as all inherited ones, do reach in); light or
-   * dark as the page is (its colour scheme, inherited: Studio dark on a phone set light stays dark). */
+  /** In a shadow root: the page's styles don't reach in. Its colours are custom properties of names no page has (inherited ones reach in). */
   function say() {
     const host = document.createElement("bitview-version");
     const root = host.attachShadow({ mode: "open" });
@@ -93,7 +79,6 @@
     </style><div class="box" role="status"><span class="mark" aria-hidden="true"><img src="${logo}" alt="" /></span><span class="text"><b></b><span></span></span><button class="reload" type="button">Reload</button><button class="close" type="button" aria-label="Dismiss"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5"/></svg></button></div>`;
     const box = /** @type {HTMLElement} */ (root.querySelector(".box"));
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches, edge = () => (phone.matches ? -1 : 1);
-    // In from its edge with a little spring, back to the edge it's at as it goes: a fade alone for reduced motion.
     box.animate(still ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: `translateY(${14 * edge()}px) scale(0.94)` }, { opacity: 1, transform: "none" }], { duration: still ? 200 : 420, easing: "cubic-bezier(0.32, 1.25, 0.5, 1)" });
     root.querySelector(".reload")?.addEventListener("click", () => location.reload());
     root.querySelector(".close")?.addEventListener("click", () => {
@@ -102,7 +87,7 @@
       out.finished.then(gone, gone);
     });
     document.body.append(host);
-    // (Written once it's in: a status already full as it's added may go unannounced.)
+    // Written once it's in: a status already full as it's added may go unannounced.
     setTimeout(() => {
       const [title, line] = root.querySelectorAll(".text > *");
       title.textContent = "New version available";

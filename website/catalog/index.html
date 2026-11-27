@@ -2,11 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Catalog" data-color="#d4570a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/catalog/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/catalog/" />
@@ -99,8 +97,6 @@
         font-display: swap;
       }
 
-      /* An index of the chain's series: paper and ink, hairlines between columns, ids in a monospace, Bitcoin's orange
-         for what's picked. Light or dark, as the system is. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#fbfaf7, #0e0f11);
@@ -128,9 +124,7 @@
         --plot-height: 300px;
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Increase Contrast: written out here as plain colours, so the canvases read them too. */
       @media (prefers-contrast: more) {
         :root {
           --soft: light-dark(#3a3c42, #c3c4c7);
@@ -150,7 +144,6 @@
         height: 100%;
       }
 
-      /* (Behind the panes, plotting paper: a dot every 16px.) */
       body {
         margin: 0;
         display: grid;
@@ -199,14 +192,11 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* ── The bar: the brand, the search ── */
-
       .bar {
         position: sticky;
         top: 0;
         z-index: 3;
         display: grid;
-        /* (The same room either side, the brand's, so the search sits in the middle.) */
         grid-template-columns: minmax(110px, 1fr) minmax(0, 560px) minmax(110px, 1fr);
         align-items: center;
         gap: 16px;
@@ -293,7 +283,6 @@
           display: none;
         }
 
-        /* (What's typed cleared at a tap, as a phone's search fields do.) */
         .clear {
           position: absolute;
           top: 50%;
@@ -324,7 +313,6 @@
         }
       }
 
-      /* (A key's hint only where there are keys to press.) */
       @media (hover: none) {
         .search kbd,
         .keys {
@@ -332,10 +320,6 @@
         }
       }
 
-      /* ── The catalog: a column per folder opened, the series at the end ── */
-
-      /* (Slid sideways, from anywhere but the chart (a finger there reads it), it comes to rest on a column's edge:
-         columns whole, as fit() shows them.) */
       main {
         position: relative;
         display: flex;
@@ -356,7 +340,6 @@
         background: var(--pane);
         scroll-snap-align: start;
 
-        /* (Its name and count stay put; its rows scroll under a hairline.) */
         h2 {
           display: flex;
           align-items: baseline;
@@ -377,8 +360,6 @@
             text-transform: none;
           }
 
-          /* (Its name opens it, what's open deeper let go: the first column's, the start. The name cut short in its own
-             box, so the button's reach isn't.) */
           button {
             min-width: 0;
             padding: 0;
@@ -398,14 +379,12 @@
               color: var(--ink);
             }
 
-            /* (Its ring round the name, clear of its letters.) */
             &:focus-visible {
               outline-offset: 2px;
             }
           }
         }
 
-        /* (Its own scroll up and down kept to it, a slide sideways going on to the page; its rows placed from its top.) */
         ul {
           position: relative;
           flex: 1;
@@ -416,7 +395,6 @@
           list-style: none;
         }
 
-        /* (For fingers, its name's reach over its list's empty top, and under its rows when they scroll up there.) */
         @media (pointer: coarse) {
           h2 button,
           .row {
@@ -444,7 +422,6 @@
           background: var(--hover);
         }
 
-        /* (The path lit quietly, as Finder's columns do; its end, what's open, in the accent.) */
         &[aria-current="true"] {
           background: var(--trail);
         }
@@ -482,12 +459,10 @@
         }
       }
 
-      /* (A column's row: its glyph, its name and count, a series' id under its name.) */
       .column .row {
         grid-template-columns: 16px minmax(0, 1fr) auto;
         column-gap: 9px;
 
-        /* (On its name's line: a series' id under them both.) */
         .glyph {
           grid-row: 1;
           align-self: center;
@@ -506,7 +481,6 @@
         opacity: 1;
       }
 
-      /* (Where the keys are, the open end solid, as a Mac's list shows its selection.) */
       .column:focus-within .row.end {
         background: var(--solid);
         color: #fff;
@@ -516,12 +490,10 @@
         }
       }
 
-      /* (A lit row's small words a shade darker, readable on its tint.) */
       .row[aria-current="true"] :is(.side, .id) {
         color: var(--soft);
       }
 
-      /* (A touch screen's rows a finger tall; its search's letters as large as a phone takes without zooming in.) */
       @media (pointer: coarse) {
         .row {
           min-height: 44px;
@@ -531,7 +503,7 @@
           font-size: 16px;
         }
 
-        /* (The field's bar around it a finger's, unseen: a label behind the field, so a tap there lands in it.) */
+        /* A label behind the field, so a tap on the bar lands in it. */
         .search .reach {
           display: block;
           position: absolute;
@@ -542,7 +514,6 @@
           translate: 0 -50%;
         }
 
-        /* (Its reach a finger's, unseen, over the field beneath.) */
         .search .clear::before {
           content: "";
           position: absolute;
@@ -550,8 +521,6 @@
         }
       }
 
-      /* After the columns: a series, the map at the top, or the room left. Each takes what the whole columns
-         beside it leave (fit(), in the script), at least its least. */
       .series,
       .overview,
       .rest {
@@ -559,15 +528,12 @@
         scroll-snap-align: end;
       }
 
-      /* A series: its history, how to have it, what it is. */
       .series {
         min-width: 480px;
         overflow-y: auto;
         padding: 28px clamp(20px, 3vw, 40px) 48px;
       }
 
-      /* At the top, beside the first column: what each folder holds, a level deeper, each a tile (a map of every
-         series). */
       .overview {
         min-width: 360px;
         overflow-y: auto;
@@ -597,14 +563,12 @@
         background: var(--pane);
         text-align: left;
 
-        /* (For fingers, room between its head and what's in it for both their reaches.) */
         @media (pointer: coarse) {
           &:has(> p) {
             gap: 24px;
           }
         }
 
-        /* (Its glyph, name and count: a way into it.) */
         > button {
           display: flex;
           align-items: center;
@@ -640,7 +604,6 @@
           font-size: 12px;
         }
 
-        /* (What's in it, each a small way straight there; how many more after them.) */
         p {
           display: flex;
           flex-wrap: wrap;
@@ -673,10 +636,7 @@
             color: var(--faint);
           }
 
-          /* (For fingers, each a finger's reach, unseen: a clear border round it (its words still cut short inside),
-             44px tall from its drawn height (12px type at 1.6, 2px padding up and down), 2px into the gap each side;
-             its rows as far apart as that, and its corners the drawn 6px grown by the border; up to the half pixel, so
-             its 44 never rounds to 43.) */
+          /* (44px tall from its drawn height, up to the half pixel so it never rounds to 43.) */
           @media (pointer: coarse) {
             --chip-reach: round(up, (44px - 12px * 1.6 - 2 * 2px) / 2, 0.5px);
             row-gap: calc(2 * var(--chip-reach));
@@ -688,8 +648,7 @@
               border-radius: 8px / calc(6px + var(--chip-reach));
               background-clip: padding-box;
 
-              /* (Its ring round the drawn chip, inside the clear border, where an outline would go round the reach;
-                 the outline kept, unseen, for forced colours.) */
+              /* (Ring inside the clear border; the outline stays, unseen, for forced colours.) */
               &:focus-visible {
                 outline-color: transparent;
                 box-shadow: inset 0 0 0 2px var(--accent);
@@ -739,7 +698,6 @@
           color: var(--ink);
         }
 
-        /* (For fingers, each crumb's reach a finger's, unseen: up and down; wrapped rows far enough apart for it.) */
         @media (pointer: coarse) {
           row-gap: 20px;
 
@@ -755,7 +713,6 @@
         }
       }
 
-      /* (A name in the ids' own face, the two one family.) */
       .series h1,
       .overview h1 {
         margin: 0;
@@ -767,7 +724,6 @@
         text-wrap: balance;
       }
 
-      /* A text that copies itself at a press: an id, an address. Its icon says when it has. */
       .copyable {
         display: inline-flex;
         align-items: center;
@@ -852,14 +808,13 @@
           pointer-events: none;
         }
 
-        /* (Light, a shade darker than the accent: its white words read at 4.8:1. Its focus ring outside the fill.) */
+        /* (Light: a shade darker than the accent, so its white words read at 4.8:1.) */
         &.primary {
           --fill: light-dark(#c24e06, var(--accent));
           border-color: var(--fill);
           background: var(--fill);
           color: light-dark(#fff, #1c0c00);
 
-          /* (Hovered, further from its words: darker light, lighter dark.) */
           &:hover {
             --fill: light-dark(#ad4505, #f59a57);
             color: light-dark(#fff, #1c0c00);
@@ -876,7 +831,6 @@
         }
       }
 
-      /* One of a few, picked: an interval, a range. A well, the one picked raised in it; more than fit, slid along. */
       .seg {
         position: relative;
         display: flex;
@@ -893,7 +847,6 @@
           display: none;
         }
 
-        /* (Faded at an edge only where buttons are cut there: see cuts().) */
         &[data-cut="end"] {
           mask-image: linear-gradient(to left, transparent, #000 32px);
         }
@@ -927,8 +880,7 @@
           }
         }
 
-        /* (On a touch screen a finger's reach, inside the strip: it scrolls sideways, which clips a reach past its
-           edges. Its buttons a little taller, each reaching the strip's whole 44px, and as wide.) */
+        /* (On touch the reach sits inside the strip: a sideways scroller clips what's past its edges.) */
         @media (pointer: coarse) {
           padding: 4px;
 
@@ -957,8 +909,6 @@
         padding: 10px 10px 0;
       }
 
-      /* Its history's rows, each its own height whatever's in them: what's read and its scale, the plot, its range or a
-         note. Loading, failed or empty, a place as tall. */
       .readout {
         display: flex;
         align-items: flex-start;
@@ -972,7 +922,6 @@
           min-width: 0;
         }
 
-        /* (The number read: the pane's largest after its name, as a meter shows it.) */
         b {
           font: 600 26px/1.1 var(--mono);
           letter-spacing: -0.04em;
@@ -1065,13 +1014,11 @@
         gap: 8px;
         margin-top: 14px;
 
-        /* (Wrapped rows far enough apart on a touch screen for each chip's reach, not over the next row's.) */
         @media (pointer: coarse) {
           row-gap: 16px;
         }
       }
 
-      /* What it is, below: the server's words (its `code` as code), its unit and type. */
       .about {
         max-width: 44rem;
         margin: 28px 0 0;
@@ -1088,7 +1035,6 @@
           font-size: 0.88em;
         }
 
-        /* (Its own blocks, its paragraphs and lists, a step apart.) */
         > :is(p, ul, ol, pre) {
           margin: 0;
 
@@ -1127,7 +1073,6 @@
         }
       }
 
-      /* (For a screen reader only: what a press did.) */
       .said {
         position: absolute;
         width: 1px;
@@ -1137,7 +1082,6 @@
         white-space: nowrap;
       }
 
-      /* Search: its results where the columns were. */
       .results {
         flex: 0 1 780px;
         min-width: 0;
@@ -1163,7 +1107,6 @@
           min-height: 46px;
         }
 
-        /* (None found: a way on, not a dead end.) */
         .none {
           margin: 0;
           padding: 0 10px;
@@ -1184,7 +1127,6 @@
               text-decoration-color: currentColor;
             }
 
-            /* (For fingers, its reach a finger's, unseen: up and down.) */
             @media (pointer: coarse) {
               position: relative;
 
@@ -1207,7 +1149,6 @@
         }
       }
 
-      /* (The result Enter opens, marked while typing: the field left, Enter there no longer.) */
       body:has(#q:focus) .results .row[aria-selected="true"] {
         background: var(--pick-strong);
 
@@ -1216,14 +1157,12 @@
         }
       }
 
-      /* A phone: the page scrolls under the bar, one column at a time, a way back to the one before. */
       .back {
         display: none;
       }
 
       @media (max-width: 739px), (max-height: 519px) {
-        /* (On a phone on its side, the chart short enough to be seen whole with its controls: by the smallest viewport,
-           so Safari's toolbar coming and going doesn't resize it.) */
+        /* (By the smallest viewport, so Safari's toolbar coming and going doesn't resize it.) */
         :root {
           --plot-height: clamp(140px, 100svh - 230px, 240px);
         }
@@ -1233,7 +1172,6 @@
           height: auto;
         }
 
-        /* (What's scrolled into sight, a row moved to, clear of the bar.) */
         html {
           scroll-padding-top: 56px;
         }
@@ -1259,7 +1197,6 @@
           display: none;
         }
 
-        /* (A folder's name as its title, as a phone's lists have it, and how many series it holds.) */
         .column {
           width: auto;
           overflow: visible;
@@ -1295,7 +1232,6 @@
             }
           }
 
-          /* (Under the way back, the title's reach down only, into the room under it: the way back keeps its own.) */
           .back + h2 button::before {
             inset-block: 0 min(0px, calc(100% - 44px));
           }
@@ -1316,12 +1252,10 @@
           padding: 10px 16px 40px;
         }
 
-        /* (The way back names the folder; the crumbs would say it again.) */
         .crumbs {
           display: none;
         }
 
-        /* (A result's id under its name: both whole, the name first.) */
         .results .side {
           grid-column: 1 / -1;
           overflow: hidden;
@@ -1349,7 +1283,6 @@
         }
       }
 
-      /* (A phone on its side: a series' heading small, the chart in sight from the top.) */
       @media (max-height: 519px) {
         .series {
           padding-top: 8px;
@@ -1379,12 +1312,10 @@
           transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
       }
-      /* (A finger's reach, unseen: the brand, a column's name, a tile's head, a series' chips and buttons, 44px tall whatever
-         they're drawn at; up and down only, into the room around them. Of no weight, so a part's own rule can shape it.) */
+      /* (44px tall whatever it's drawn at; of no weight, so a part's own rule can shape it.) */
       :where(a.brand, .column h2 button, .tile > button, .chip, .copyable, .back, #as-api) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -1410,8 +1341,6 @@
     <p class="said" id="said" aria-live="polite"></p>
     <script type="module">
       // @ts-check
-      // Every series Bitview computes, as its client names them (the server's own module), browsed folder by folder;
-      // search by the server's; a series' description, unit and intervals from the server, its history fetched and drawn.
       import { BitviewClient } from "/modules/bitview-client/index.js";
 
       const client = new BitviewClient({ baseUrl: location.origin });
@@ -1429,48 +1358,34 @@
         chart: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 2.75v10.5h10.5M5.25 10.75l2.5-2.5 2 2 3-3" /></svg>`,
       };
 
-      // ── Words: keys and ids as people write them (Studio's rules) ──
       const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "vocdd", "hodl", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
       const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average", opreturn: "OP_RETURN" });
-      /** A percentile's key as said, its decimal point an underscore: "p5" "5th percentile", "p0_1" "0.1st", "p99_5" "99.5th". */
       function percentileKey(/** @type {string} */ key) {
         const digits = /^p(\d+(?:_\d+)?)$/.exec(key)?.[1];
         return digits ? `${ordinalOf(digits.replace("_", "."))} percentile` : null;
       }
       const word = (/** @type {string} */ text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const capitalize = (/** @type {string} */ text) => text.charAt(0).toUpperCase() + text.slice(1);
-      /** A percentile said: "2" "2nd", "99.9" "99.9th", "0.1" "0.1st". */
       const ordinalOf = (/** @type {string} */ p) => `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"}`;
-      /** A trailing window said: "24h" "24 hours", "1m" "1 month" (null if it isn't one). */
       const windowOf = (/** @type {string} */ part) => ((m) => (m ? `${m[1]} ${{ h: "hour", d: "day", w: "week", m: "month", y: "year" }[m[2]]}${m[1] === "1" ? "" : "s"}` : null))(/^(\d+)([hdwmy])$/.exec(part));
-      /**
-       * Words said: a percentile's, a span of time's spelled out ("1m" "1 month", "24h" "24 hours", an age band's
-       * "1 week to 1 month"), not an amount's ("100k to 1m sats": a million, its unit after it or after its range).
-       */
       const spoken = (/** @type {string[]} */ parts) => {
         const amount = (/** @type {number} */ i) => ["sats", "btc"].includes(parts[i + 1]) || (parts[i + 1] === "to" && ["sats", "btc"].includes(parts[i + 3]));
         return parts.map((part, i) => (/^p[\d.]+$/.test(part) ? `${ordinalOf(part.slice(1))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
       };
-      /** Mining pools' names by their keys, as this server knows them ("cloverpool" "CloverPool"), once read (see below). */
       const poolNames = /** @type {Map<string, string>} */ (new Map());
-      /** Whether anything's been drawn yet, and whether the last drawing had the pools' names (see render). */
       let drawn = false, drawnNamed = false;
-      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_p99_9" "…rarity 99.9th percentile"; a
-       * pool's by its name, "pool_cloverpool_hashrate_1m" "CloverPool hashrate 1 month". */
       const humanize = (/** @type {string} */ name) => {
         const parts = name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean);
         const pool = parts[0] === "pool" ? poolNames.get(parts[1] ?? "") : undefined;
         return pool ? `${pool} ${spoken(parts.slice(2))}`.trim() : capitalize(spoken(parts));
       };
-      /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024", "_1m" "1 month". */
       const humanizeKey = (/** @type {string} */ key) =>
         percentileKey(key) ??
         capitalize(spoken(key.replace(/^_/, "").replace(/([oO])pReturn/g, "$1preturn").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : /^p\d+(_\d+)?$/.test(part) ? [part.replace("_", ".")] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" ")))));
 
-      // ── The tree: the client's, each folder with how many series it holds ──
       /** @typedef {{ key: string, label: string, path: string[], kids?: Node[], name?: string, indexes?: string[], count: number }} Node */
       const isLeaf = (/** @type {any} */ n) => typeof n?.name === "string" && typeof n.indexes === "function";
-      /** @type {Map<string, Node>} each series' first place, by id */
+      /** @type {Map<string, Node>} */
       const byName = new Map();
       /** @returns {Node} */
       function build(/** @type {any} */ value, /** @type {string} */ key, /** @type {string[]} */ path) {
@@ -1483,7 +1398,6 @@
         return { key, label: humanizeKey(key), path, kids, count: kids.reduce((sum, kid) => sum + kid.count, 0) };
       }
       const root = build(client.series, "", []);
-      /** The node at a path of keys (as far as it goes). */
       function nodeAt(/** @type {string[]} */ path) {
         let node = root;
         for (const key of path) {
@@ -1493,10 +1407,8 @@
         }
         return node;
       }
-      /** The nodes a path passes through, the root first. */
       const trail = (/** @type {string[]} */ path) => path.map((_, i) => nodeAt(path.slice(0, i + 1)));
 
-      // ── Intervals, as Studio names them ──
       const INTERVALS = /** @type {[string, string][]} */ ([
         ["minute10", "10m"], ["minute30", "30m"], ["hour1", "1h"], ["hour4", "4h"], ["hour12", "12h"], ["day1", "1D"], ["day3", "3D"], ["week1", "1W"],
         ["month1", "1M"], ["month3", "3M"], ["month6", "6M"], ["year1", "1Y"], ["year10", "10Y"], ["halving_epoch", "Halving"], ["difficulty_epoch", "Epoch"], ["height", "Block"],
@@ -1511,22 +1423,16 @@
           return false;
         }
       };
-      /** The interval a series opens on: daily if it has it, else its first by date, else its first. */
       const firstInterval = (/** @type {string[]} */ indexes) => (indexes.includes("day1") ? "day1" : [...indexes].sort((a, b) => rank(a) - rank(b)).find(dateBased) ?? [...indexes].sort((a, b) => rank(a) - rank(b))[0]);
-      /** A fine or per-block interval has hundreds of thousands of points: its latest are drawn. */
+      /** A fine interval has too many points: its latest are drawn. */
       const MOST = 20_000;
 
-      // ── Values, with their units ──
-      /** @type {Record<string, [string, string, boolean?]>} a value type's prefix, suffix, and whether its scale is SI (k, M, G…) */
+      /** @type {Record<string, [string, string, boolean?]>} */
       const UNITS = {
         Dollars: ["$", ""], OHLCDollars: ["$", ""], Bitcoin: ["", " BTC"], Sats: ["", " sat"], Percent: ["", "%"], Multiple: ["", "×"], Ratio: ["", "×"], Bytes: ["", "B", true], BytesFract: ["", "B", true],
         VSize: ["", "vB", true], Weight: ["", "WU", true], WeightFract: ["", "WU", true], Days: ["", " days"], Hashrate: ["", "H/s", true], FeeRate: ["", " sat/vB"], PerSecond: ["", "/s"], SecondsFract: ["", " s"],
       };
       const SI = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"], SHORT = ["", "K", "M", "B", "T", "Q"];
-      /**
-       * A value as read: four digits, a letter for its thousands (from a million; on an axis, `short`, from a thousand,
-       * its ticks alike: 100, 10K, 1M), its unit around it.
-       */
       function format(/** @type {number} */ value, /** @type {string} */ type, short = false, digits = 4) {
         if (!Number.isFinite(value)) return "—";
         const [prefix, suffix, si] = UNITS[type] ?? ["", ""], sign = value < 0 ? "−" : "", abs = Math.abs(value);
@@ -1534,27 +1440,24 @@
         if (abs >= (short ? 1e3 : 1e6) || (si && abs >= 1e3)) {
           const letters = si ? SI : SHORT;
           let step = Math.min(letters.length - 1, Math.floor(Math.log10(abs) / 3)), mantissa = abs / 10 ** (step * 3);
-          // (Rounded up to a thousand, 999,950 is a million: the next letter's.)
+          // (999,950 rounds up to a million: the next letter's.)
           if (Number(mantissa.toPrecision(digits)) >= 1000 && step < letters.length - 1) (step++, (mantissa /= 1000));
           text = `${mantissa.toPrecision(digits).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}${si && suffix && !/^ /.test(suffix) ? " " : ""}${letters[step]}`;
         } else if (abs >= 1000) text = grouped.format(Math.round(abs));
         else {
-          // (Below a thousand, its digits as a number writes them: 0.00001, not 1.00e-5, an exponent only below a
-          // millionth; 999.96 rounded up, 1,000.)
+          // (Below a thousand: 0.00001, not 1.00e-5.)
           const rounded = Number(abs.toPrecision(digits));
           text = rounded >= 1000 ? grouped.format(rounded) : String(rounded);
         }
         return `${sign}${prefix}${text}${si && suffix && !/^ /.test(suffix) && !/[kMGTPEZY]$/.test(text) ? " " : ""}${suffix}`;
       }
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      /** A point's place: its date (and time, at a fine interval), or its number. */
       function placeOf(/** @type {string} */ index, /** @type {number} */ i) {
         if (!dateBased(index)) return `${INTERVAL_LABEL[index] ?? humanizeKey(index)} ${grouped.format(i)}`;
         const at = client.indexToDate(/** @type {any} */ (index), i), day = `${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
         return /^(minute|hour)/.test(index) ? `${day}, ${String(at.getUTCHours()).padStart(2, "0")}:${String(at.getUTCMinutes()).padStart(2, "0")}` : day;
       }
 
-      // ── Where we are: a folder, or a series at an interval (in the address) ──
       /** @typedef {{ path: string[], index?: string, query?: string }} At */
       /** @type {At} */
       let at = read();
@@ -1589,23 +1492,18 @@
         render();
       });
 
-      // ── Drawing the page ──
       const main = $("main");
       const narrow = matchMedia("(max-width: 739px), (max-height: 519px)");
-      /** What scrolls a phone's page: the page itself, under its bar. */
       const page = /** @type {HTMLElement} */ (document.scrollingElement);
-      /** Where each view was scrolled (a phone's page, by what it shows), to come back to it there. @type {Map<string, number>} */
+      /** @type {Map<string, number>} */
       const scrolled = new Map();
-      /** What the page shows, as a key: a folder's path, or a series. */
       const shownKey = () => JSON.stringify(at.path);
       let lastKey = "";
       function render() {
         drawn = true;
         drawnNamed = poolNames.size > 0;
-        // (Another view: what the last one was asking for, stopped.)
         if (!at.query) searching?.abort();
         if (at.query || !nodeAt(at.path).name) showing?.abort();
-        // (The view left, its scroll kept for coming back: a search's, none.)
         if (lastKey) scrolled.set(lastKey, scrollOf(page));
         if (at.query) {
           lastKey = "";
@@ -1614,20 +1512,16 @@
         q.removeAttribute("aria-activedescendant");
         const nodes = trail(at.path), leaf = nodes.at(-1)?.name ? /** @type {Node} */ (nodes.at(-1)) : null;
         const folders = [root, ...nodes.filter((node) => !node.name)];
-        // (Kept through the redraw: each column's scroll, by its folder; the series' own; what had the focus.)
         const columnsScrolled = new Map([...main.querySelectorAll(".column")].map((column) => [/** @type {HTMLElement} */ (column).dataset.folder, /** @type {HTMLElement} */ (column.querySelector("ul")).scrollTop]));
         const article = /** @type {HTMLElement | null} */ (main.querySelector(".series")), sameSeries = leaf && leaf.name === lastSeries;
         const seriesScrolled = article ? scrollOf(article) : 0, intervalsSlid = document.getElementById("intervals")?.scrollLeft ?? 0;
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-path], [data-index], [data-range], [data-log], [data-copy]") ?? null), chartFocused = document.activeElement?.id === "canvas";
         const focusAt = focused && main.contains(focused) ? [...Object.entries(focused.dataset)].find(([name]) => ["path", "index", "range", "log", "copy"].includes(name)) : null;
-        // (Lit along the path, its end (the series, else the folder whose column is last) in the accent.)
         const end = leaf ? folders.length - 1 : folders.length - 2;
         const parts = folders.map((folder, depth) => columnHtml(folder, at.path[depth], depth, depth === end));
-        // (After the columns: the series open, at the top what this is, else the room left.)
         main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : overviewHtml(root));
         fit();
         document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Catalog · Bitview`;
-        // (Each column where it was, its open row brought just into sight; new, its open row centered.)
         for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
           const rows = /** @type {HTMLElement} */ (column.querySelector("ul")), was = columnsScrolled.get(column.dataset.folder);
           rows.scrollTop = was ?? 0;
@@ -1636,7 +1530,6 @@
           else if (row && row.offsetTop < rows.scrollTop) rows.scrollTop = row.offsetTop;
           else if (row && row.offsetTop + row.offsetHeight > rows.scrollTop + rows.clientHeight) rows.scrollTop = row.offsetTop + row.offsetHeight - rows.clientHeight;
         }
-        // (Its intervals slid as they were, the same series's; another's, to its interval if that's out of sight.)
         const drawnAgain = /** @type {HTMLElement | null} */ (main.querySelector(".series")), intervals = document.getElementById("intervals");
         if (intervals) {
           intervals.scrollLeft = sameSeries ? intervalsSlid : 0;
@@ -1644,10 +1537,7 @@
           if (pressed && pressed.offsetLeft + pressed.offsetWidth > intervals.scrollLeft + intervals.clientWidth) intervals.scrollLeft = pressed.offsetLeft + pressed.offsetWidth - intervals.clientWidth + 2;
           stripSized.observe(intervals);
         }
-        // (Its actions written now, before its place is scrolled back to.)
         if (leaf) showSeries(leaf);
-        // (Narrow, the page where this view was left, else its top; wide, the same series as it was. Short of that, till
-        // it's drawn, what's drawn in its place shorter: gone on to once it is.)
         lastKey = shownKey();
         restore = null;
         const [scroller, want] = narrow.matches ? [page, scrolled.get(lastKey) ?? 0] : sameSeries && drawnAgain ? [drawnAgain, seriesScrolled] : [null, 0];
@@ -1656,14 +1546,11 @@
           if (scroller.scrollTop < want) restore = { scroller, want, at: scroller.scrollTop };
         }
         lastSeries = leaf?.name ?? "";
-        // (The focus back where it was, on what's drawn anew; one hidden now (a phone's folder left), the first row shown.)
         if (focusAt) {
-          // (A column's name isn't one: its folder's row is, else the column's first.)
           const again = /** @type {HTMLElement | null} */ ([...main.querySelectorAll(`[data-${focusAt[0]}]`)].find((element) => /** @type {HTMLElement} */ (element).dataset[focusAt[0]] === focusAt[1] && /** @type {HTMLElement} */ (element).offsetParent && !element.closest("h2")) ?? null);
           const fallback = [[...main.querySelectorAll(".column")].at(-1)?.querySelector(".row"), main.querySelector(".series > .back")].find((element) => /** @type {HTMLElement | null | undefined} */ (element)?.offsetParent);
           const target = again ?? /** @type {HTMLElement | undefined} */ (fallback);
           target?.focus({ preventScroll: true });
-          // (In the map or a series, out of its pane's sight: brought just into it. A column's rows are placed above.)
           const pane = /** @type {HTMLElement | null | undefined} */ (target?.closest(".overview, .series"));
           if (target && pane && !narrow.matches) {
             const box = target.getBoundingClientRect(), view = pane.getBoundingClientRect();
@@ -1671,7 +1558,6 @@
             else if (box.bottom > view.bottom) pane.scrollTop += box.bottom - view.bottom + 12;
           }
         }
-        // (The chart had it: the series' intervals, else (another view) the deepest lit row shown, else the first shown.)
         else if (chartFocused) {
           const lit = [...main.querySelectorAll('.column .row[aria-current="true"]')].filter((row) => /** @type {HTMLElement} */ (row).offsetParent).at(-1);
           const first = [...main.querySelectorAll(".column .row")].find((row) => /** @type {HTMLElement} */ (row).offsetParent);
@@ -1679,30 +1565,21 @@
         }
       }
       let lastSeries = "";
-      /** A view scrolled short of where it was (its series not drawn yet), to go on to once it is. @type {{ scroller: HTMLElement, want: number, at: number } | null} */
+      /** @type {{ scroller: HTMLElement, want: number, at: number } | null} */
       let restore = null;
-      /** Where a view is scrolled: still short of where it was to go, untouched, where it was to go. */
       const scrollOf = (/** @type {HTMLElement} */ scroller) => (restore?.scroller === scroller && scroller.scrollTop === restore.at ? restore.want : scroller.scrollTop);
-      /**
-       * Wide, the columns shown whole: as many of the last as fit beside what's after them (at its least), it taking the
-       * rest of the width, the ones before scrolled past to the left (a slide along brings them back).
-       */
       function fit() {
         const after = /** @type {HTMLElement | null} */ (main.querySelector(":scope > .series, :scope > .overview, :scope > .rest"));
         const columns = main.querySelectorAll(":scope > .column"), width = main.clientWidth, column = /** @type {HTMLElement | undefined} */ (columns[0])?.offsetWidth ?? 0;
         if (!after || !column || narrow.matches) return after?.style.removeProperty("flex-basis");
-        // (A series takes at least 55% of the width, the columns what's left: a chart large on a laptop or a tablet on its
-        // side, two or three columns of where it is beside it.)
         const least = Math.max(parseFloat(getComputedStyle(after).minWidth) || 0, after.matches(".series") ? width * 0.55 : 0);
         const shown = Math.max(1, Math.min(columns.length, Math.floor((width - least) / column)));
         after.style.flexBasis = `${Math.max(least, width - shown * column)}px`;
         main.scrollLeft = main.scrollWidth;
-        // (Every column in sight: the series' crumbs would only say them again.)
         main.classList.toggle("whole", shown >= columns.length);
       }
       new ResizeObserver(() => fit()).observe(main);
 
-      /** A strip that slides sideways says where it's cut: `data-cut` start, end or both, faded there (none when whole). */
       function cuts(/** @type {HTMLElement} */ strip) {
         const start = strip.scrollLeft > 1, end = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1;
         const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
@@ -1710,13 +1587,10 @@
         else delete strip.dataset.cut;
       }
       document.addEventListener("scroll", (event) => event.target instanceof HTMLElement && event.target.matches(".seg") && cuts(event.target), { capture: true, passive: true });
-      // (Read again whenever a strip's own box changes, from the window or from within (a scrollbar, a font come in);
-      // observing one starts with a reading.)
+      // (Read again when a strip's own box changes: a scrollbar or a font coming in.)
       const stripSized = new ResizeObserver((entries) => entries.forEach(({ target }) => cuts(/** @type {HTMLElement} */ (target))));
       document.fonts.ready.then(() => document.querySelectorAll(".seg").forEach((strip) => cuts(/** @type {HTMLElement} */ (strip))));
-      /** A folder's column: its folders and series, the one open marked; a phone's way back above. */
       function columnHtml(/** @type {Node} */ folder, /** @type {string | undefined} */ open, /** @type {number} */ depth, /** @type {boolean} */ end) {
-        // (One Tab stop a column: its open row, else its first; the arrows move within it.)
         const stop = Math.max(0, /** @type {Node[]} */ (folder.kids).findIndex((kid) => kid.key === open));
         const rows = /** @type {Node[]} */ (folder.kids).map((kid, i) => {
           const current = kid.key === open;
@@ -1727,11 +1601,9 @@
           </button></li>`;
         }).join("");
         const back = depth ? `<button type="button" class="back" data-path="${escape(JSON.stringify(folder.path.slice(0, -1)))}">${ICON.back}${escape(depth > 1 ? nodeAt(folder.path.slice(0, -1)).label : "All series")}</button>` : "";
-        // (The top's count is the series', each once; a folder's, what's in it.)
         const count = grouped.format(depth ? folder.count : byName.size);
         return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2><button type="button" data-path="${escape(JSON.stringify(folder.path))}" tabindex="-1"><span>${escape(folder.label || "All series")}</span></button> <span class="num">${count} series</span></h2><ul role="list">${rows}</ul></section>`;
       }
-      /** What a folder holds, as tiles: a folder its count and what's in it (the first few, each a way there); a series its id. */
       function overviewHtml(/** @type {Node} */ folder) {
         const FIRST = 8;
         const link = (/** @type {Node} */ node) => `<button type="button" data-path="${escape(JSON.stringify(node.path))}">${escape(node.label)}</button>`;
@@ -1766,23 +1638,16 @@
           <dl class="facts" id="facts">${known.has(name) ? factsHtml(known.get(name)) : ""}</dl>
         </article>`;
       }
-      /** A text shown as code that copies itself (or what it stands for) at a press; too long, broken after a _ or /. */
       const copyableHtml = (/** @type {string} */ shown, /** @type {string} */ copied, /** @type {string} */ label, id = "") =>
         `<button type="button" class="copyable"${id ? ` id="${id}"` : ""} data-copy="${escape(copied)}" aria-label="${escape(`${label}, ${shown}`)}" title="${escape(label)}"><code>${wrappable(shown)}</code>${ICON.copy}${ICON.copied}</button>`;
       const wrappable = (/** @type {string} */ text) => escape(text).replace(/[_/?&]/g, "$&<wbr>");
-      /** The server's words: what's between backticks as code. */
-      /**
-       * The server's words (a series' description: Markdown) as HTML: its paragraphs, lists and fenced blocks; inline, code,
-       * strong, emphasis and links to the web. Anything else stays text, escaped: never markup of its own.
-       */
+      /** Markdown as HTML: anything else stays escaped text. */
       function prose(/** @type {string} */ markdown) {
         // (Code first: what's in it is as written.)
         const inline = (/** @type {string} */ text) => text.split(/(`[^`]+`)/).map((part, i) => (i % 2 ? `<code>${escape(part.slice(1, -1))}</code>` : escape(part)
           .replace(/\*\*(?=\S)(.+?)\*\*/g, "<strong>$1</strong>")
           .replace(/\*(?=\S)([^*]+?)\*/g, "<em>$1</em>")
           .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'))).join("");
-        // (Line by line: a fenced block whole, blank lines and all; a list's items together, a line under one going on
-        // with it; the rest paragraphs, a blank line between them.)
         const html = /** @type {string[]} */ ([]), lines = markdown.trim().split("\n");
         let paragraph = /** @type {string[]} */ ([]), list = /** @type {{ tag: string, items: string[] } | null} */ (null);
         const close = () => {
@@ -1810,19 +1675,17 @@
         return html.join("");
       }
 
-      // ── A series: its facts, its history ──
       /** @type {AbortController | null} */
       let showing = null;
-      /** @type {Map<string, Promise<any>>} each series' facts, once asked */
+      /** @type {Map<string, Promise<any>>} */
       const infos = new Map();
-      /** Each series' facts once they've come: written with its page at once (its height as it'll be). @type {Map<string, any>} */
+      /** @type {Map<string, any>} */
       const known = new Map();
       const factsHtml = (/** @type {any} */ info) =>
         [["Unit", info.unit], ["Value type", info.type]].filter(([, value]) => value).map(([label, value]) => `<dt>${label}</dt><dd>${escape(String(value))}</dd>`).join("");
       const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
         fetch(path, { signal }).then((response) => (response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body?.error?.message ?? `The server answered ${response.status}.`)), () => Promise.reject(new Error(`The server answered ${response.status}.`)))));
       const said = (/** @type {unknown} */ error) => (error instanceof TypeError ? "This server couldn't be reached." : /** @type {Error} */ (error).message);
-      /** A series' actions: to Studio, its values as JSON and CSV, its API address (aim() points them at what's drawn). */
       function actionsHtml(/** @type {string} */ name, /** @type {string} */ index, /** @type {string[]} */ indexes) {
         return [
           indexes.includes("day1") ? `<a class="chip primary" href="/studio/#chart=${encodeURIComponent(JSON.stringify({ layers: [{ series: name }] }))}">${ICON.chart}Chart in Studio</a>` : "",
@@ -1831,7 +1694,7 @@
           copyableHtml("", "", "Copy the API address", "as-api"),
         ].join("");
       }
-      /** The actions pointed at an ask: its links and API address changed in place (one with the focus keeps it). */
+      /** Changed in place, so one with the focus keeps it. */
       function aim(/** @type {string} */ api, /** @type {string} */ query) {
         $("as-json").setAttribute("href", api + query);
         $("as-csv").setAttribute("href", `${api}${query ? `${query}&` : "?"}format=csv`);
@@ -1840,7 +1703,6 @@
         address.setAttribute("aria-label", `Copy the API address, ${api + query}`);
         /** @type {HTMLElement} */ (address.querySelector("code")).innerHTML = wrappable(api + query);
       }
-      /** A long history's latest few: enough to see what a value is, and all a table of text shows. */
       const FEW = 12;
       async function showSeries(/** @type {Node} */ leaf) {
         showing?.abort();
@@ -1848,7 +1710,6 @@
         const signal = showing.signal, name = /** @type {string} */ (leaf.name), indexes = /** @type {string[]} */ (leaf.indexes);
         const index = at.index && indexes.includes(at.index) ? at.index : firstInterval(indexes);
         const api = `/api/series/${encodeURIComponent(name)}/${index}`, fine = !dateBased(index) || /^(minute|hour)/.test(index);
-        // (A long history's actions at first for its latest few, an ask the server takes whatever a value weighs.)
         $("actions").innerHTML = actionsHtml(name, index, indexes);
         aim(api, fine ? `?start=-${FEW}` : "");
         if (!infos.has(name)) infos.set(name, json(`/api/series/${encodeURIComponent(name)}`, new AbortController().signal).catch((error) => (infos.delete(name), Promise.reject(error))));
@@ -1861,8 +1722,7 @@
         try {
           let answer;
           if (fine) {
-            // (A long history: its latest few first. Numbers, then the latest 20,000 of them (as the server weighs an
-            // ask by its size: a candle's four apiece, a quarter as many points); text, those few are the table.)
+            // (The server weighs an ask by its size: a candle counts four.)
             answer = await json(`${api}?start=-${FEW}`, signal);
             const sample = /** @type {any[]} */ (answer.data).find((value) => value !== null), apiece = Array.isArray(sample) ? sample.length : typeof sample === "string" ? 0 : 1;
             const query = apiece ? `?start=-${Math.floor(MOST / apiece)}` : `?start=-${FEW}`;
@@ -1872,7 +1732,6 @@
           } else answer = await json(api, signal);
           if (signal.aborted) return;
           drawSeries(answer, index);
-          // (Drawn taller than its place was, a table of text: scrolled on to where it was, if not scrolled since.)
           if (restore && restore.scroller.isConnected && restore.scroller.scrollTop === restore.at) restore.scroller.scrollTop = restore.want;
           restore = null;
         } catch (error) {
@@ -1881,11 +1740,8 @@
         }
       }
 
-      // ── Its history, drawn: a line (its close, for candles), hover or touch to read a point ──
       /** @type {{ xs: number[], ys: number[], index: string, type: string, start: number, total: number, log: boolean, from: number } | null} */
       let plot = null;
-      /** How far back a daily or weekly history shows, as Studio's ranges have it: 3 months, a year, 4 or 8 years, or all of
-       * it (coarser ones show all); 8 years first, two cycles, as Studio opens. */
       const RANGES = /** @type {[string, string, number][]} */ ([["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]]);
       const ranged = (/** @type {string} */ index) => ["day1", "day3", "week1"].includes(index);
       let range = "8y";
@@ -1912,11 +1768,9 @@
           $("view").innerHTML = `<div class="message">Nothing yet.</div>`;
           return;
         }
-        // (Linear first, the values as they are; a log scale, on asking, where none is below zero: it skips what's zero, as
-        // Studio's does.)
+        // (Log only where nothing is below zero; it skips zeros, as Studio's does.)
         const loggable = ys.filter((y) => y > 0).length > 1 && ys.every((y) => y >= 0);
         plot = { xs, ys, index, type: answer.type, start: answer.start, total: answer.end, log: false, from: 0 };
-        // (Under the plot: how far back, for a daily or weekly history; else how much of a long one is drawn.)
         const under = ranged(index)
           ? `<div class="seg" role="group" aria-label="Range">${RANGES.map(([id, label]) => `<button type="button" data-range="${id}" aria-pressed="${id === range}" tabindex="${id === range ? 0 : -1}">${label}</button>`).join("")}</div>`
           : answer.start > 0 && !dateBased(index)
@@ -1931,7 +1785,6 @@
         plotSized.observe(/** @type {HTMLElement} */ ($("canvas").parentElement));
         setRange(range);
       }
-      /** The plot's size watched (one at a time): drawn again as it changes. */
       const plotSized = new ResizeObserver(() => paint());
       function setRange(/** @type {string} */ id) {
         if (!plot) return;
@@ -1952,17 +1805,11 @@
       }
       /** @type {number | null} */
       let hovered = null;
-      /**
-       * Round values for the value axis, between two ends (as the scale has them: log10s on a log one): about four, on
-       * a step of 1, 2 or 5 times a power of ten; on a log scale, the powers of ten (with 2 and 5 between, if few).
-       */
       function ticks(/** @type {number} */ low, /** @type {number} */ high, /** @type {boolean} */ log) {
-        // (Less than a decade on a log scale: round values as a linear one would have them, placed on the log.)
         if (log && high - low < 1) return ticks(10 ** low, 10 ** high, false).filter((v) => v > 0);
         if (log) {
           const out = [];
           for (let e = Math.ceil(low - 1); e <= Math.floor(high); e++) for (const m of high - low < 2 ? [1, 2, 5] : [1]) if (Math.log10(m * 10 ** e) >= low && Math.log10(m * 10 ** e) <= high) out.push(m * 10 ** e);
-          // (Many decades: every other, or third…, so about five.)
           const every = Math.ceil(out.length / 6);
           return out.filter((_, i) => i % every === 0);
         }
@@ -1970,14 +1817,11 @@
         if (!(rough > 0) || !Number.isFinite(rough)) return [low];
         const power = 10 ** Math.floor(Math.log10(rough)), step = [1, 2, 5, 10].map((m) => m * power).find((s) => s >= rough) ?? 10 * power;
         const out = [];
-        // (At most a dozen: values a few ulps apart can't step the loop past them.)
+        // (Capped: values a few ulps apart can't step the loop past them.)
         for (let v = Math.ceil(low / step) * step; v <= high + step * 1e-9 && out.length < 12; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
         return out;
       }
-      /**
-       * The time axis's marks, where what it reads changes (a year, a month, a day, as the span shown calls for), at least
-       * `gap` apart; a history by block or epoch, round numbers. @returns {{ x: number, label: string }[]}
-       */
+      /** @returns {{ x: number, label: string }[]} */
       function timeMarks(/** @type {number[]} */ xs, /** @type {number} */ from, /** @type {string} */ index, /** @type {(x: number) => number} */ X, /** @type {number} */ gap) {
         const out = /** @type {{ x: number, label: string }[]} */ ([]);
         if (!dateBased(index)) {
@@ -2018,27 +1862,21 @@
           high = Math.max(high, scale(ys[i]));
         }
         if (low === high) [low, high] = [low - 1, high + 1];
-        // (A little room above and below; a series that's never below zero doesn't get an axis below it.)
         const pad = (high - low) * 0.06, floor = !log && ys.every((y) => y >= 0) ? 0 : -Infinity;
         low = Math.max(floor, low - pad);
         high += pad;
-        // The value axis's labels first: the plot ends where the widest leaves room for it. (Letters from a thousand, with
-        // as many digits as tell the ticks apart.)
         ctx.font = `11px ${getComputedStyle(canvas).getPropertyValue("--mono")}`;
         const values = ticks(low, high, log), apart = (/** @type {string[]} */ texts) => new Set(texts).size === texts.length;
         let labels = values.map((v) => format(v, type, true));
         for (let digits = 5; !apart(labels) && digits <= 12; digits++) labels = values.map((v) => format(v, type, true, digits));
-        // (The latest's tag as wide as a label: room for it too.)
         const latestText = ys.length - 1 >= from ? format(ys[ys.length - 1], type, true, 4) : "";
         const widest = Math.max(0, ...[...labels, latestText].map((label) => ctx.measureText(label).width));
         const left = 14, right = box.width - Math.max(64, Math.ceil(widest) + 16), top = 10, bottom = box.height - 26;
-        // (Placed by their index, not their count: a missing stretch keeps its width, a gap in the line.)
+        // (By index, not count: a missing stretch keeps its width.)
         const first = xs[from], span = /** @type {number} */ (xs.at(-1)) - first;
         const X = (/** @type {number} */ x) => left + (span > 0 ? ((x - first) / span) * (right - left) : (right - left) / 2);
         const Y = (/** @type {number} */ y) => bottom - ((scale(y) - low) / (high - low)) * (bottom - top);
-        // (Where the latest's tag will sit on the axis: no tick's label under it.)
         const latestY = drawn(ys[ys.length - 1]) && ys.length - 1 >= from ? Y(ys[ys.length - 1]) : null;
-        // Its grid and the value axis, at the right.
         ctx.fillStyle = color("--faint");
         ctx.strokeStyle = color("--grid");
         ctx.lineWidth = 1;
@@ -2051,12 +1889,10 @@
           ctx.stroke();
           if (latestY === null || Math.abs(y - latestY) > 14) ctx.fillText(labels[k], right + 8, y);
         }
-        // Its time axis: a mark where what it reads changes (a year, a month, a day), or round numbers.
         ctx.textBaseline = "alphabetic";
         ctx.textAlign = "center";
         for (const { x, label } of timeMarks(xs, from, index, X, 72)) ctx.fillText(label, Math.min(Math.max(x, left + 20), right - 20), box.height - 8);
         ctx.textAlign = "left";
-        // The line, in runs (a missing point breaks it), and a light wash under each.
         const plotColor = color("--plot"), runs = /** @type {[number, number][][]} */ ([]);
         for (let i = from; i < ys.length; i++) {
           if (!drawn(ys[i])) continue;
@@ -2080,7 +1916,6 @@
           ctx.fillStyle = wash;
           ctx.fill();
         }
-        // The latest: a dot with a halo at its end, a dotted line across at its value, the value tagged on the axis.
         const latest = ys.length - 1;
         if (latestY !== null) {
           const x = X(xs[latest]), y = latestY, text = latestText;
@@ -2110,7 +1945,6 @@
           ctx.fillText(text, right + 8, tagTop + 9.5);
           ctx.textBaseline = "alphabetic";
         }
-        // The point read, if any.
         if (hovered !== null && hovered >= from && drawn(ys[hovered])) {
           const x = X(xs[hovered]), y = Y(ys[hovered]);
           ctx.strokeStyle = color("--line-strong");
@@ -2124,7 +1958,6 @@
           ctx.fill();
         }
         canvas.setAttribute("aria-label", `${humanize(/** @type {string} */ (nodeAt(at.path).name))}: ${format(/** @type {number} */ (ys.at(-1)), type)} at ${placeOf(index, /** @type {number} */ (xs.at(-1)))}. Left and right arrows read its points.`);
-        // (The point nearest a pointer's place along: by its index, the nearest that has a value.)
         /** @type {any} */ (canvas).pointAt = (/** @type {number} */ clientX) => {
           const r = canvas.getBoundingClientRect(), target = first + ((clientX - r.left - left) / (right - left)) * span;
           let lo = from, hi = ys.length - 1;
@@ -2136,10 +1969,7 @@
           return lo > from && Math.abs(xs[lo - 1] - target) < Math.abs(xs[lo] - target) ? lo - 1 : lo;
         };
       }
-      /**
-       * One of the page's colors as the canvas can take it (a theme's light-dark() resolves only on an element: read
-       * through a probe), with an alpha; each kept until the theme changes.
-       */
+      /** A page colour for the canvas: a theme's light-dark() resolves only on an element, so read through a probe. */
       const inks = new Map();
       function ink(/** @type {string} */ name, alpha = 1) {
         if (!inks.has(name)) {
@@ -2151,14 +1981,12 @@
         }
         return `rgb(${inks.get(name)} / ${alpha})`;
       }
-      // (The inks read again with the scheme or Increase Contrast.)
       for (const query of ["(prefers-color-scheme: dark)", "(prefers-contrast: more)"]) {
         matchMedia(query).addEventListener("change", () => {
           inks.clear();
           paint();
         });
       }
-      /** The readout: the point read, else the latest. */
       function readout(/** @type {number | null} */ i) {
         hovered = i;
         const element = document.getElementById("readout");
@@ -2168,11 +1996,10 @@
         paint();
       }
 
-      // ── Search: the server's, every keystroke (the one before stopped) ──
       /** @type {AbortController | null} */
       let searching = null;
       let picked = 0;
-      /** The search the results shown are for (Enter waits for the ones for what's typed now). */
+      /** The search the shown results are for: Enter waits for the ones for what's typed. */
       let shownFor = "";
       async function renderResults() {
         const query = /** @type {string} */ (at.query);
@@ -2210,7 +2037,7 @@
         rows[picked].scrollIntoView({ block: "nearest" });
         sayPicked();
       }
-      /** The result picked, told to a screen reader through the field (its focus stays there, as it's typed in). */
+      /** The pick, told through the field: its focus stays in it. */
       function sayPicked() {
         const option = document.getElementById(`found-${picked}`);
         if (option) q.setAttribute("aria-activedescendant", option.id);
@@ -2221,7 +2048,6 @@
       q.addEventListener("input", () => {
         const query = q.value.trim();
         if (!query) q.removeAttribute("aria-activedescendant");
-        // (Typing replaces the address's search; it doesn't add a step back for every letter.)
         at = { ...at, query };
         write(at, true);
         render();
@@ -2254,14 +2080,12 @@
         }
       });
 
-      // ── Clicks: a row opens what it names; chips do what they say ──
       main.addEventListener("click", (event) => {
         const target = /** @type {HTMLElement} */ (event.target);
         const path = /** @type {HTMLElement | null} */ (target.closest("[data-path]"));
         if (path) {
           const to = JSON.parse(/** @type {string} */ (path.dataset.path));
           if (!at.query) return go({ path: to });
-          // (From a search: the field let go, the focus on what's opened in the columns (a phone, its way back).)
           q.value = "";
           go({ path: to });
           focusRow(to);
@@ -2280,15 +2104,13 @@
         if (target.closest("[data-retry]")) return render();
         const copy = /** @type {HTMLElement | null} */ (target.closest("[data-copy]"));
         if (copy) {
-          // (Done: its icon a tick a moment, said to a screen reader.)
           const done = () => {
             copy.classList.add("copied");
             $("said").textContent = "Copied";
             clearTimeout(Number(copy.dataset.timer));
             copy.dataset.timer = String(setTimeout(() => (copy.classList.remove("copied"), ($("said").textContent = "")), 1400));
           };
-          // (No clipboard to write to (a page over plain http, as a node's on a LAN): the text written and selected,
-          // copied the old way.)
+          // (No clipboard over plain http, as a node's on a LAN: the text selected and copied the old way.)
           if (navigator.clipboard) navigator.clipboard.writeText(/** @type {string} */ (copy.dataset.copy)).then(done, () => {});
           else {
             const field = Object.assign(document.createElement("textarea"), { value: copy.dataset.copy });
@@ -2299,9 +2121,6 @@
           }
         }
       });
-      // (Reading the chart: a pointer over it, a finger sliding along it (one swiping up or down scrolls the page, read
-      // nothing); left or lifted, the latest again.)
-      /** A finger on the chart: where it went down, and whether it has gone along more than up or down (then it reads). */
       let finger = /** @type {{ x: number, y: number, along: boolean } | null} */ (null);
       main.addEventListener("pointermove", (event) => {
         const canvas = /** @type {any} */ (/** @type {HTMLElement} */ (event.target).closest?.("canvas"));
@@ -2324,8 +2143,6 @@
       for (const type of ["pointerup", "pointercancel"]) main.addEventListener(type, () => (finger = null));
       main.addEventListener("pointerleave", () => plot && hovered !== null && readout(null), true);
 
-      // ── Keys in a series: a group's arrows pick in it (one Tab stop: what's picked); the chart's move the point read;
-      // Escape, back to the columns ──
       main.addEventListener("keydown", (event) => {
         const target = /** @type {HTMLElement} */ (event.target);
         if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -2337,7 +2154,6 @@
           if (next && next !== target) (next.focus(), next.click());
           return;
         }
-        // (From the point read, else the latest; Shift, ten at a time; Escape, the latest again, and once it is, out.)
         if (target.id === "canvas" && plot && (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) || (event.key === "Escape" && hovered !== null))) {
           event.preventDefault();
           const now = hovered ?? plot.ys.length - 1, step = event.shiftKey ? 10 : 1, first = plot.from, last = plot.ys.length - 1;
@@ -2356,9 +2172,6 @@
         }
       });
 
-      // ── Keys in the columns: ↑ ↓ within one (Home, End), → into a folder (on a series, into it), ← back out ──
-      // (Wide, with nothing focused (the page just opened, or clicked on nothing), the columns take them: from the
-      // deepest row lit, else on the first row.)
       addEventListener("keydown", (event) => {
         if (narrow.matches || at.query || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
         if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) || (document.activeElement && document.activeElement !== document.body)) return;
@@ -2378,7 +2191,6 @@
           event.preventDefault();
           const next = /** @type {HTMLElement | undefined} */ (rows[moves[event.key]]);
           if (!next || next === row) return;
-          // (Wide, the row moved to opens beside, as Finder's columns do; narrow, the focus moves, nothing opens.)
           const to = JSON.parse(/** @type {string} */ (next.dataset.path));
           if (!narrow.matches) {
             go({ path: to }, true);
@@ -2388,7 +2200,6 @@
           next.tabIndex = 0;
           next.focus();
         } else if ((event.key === "ArrowRight" || event.key === "Enter") && nodeAt(path).name && !narrow.matches && row.getAttribute("aria-current") === "true") {
-          // (A series open beside: into it, its intervals; Escape there, back here.)
           event.preventDefault();
           /** @type {HTMLElement | null} */ (main.querySelector('#intervals [aria-pressed="true"]'))?.focus();
         } else if (event.key === "ArrowRight" && !nodeAt(path).name) {
@@ -2399,13 +2210,10 @@
           focusRow(first.path);
         } else if (event.key === "ArrowLeft" && (path.length > 1 || !narrow.matches)) {
           event.preventDefault();
-          // (Narrow, back to the folder this one's in, this folder's row lit there; wide, its folder lit (a top
-          // folder's row, the start), the focus there, else kept.)
           go({ path: narrow.matches ? path.slice(0, -2) : path.slice(0, -1) });
           focusRow(path.length > 1 ? path.slice(0, -1) : path);
         }
       });
-      /** A row focused, its column's Tab stop. */
       function focusRow(/** @type {string[]} */ path) {
         const row = /** @type {HTMLElement | null} */ (main.querySelector(`.column .row[data-path="${CSS.escape(JSON.stringify(path))}"]`));
         if (!row) return;
@@ -2414,19 +2222,15 @@
         row.focus();
       }
 
-      // (The pools by their names, read from the server: their keys as words till then, or if it can't say.)
       const named = json("/api/v1/mining/pools", new AbortController().signal).then((/** @type {{ slug: string, name: string }[]} */ pools) => {
         for (const { slug, name } of pools) poolNames.set(slug, name);
         // (A key the tree begins with "_", its name beginning with a digit: "_1thash".)
         for (const kid of nodeAt(["pools"]).kids ?? []) kid.label = poolNames.get(kid.key.replace(/^_/, "")) ?? kid.label;
         return true;
       }, () => false);
-      // (Opened inside the pools, it waits for their names a moment (a small answer), so they show from the start; else
-      // it's drawn at once, and the overview or a folder of pools drawn again as the names come. A series shown isn't:
-      // its chart, its request and the focus are the visitor's.)
+      // (A series shown isn't drawn again: its chart, request and focus are the visitor's.)
       const inPools = () => at.path[0] === "pools";
       if (inPools()) await Promise.race([named, new Promise((ok) => setTimeout(ok, 800))]);
-      // (Unless the visitor drew something meanwhile: a search typed, a folder opened.)
       if (!drawn) render();
       named.then((ok) => {
         if (ok && !drawnNamed && !at.query && !nodeAt(at.path).name && (inPools() || !at.path.length)) render();

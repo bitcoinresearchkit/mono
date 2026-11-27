@@ -1,11 +1,6 @@
 // @ts-check
-// A column of values summed up by blocks of 4, 8, 16 points and so on (each level's blocks twice the last's): each
-// block's low and high and where they are, its lowest above zero, and whether it has a point
-// a line can't go through (none; on a log scale, none above zero). Zoomed out, a pixel column of many points reads its
-// few whole blocks that are clean, its ends point by point: a draw's work by its columns, not by its points; a range's
-// lowest and highest alike.
+// Blocks summed up so a zoomed-out draw costs its pixel columns, not its points.
 
-/** The first level's blocks: 4 points (2^2). */
 const FIRST = 2;
 
 export class Summary {
@@ -18,7 +13,7 @@ export class Summary {
       const count = Math.floor(values.length / size);
       this.levels.push({ lo: new Float64Array(count), hi: new Float64Array(count), loAt: new Int32Array(count), hiAt: new Int32Array(count), pos: new Float64Array(count), nan: new Uint8Array(count), low: new Uint8Array(count) });
     }
-    // (Made in loops of their own, not a call a block: without a JIT, a call costs more than a block's work.)
+    // Loops of their own, not a call a block: without a JIT a call costs more than the work.
     if (!this.levels.length) return;
     const { lo, hi, loAt, hiAt, pos, nan, low } = this.levels[0], size = 1 << FIRST;
     for (let k = 0, from = 0; k < lo.length; k++, from += size) {
@@ -49,7 +44,7 @@ export class Summary {
     }
   }
 
-  /** Its blocks over index `i` made again (the value there changed). @param {number} i */
+  /** @param {number} i */
   set(i) {
     for (let level = 0; level < this.levels.length; level++) {
       const k = i >> (level + FIRST);
@@ -57,7 +52,7 @@ export class Summary {
     }
   }
 
-  /** A block made: the first level's from its points, the others' from their two halves. @param {number} level @param {number} k */
+  /** @param {number} level @param {number} k */
   #update(level, k) {
     const at = this.levels[level];
     if (level === 0) {

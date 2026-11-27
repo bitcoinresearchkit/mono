@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Oracle" data-color="#e86c1e"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
     <title>Oracle · Bitview</title>
     <meta name="description" content="Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/oracle/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/oracle/" />
@@ -86,9 +84,6 @@
         font-display: swap;
       }
 
-      /* An instrument, printed: one monospace, paper by day and near-black by night, hairlines between parts. The
-         evidence in the ink's own gray, its strength as its opacity; the answer, and only the answer, in Bitview's
-         orange. The first screen is the answer and its week; the how is below, for whoever scrolls. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f2ec, #0a0c0b);
@@ -101,18 +96,14 @@
         --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
         --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
         --heat: var(--ink);
-        /* (Deep enough on the paper to be read as small text, 4.5:1 and more: the chapters' numbers, a pressed button.) */
         --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
         --gain: light-dark(#0a7d3e, #6ef096);
-        /* (A loss in words stays 4.5:1 over the evidence's warmest cells under them.) */
         --loss: light-dark(#b12420, #ff7466);
         --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Increase Contrast: greys toward the ink, mixed in OKLab and written out so the canvases read plain colours. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#222723, #ced5d0);
@@ -172,9 +163,6 @@
         margin-inline: auto;
       }
 
-      /* ── The first screen: the bar, the price, the week filling the rest, a quiet way down ── */
-      /* The chart is the whole first screen, edge to edge; the bar, the price and the way down sit over it, the
-         data drawn below the price. */
       .stage {
         position: relative;
         height: 100svh;
@@ -271,12 +259,11 @@
         }
 
         .when {
-          /* (A step toward --soft: over the evidence's warm cells the plain --faint falls just short of 4.5:1.) */
+          /* A step toward --soft: over the evidence's warm cells the plain --faint falls short of 4.5:1. */
           color: color-mix(in srgb, var(--faint), var(--soft) 40%);
         }
       }
 
-      /* The week, edge to edge, as tall as the screen leaves it. */
       .week {
         position: absolute;
         inset: 0;
@@ -286,7 +273,6 @@
       .chart {
         position: absolute;
         inset: 0;
-        /* (Its layers stack among themselves, under the words over it.) */
         isolation: isolate;
         touch-action: pan-y;
         cursor: crosshair;
@@ -299,7 +285,6 @@
           height: 100%;
         }
 
-        /* The evidence settles into the page under the words at the top and the foot, the line over it untouched. */
         &::before {
           content: "";
           position: absolute;
@@ -342,14 +327,12 @@
         opacity: 0.35;
       }
 
-      /* The evidence as warm light, ember to orange at the crest; the answer a crisp ink line on it. */
       :root {
         --heat-lo: light-dark(rgb(250 230 212), rgb(54 16 4));
         --heat-mid: light-dark(rgb(245 172 112), rgb(196 66 14));
         --heat-hi: light-dark(rgb(232 108 30), rgb(255 152 66));
       }
 
-      /* Now: a dot of the line, in its border. */
       .end,
       .cross circle {
         fill: var(--ink);
@@ -359,7 +342,6 @@
         paint-order: stroke;
       }
 
-      /* Now: the live end breathes, slowly. */
       .end-glow {
         fill: var(--ink);
         opacity: 0.22;
@@ -445,7 +427,6 @@
         }
 
         span {
-          /* (A step toward --ink: the arrow's nudge carries it over the brighter cells.) */
           color: color-mix(in srgb, var(--soft), var(--ink) 25%);
           animation: nudge 2.4s ease-in-out infinite;
 
@@ -466,7 +447,6 @@
         }
       }
 
-      /* (A phone's foot: the key kept, its words wrapped over the way down to how it's read.) */
       @media (max-width: 640px) {
         .foot {
           flex-direction: column;
@@ -483,7 +463,6 @@
         }
       }
 
-      /* ── The chapters: a number, a title, a few lines, a figure ── */
       .chapter {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -495,7 +474,6 @@
           margin-bottom: 20px;
         }
 
-        /* Wide, the title stays beside its chapter as it scrolls by. */
         @media (min-width: 900px) {
           grid-template-columns: 250px minmax(0, 1fr);
 
@@ -533,14 +511,11 @@
         }
       }
 
-      /* ── 01: the instrument. The latest payments by amount, the fingerprint's 19 teeth over them, and below, how
-         well it fits wherever it's held. ── */
       .instrument {
         margin-top: 24px;
         border: 1px solid var(--line);
         background: var(--plate);
 
-        /* Its controls, one size: steps, now, fit. */
         button {
           display: inline-grid;
           place-items: center;
@@ -560,7 +535,7 @@
             opacity: 0.35;
           }
 
-          /* (For fingers, unseen: 44px each way; the steps' 6px gap lets neighbours' reaches meet, not overlap.) */
+          /* 44px reach each way, unseen; the steps' gap lets neighbours' reaches meet, not overlap. */
           @media (pointer: coarse) {
             position: relative;
 
@@ -573,7 +548,6 @@
         }
       }
 
-      /* Which block it reads: named, a step either way or now, and its place on the week's line. */
       .blocks {
         display: grid;
         grid-template: "which detail steps" auto "scrub scrub scrub" auto / auto minmax(0, 1fr) auto;
@@ -598,7 +572,6 @@
           font-size: 12px;
         }
 
-        /* Narrow, the detail under the name and the steps. */
         @media (max-width: 640px) {
           grid-template: "which steps" auto "detail detail" auto "scrub scrub" auto / minmax(0, 1fr) auto;
           row-gap: 4px;
@@ -617,7 +590,6 @@
             padding: 0 10px;
           }
 
-          /* (The 6px between the steps is the next one's reach; this one's makes up the rest to its left.) */
           @media (pointer: coarse) {
             #earlier::before {
               inset: -7px 0 -7px -13px;
@@ -743,7 +715,6 @@
         user-select: none;
         -webkit-user-select: none;
 
-        /* A block being read: the one before stays, dimmed, until it's here. */
         &[aria-busy="true"] svg {
           opacity: 0.5;
           transition: opacity 0.2s;
@@ -789,7 +760,6 @@
         fill: var(--soft);
         font: 11px var(--mono);
 
-        /* The amounts between the powers of ten: smaller, dimmer, without their $. */
         &.minor {
           font-size: 10px;
           opacity: 0.55;
@@ -888,14 +858,13 @@
         line-height: 1.65;
       }
 
-      /* (The instrument's key: each mark as it's drawn, then what it is.) */
       .key {
         display: grid;
         gap: 6px;
         padding: 0;
         list-style: none;
 
-        /* (Its own marks: not the instrument's (an SVG's .window is faint by opacity).) */
+        /* Not the instrument's marks: an SVG's .window is faint by opacity. */
         i {
           opacity: 1;
         }
@@ -927,9 +896,7 @@
         }
       }
 
-      /* ── 02 and 04: the bar lists, the twelve blocks' weights and the years' accuracy ── */
-      /* The list's whole height is the scale and each bar a share of it (--h, on its li), so the tallest fills it.
-         A value hangs a --gap above its bar, out of the bar's box; the list's top margin holds the tallest one's line. */
+      /* A value hangs above its bar, out of the bar's box: the list's top margin holds the tallest one's line. */
       :is(.weights, .years) {
         --gap: 4px;
         --room: calc(1lh + var(--gap));
@@ -990,8 +957,6 @@
         font-size: 12px;
       }
 
-      /* ── 03: what it skips ── */
-      /* (Its lines held: two on a desk, three on a phone (four on the narrowest), the count it says coming in without moving the rules.) */
       #kept {
         min-height: 2lh;
 
@@ -1014,7 +979,6 @@
         border: 1px solid var(--line);
         background: var(--line);
 
-        /* A rule: its name and what it skipped, why, and its share of the outputs at the bottom. */
         li {
           display: grid;
           grid-template: auto 1fr auto / minmax(0, 1fr) auto;
@@ -1023,7 +987,6 @@
           background: var(--app);
         }
 
-        /* (As wide as the widest count and share from the start, so a rule's name wraps the same before and after.) */
         output {
           min-width: 12ch;
           color: var(--ink);
@@ -1060,7 +1023,6 @@
         }
       }
 
-      /* ── 04: how close ── */
       .headline {
         display: flex;
         flex-wrap: wrap;
@@ -1098,8 +1060,7 @@
         }
       }
 
-      /* On a phone, both bar lists: the values without their % (the axis says what they are); four characters
-         at 11px are wider than a column, so each is set a hair tighter, apart down to 360px. */
+      /* Four characters are wider than a column, so each is set a hair tighter. */
       @media (max-width: 560px) {
         :is(.weights, .years) li > span {
           letter-spacing: -0.04em;
@@ -1193,7 +1154,6 @@
         }
       }
 
-      /* The narrowest phones: the instrument's rows a little tighter, so each stays one. */
       @media (max-width: 400px) {
         .blocks,
         .readout {
@@ -1207,7 +1167,6 @@
             margin-right: 6px;
           }
 
-          /* (The price needs no "at".) */
           .k:has(+ #tried) {
             display: none;
           }
@@ -1227,12 +1186,9 @@
           }
         }
       }
-      /* (A finger's reach, unseen: the brand, the way down, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
       :is(a.brand, a.more) {
         position: relative;
 
-        /* (Rows that wrap stay apart: 24px for a pointer, 44px for fingers.) */
         &::before {
           content: "";
           position: absolute;
@@ -1365,31 +1321,22 @@
 
     <script type="module">
       // @ts-check
-      // Bitcoin's price from the chain alone, read from this server's oracle, and shown as the oracle sees it: each
-      // block's payments as a histogram of amounts, scored the oracle's own way at each candidate price.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
       addEventListener("keydown", (e) => {
         if (!(e.metaKey || e.ctrlKey || e.altKey)) delete document.documentElement.dataset.pointer;
       }, { capture: true });
 
-      // ── The oracle's constants (brk_oracle: scale.rs, stencil.rs, config.rs) ──
       const PER_DECADE = 200;
-      /** The fingerprint: 19 round-dollar amounts, and their bins' distance from $100's. */
       const AMOUNTS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10000];
       const OFFSETS = [-400, -340, -305, -260, -200, -165, -140, -120, -105, -60, 0, 35, 60, 95, 140, 200, 260, 340, 400];
       const MAJOR = new Set([1, 10, 100, 1000, 10000]);
-      /** Its search around its last answer: 12 bins below (a higher price), 11 above. */
       const BELOW = 12, ABOVE = 11;
-      /** Its average over the last 12 blocks, the newest weighted most. */
       const ALPHA = 2 / 7, WINDOW = 12;
 
-      /** The bin $`amount` lands in at a price; the price $100 landing in a bin says. */
       const binOf = (/** @type {number} */ amount, /** @type {number} */ price) => Math.log10((amount / price) * 1e8) * PER_DECADE;
       const priceOf = (/** @type {number} */ bin) => 10 ** (10 - bin / PER_DECADE);
 
-      /** How the oracle scores candidates for a histogram, its last answer at `prev` (a bin): each tooth's count over
-       * that tooth's peak in the search window, summed. `at` reads between bins. */
       function scorer(/** @type {number[]} */ h, /** @type {number} */ prev, reach = { below: BELOW, above: ABOVE }) {
         const c0 = Math.round(prev) - reach.below, c1 = Math.round(prev) + reach.above;
         const peaks = OFFSETS.map((o) => {
@@ -1411,7 +1358,7 @@
         return { at, whole, best, c0, c1 };
       }
 
-      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      /** One formatter: a number's toLocaleString makes one per call. */
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
       const dollars = (/** @type {number} */ a) => (a >= 1000 ? `$${a / 1000}k` : `$${a}`);
@@ -1433,7 +1380,7 @@
         return kind === "json" ? r.json() : r.text();
       });
       const still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** A color as the scheme resolves it: a canvas can't read light-dark(). */
+      /** A canvas can't read light-dark(): the scheme's colour is resolved here. */
       const probe = document.createElement("i");
       function resolved(/** @type {string} */ value) {
         probe.style.color = value;
@@ -1443,31 +1390,22 @@
         return rgb;
       }
 
-      // ── State ──
-
-      /** The week: the blocks of the last 7 days (read from enough to cover a fast week), every one's histogram read,
-       * so each cell is the mean over all the blocks it covers. */
       const WEEK = 7 * 86400, FETCH = 1300;
       let tip = 0, live = 0;
       const KICKER = "BTC/USD · from the chain, no exchange";
-      /** When now was last read (ms), and, while it can't be, what the top says instead. */
       let liveAt = 0, offline = "";
-      /** Each block's price by height, for the previous block's answer. @type {Map<number, number>} */
+      /** @type {Map<number, number>} */
       let priceAt = new Map();
-      /** The blocks shown: height, price, time. @type {{ h: number, p: number, t: number }[]} */
+      /** @type {{ h: number, p: number, t: number }[]} */
       let points = [];
       /** @typedef {{ coinbase: number, fan_out: number, op_return: number, taproot: number, dust: number, round_btc: number, payments: number }} Outputs */
-      /** The oracle at a block (or now): what it counted, where it looked, what it found.
-       * @typedef {{ height: number, hash: string, mempool: boolean, price: number, bin: number, first_bin: number, scores: number[], histogram: number[], outputs: Outputs }} Search */
+      /** @typedef {{ height: number, hash: string, mempool: boolean, price: number, bin: number, first_bin: number, scores: number[], histogram: number[], outputs: Outputs }} Search */
       /** @typedef {{ height: number, first_bucket: number, counts: number[] }} Payments */
-      /** Each block's payments read as round dollars: readings by price bucket, a tenth of a bin each. @type {Map<number, Payments>} */
+      /** @type {Map<number, Payments>} */
       let payments = new Map();
-      /** Whether a chunk failed to read: the next look tries again. */
       let incomplete = false;
-      /** The live search, the mempool blended in as the next block, with the histogram it scored. @type {Search | null} */
+      /** @type {Search | null} */
       let liveSearch = null;
-
-      // ── The price at the top: now, or the block pointed at ──
 
       let shown = 0, rolling = 0;
       function setPrice(/** @type {number} */ next, roll = true) {
@@ -1481,9 +1419,7 @@
         };
         step(start);
       }
-      /** The price and its change over the week, at a block (null: now). */
       function tell(/** @type {number | null} */ k) {
-        // (The live point, one past the last block, reads as now.)
         if (k !== null && k >= points.length) k = null;
         if (!live && k === null) return;
         if (!points.length) {
@@ -1505,12 +1441,10 @@
         if (last) $("tip").textContent = `block ${grouped(last.h)} · ${ago(last.t)}`;
       }
 
-      // ── Reading ──
-
       async function readWeek() {
         const [prices, times] = await Promise.all([read(`/api/series/price/height?start=-${FETCH}`), read(`/api/series/timestamp/height?start=-${FETCH}`)]);
         tip = prices.end - 1;
-        // (Each price with its own block's time, by height: the two answers can end a block apart.)
+        // Each price with its own block's time, by height: the two answers can end a block apart.
         const all = prices.data.map((/** @type {number} */ p, /** @type {number} */ i) => ({ h: prices.start + i, p, t: times.data[prices.start + i - times.start] }));
         priceAt = new Map(all.filter((pt) => pt.p > 0).map((pt) => [pt.h, pt.p]));
         const newest = all.findLast((pt) => pt.t !== undefined)?.t ?? 0;
@@ -1519,9 +1453,7 @@
         draw();
         drawHeat();
         tell(pointed);
-        // (Every block's payments, 144 blocks a request: a settled chunk's answer never changes, so asking again costs
-        // a 304, and the server checks it against the chain; a chunk that fails keeps what it had, and the next look
-        // tries it again.)
+        // A settled chunk's answer never changes, so asking again costs a 304; a failed chunk keeps what it had and is tried at the next look.
         if (!points.length) return;
         const DAY = 144, chunks = [];
         for (let start = Math.max(Math.floor(points[0].h / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) chunks.push(start);
@@ -1537,17 +1469,14 @@
         draw();
         drawHeat();
       }
-      /** Now, as read (`s`: the live reading, with the histogram it scored, one snapshot; its pick is the live price). */
       async function readLive(/** @type {Search | null} */ s) {
         let fresh = !!s;
         if (s) [liveSearch, live] = [s, s.price];
         else {
-          // (No live reading, as while the oracle's first fast blocks sync: the price alone, and no evidence for it.)
           liveSearch = null;
           const p = await read("/api/oracle/price", "text").catch(() => null);
           if (p) [live, fresh] = [Number(p), true];
         }
-        // (Nothing read: the price shown is the last one read, and says since when.)
         if (fresh) liveAt = Date.now();
         offline = fresh ? "" : live ? `Can't reach this server's oracle since ${clock(liveAt / 1000)}; trying again` : "Can't reach this server's oracle; trying again";
         if (!live) $("kicker").textContent = offline;
@@ -1557,38 +1486,24 @@
         instrument();
       }
 
-      // ── The week's chart, edge to edge ──
-
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
       const PAD = { top: 0, right: 0, bottom: 0 };
-      /** How far the week's lowest and highest prices sit, at least, from the words over the chart: the price above it,
-       * the foot below. */
       const CLEAR = 28;
-      /** Buckets a bin: the payments' price step, a tenth of the oracle's. */
       const PER_BIN = 10;
-      /** How near a square at `bin` is a block's pick at `pick`: 1 on it, fading over about a bin. */
       const nearPick = (/** @type {number} */ bin, /** @type {number} */ pick) => Math.exp(-((bin - pick) ** 2) / 0.5);
-      /** Where the words over the chart end at the top (the change's foot) and begin at the bottom (the caption's top),
-       * from the chart's top. */
       function wordsOver() {
         const box = chart.getBoundingClientRect();
         const top = Math.max(0, /** @type {HTMLElement} */ ($("change")).getBoundingClientRect().bottom - box.top);
         const bottom = Math.min(box.height, /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top - box.top);
         return { top, bottom: Math.max(top, bottom) };
       }
-      /** The frame: x of a block's index (the live point one past the last), y of a price (log); the data below the
-       * price and above the way down. */
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length;
-        // (The price axis is the oracle's bins, each an equal row of the whole screen, as many as keep the week's highest
-        // price CLEAR under the words at the top and its lowest CLEAR over the foot, rounded out to whole bins.)
         const prices = [...points.map((pt) => pt.p), ...(live ? [live] : [])];
         const words = wordsOver(), above = words.top + CLEAR, below = h - words.bottom + CLEAR;
         const mTop = h > 0 ? Math.min(0.45, above / h) : 0, mBottom = h > 0 ? Math.min(0.3, below / h) : 0;
         let b0 = 0, b1 = 1;
         if (prices.length) {
-          // (The screen spans bins b0 - ½ to b1 + ½, `span` of them: whole bins, outward, till the margins hold at that
-          // span (a wider one only makes them more so).)
           const top = binOf(100, Math.max(...prices)), bottom = binOf(100, Math.min(...prices));
           let span = Math.max(2, Math.ceil((bottom - top + 1) / (1 - mTop - mBottom)));
           for (let tries = 0; tries < 8; tries++) {
@@ -1599,8 +1514,6 @@
           }
         }
         const hi = priceOf(b0 - 0.5), lo = priceOf(b1 + 0.5);
-        // (The squares: rows of whole buckets, a tenth of a bin each, about 10px tall; columns as wide, edge to edge,
-        // the blocks in all but the last two: the live search's strip, where now is, then one left empty.)
         const tall = (b1 - b0 + 1) * PER_BIN, per = Math.max(1, Math.round(10 / (h / tall))), side = (h / tall) * per;
         const cols = Math.max(3, Math.round(w / side)), width = w / cols, span = (cols - 2) * width, now = (cols - 1.5) * width;
         const x = (/** @type {number} */ k) => (k / Math.max(1, n)) * span;
@@ -1609,11 +1522,6 @@
         return { w, h, n, lo, hi, x, y, priceAt: priceOfY, b0, b1, per, side, cols, width, span, now };
       }
 
-      /** Behind the line, the payments themselves: each block's eligible outputs, at their exact amounts, read as each
-       * round-dollar amount, counted by the price each reading implies, in buckets a tenth of an oracle bin tall. The
-       * screen cut into squares of about 10px: a row a few buckets tall, a column as wide over its blocks; a square is
-       * its readings, brightest where a column's are densest. Gray where no block's search window reached. Then the
-       * live strip: what the oracle searches now, the same readings from its smoothed histogram, a bin at a time. */
       function drawHeat() {
         const f = framed ?? frame(), ratio = devicePixelRatio || 1;
         canvas.width = Math.round(f.w * ratio);
@@ -1621,19 +1529,15 @@
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         ctx.scale(ratio, ratio);
         if (!f.n) return;
-        // (The ramp's three stops as the scheme resolves them; a cell's color and strength both from its score.)
         const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)");
         const ramp = (/** @type {number} */ t) => {
           const k = t < 0.5 ? 0 : 1, u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
           return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u)).join(",");
         };
-        // (The screen's buckets, top to bottom, from the first row's bin; a square's rows of them.)
         const { per, side, cols, width } = f, top = f.b0 * PER_BIN - PER_BIN / 2, rows = Math.ceil(((f.b1 - f.b0 + 1) * PER_BIN) / per);
-        /** A row's middle, in bins. */
         const binAt = (/** @type {number} */ r) => (top + (r + 0.5) * per) / PER_BIN;
         const strips = cols - 1, blocks = cols - 2;
         const sums = Array.from({ length: strips }, () => new Float64Array(rows)), seen = Array.from({ length: strips }, () => new Uint8Array(rows));
-        // (How much each square is the pick's: over the column's blocks, each its share.)
         const lift = Array.from({ length: strips }, () => new Float64Array(rows)), picks = new Float64Array(strips);
         const liftAt = (/** @type {number} */ j, /** @type {number} */ pick) => {
           picks[j]++;
@@ -1642,7 +1546,6 @@
         points.forEach((pt, k) => {
           const block = payments.get(pt.h);
           if (!block) return;
-          // (A block in the column its point on the line falls in.)
           const j = Math.min(blocks - 1, Math.floor((k * blocks) / f.n));
           block.counts.forEach((count, i) => {
             const r = Math.floor((block.first_bucket + i - top) / per);
@@ -1652,8 +1555,6 @@
           });
           liftAt(j, binOf(100, pt.p));
         });
-        // (The live strip: each bin in the search's window, its readings as the oracle's 19 arms see them, spread over
-        // its buckets as the blocks' are.)
         if (liveSearch) {
           const j = blocks, { first_bin, scores, histogram } = liveSearch;
           for (let c = first_bin; c < first_bin + scores.length; c++) {
@@ -1671,8 +1572,6 @@
           let most = 0;
           for (let r = 0; r < rows; r++) most = Math.max(most, sums[j][r]);
           for (let r = 0; r < rows; r++) {
-            // A square no search reached is gray; a searched one, faint where few readings land, bright where most do,
-            // lifted softly around the oracle's picks.
             const t = most ? (sums[j][r] / most) ** 0.7 : 0, u = picks[j] ? lift[j][r] / picks[j] : 0;
             const v = Math.min(1, t + 0.4 * u * (1 - t) + 0.15 * u);
             ctx.fillStyle = seen[j][r] ? `rgba(${ramp(v)},${(0.06 + 0.94 * v).toFixed(3)})` : `rgba(${ink},0.035)`;
@@ -1681,11 +1580,8 @@
         }
       }
 
-      /** The line and its live end, no axes: pointing tells a block's date and price; the crosshair kept where it was. */
       let pointed = /** @type {number | null} */ (null);
-      /** The frame the line was drawn in, which the squares behind it and pointing share: measured as it's drawn (the
-       * words over it change as it's pointed at, and may wrap differently, but the line stays put).
-       * @type {ReturnType<typeof frame> | null} */
+      /** @type {ReturnType<typeof frame> | null} */
       let framed = null;
       function draw() {
         const f = (framed = frame());
@@ -1697,7 +1593,6 @@
         if (pointed !== null) point(pointed);
       }
 
-      /** The block pointed at (null: none): the crosshair on it, its price at the top. */
       function point(/** @type {number | null} */ k) {
         pointed = k === null ? null : Math.max(0, Math.min(points.length - (live ? 0 : 1), k));
         const cross = /** @type {SVGGElement | null} */ (svg.querySelector("#cross"));
@@ -1712,7 +1607,6 @@
         }
         tell(pointed);
         $("more").textContent = pointed !== null && pointed < points.length ? `How it read block ${grouped(points[pointed].h)}` : "How it reads the chain";
-        // (Its line clear of the words as they now read: told, they may wrap differently.)
         if (pointed !== null) {
           const words = wordsOver(), line = /** @type {SVGLineElement} */ (cross.querySelector("line"));
           line.setAttribute("y1", String(words.top + 12));
@@ -1720,8 +1614,6 @@
         }
       }
 
-      /** Pointer input across an element: a touch that starts here scrolls the page unless it moves more across than
-       * down; a mouse acts on hover. */
       function across(/** @type {HTMLElement} */ el, /** @type {{ move: (e: PointerEvent) => void, start?: (e: PointerEvent) => void, end?: () => void, hover?: boolean }} */ on) {
         let down = /** @type {{ x: number, y: number } | null} */ (null), active = false;
         el.addEventListener("pointerdown", (e) => {
@@ -1757,7 +1649,6 @@
         },
       });
       chart.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && point(null));
-      // A block clicked (or Enter on it): how it read it, in 01.
       const open = () => {
         if (pointed === null || pointed >= points.length) return;
         choose(points[pointed].h);
@@ -1775,35 +1666,23 @@
         $("said").textContent = pt ? `Block ${grouped(pt.h)}, ${day(pt.t)} ${clock(pt.t)}: $${grouped(pt.p)}` : `Now: $${grouped(live)}`;
       });
       chart.addEventListener("blur", () => point(null));
-      // (A finger lifted lets go of the block, so the price at the top goes live again.)
       chart.addEventListener("pointerup", (e) => e.pointerType === "touch" && point(null));
 
-      // ── 01: the instrument ──
-
       const plate = $("plate"), spectrum = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("spectrum")));
-      /** How far the fingerprint can be dragged from the price, in bins (a factor of about 4 each way). */
       const REACH = 120;
-      /** The bins the plate spans around the price's $100 bin: $1 to $10k and some room. */
       const SPAN = 470;
-      /** The fingerprint's place, in bins from where the oracle put it (0: fitted). */
       let shift = 0;
-      /** The fit wherever the fingerprint is held: each tooth's count over the tallest it meets anywhere within reach
-       * (the oracle's own normalization holds only inside its window, so it can't rank places beyond it); and the
-       * oracle's window, from the search shown. */
+      /** The oracle's own normalization holds only inside its window: the fit is normalized over everywhere within reach. */
       let wide = scorer([], 0), own = { c0: 0, c1: 0 }, most = 0;
-      /** The block 01 reads (null: now). */
       let picked = /** @type {number | null} */ (null);
-      /** Blocks' searches as read, by height, the oldest read dropped past a week's worth. @type {Map<number, Search>} */
+      /** @type {Map<number, Search>} */
       const searchAt = new Map();
-      /** The search shown: the picked block's once read (until then, the one before it), or now's. @type {Search | null} */
+      /** @type {Search | null} */
       let shownSearch = null;
       let reading = false, failed = /** @type {number | null} */ (null);
-      /** The tip the week was last read whole at (its hash; a failed read leaves it, so the next look tries again),
-       * and how many new tips there have been: a block's read from before one is dropped. */
       let weekAt = "", tipEra = 0;
 
       function instrument() {
-        // (A block's search not read yet, or none now: the plate keeps the last, dimmed.)
         const s = picked === null ? liveSearch : searchAt.get(picked);
         plate.setAttribute("aria-busy", String(!s));
         drawBlocks();
@@ -1814,11 +1693,9 @@
         wide = scorer(s.histogram, center, { below: REACH, above: REACH });
         most = 0;
         for (let c = center - REACH; c <= center + REACH; c += 0.5) most = Math.max(most, wide.at(c));
-        // (02's twelve: the block read and the 11 before it, now the mempool's first.)
         const mempool = s.mempool;
         $("newest").textContent = mempool ? "the mempool" : `block ${grouped(s.height)}`;
         $("oldest").textContent = `block ${grouped(s.height - 11)}`;
-        // (03: what each rule skipped of that block's own outputs, the mempool's now.)
         const o = s.outputs, total = Object.values(o).reduce((a, b) => a + b, 0), share = (/** @type {number} */ n) => (total ? (n / total) * 100 : 0);
         const pct = (/** @type {number} */ n) => (n && share(n) < 0.05 ? "<0.1" : share(n) >= 9.95 ? share(n).toFixed(0) : share(n).toFixed(1));
         $("kept").innerHTML = `Only outputs that look like someone paying someone count. ${mempool ? "In the mempool now" : `In block ${grouped(s.height)}`}, that's <b>${grouped(o.payments)}</b> of ${grouped(total)} (${pct(o.payments)}%).`;
@@ -1830,8 +1707,6 @@
         drawPlate();
       }
 
-      /** Read a block for 01 (null: now). Past the week's newest block is now; a block is read once, the latest
-       * picked while one is being read read next. */
       function choose(/** @type {number | null} */ h) {
         const last = points.at(-1)?.h ?? 0;
         picked = h === null || h > last ? null : Math.max(points[0]?.h ?? h, h);
@@ -1840,17 +1715,15 @@
         say();
         if (picked !== null && !searchAt.has(picked)) readPicked();
       }
-      /** The block picked, said aloud (its name and detail, a failure's too). */
       const say = () => ($("said").textContent = `${$("which").textContent}: ${$("detail").textContent}`);
       async function readPicked() {
         if (reading) return;
         reading = true;
         while (picked !== null && !searchAt.has(picked)) {
-          // (A read that outlives a new tip, maybe another branch's, is dropped and the block read again.)
+          // A read that outlives a new tip (maybe another branch's) is dropped and the block read again.
           const h = picked, era = tipEra, s = await read(`/api/oracle/blocks/${h}`).catch(() => null);
           if (era !== tipEra) continue;
           if (!s) {
-            // (Another picked meanwhile: that one next.)
             if (picked !== h) continue;
             failed = h;
             reading = false;
@@ -1865,10 +1738,8 @@
         instrument();
       }
 
-      /** Which block: its name, the steps, and its place on the week's line. */
       const scrub = $("scrub"), scrubLine = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("scrub-line")));
       const scrubX = (/** @type {number} */ k, /** @type {number} */ w) => 6 + (k / Math.max(1, points.length)) * (w - 12);
-      /** The block under a mouse over the scrub (null: none), shown faintly where a click would go. */
       let scrubHover = /** @type {number | null} */ (null);
       function drawBlocks() {
         const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), pt = points[k];
@@ -1890,7 +1761,6 @@
         scrub.setAttribute("aria-valuetext", pt ? `Block ${grouped(pt.h)}, ${day(pt.t)} ${clock(pt.t)}: $${grouped(pt.p)}` : "Now");
         const w = scrub.clientWidth, h = scrub.clientHeight;
         if (!n || !w) return;
-        // (The line above, the days below: a tick at each midnight, its date where it fits.)
         const lineH = h - 18, prices = [...points.map((p) => p.p), ...(live ? [live] : [])], lo = Math.min(...prices), hi = Math.max(...prices);
         const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / (Math.log(hi / lo) || 1)) * (lineH - 8);
         const path = points.map((p, i) => `${i ? "L" : "M"}${scrubX(i, w).toFixed(1)},${y(p.p).toFixed(1)}`).join("") + (live ? `L${scrubX(n, w).toFixed(1)},${y(live).toFixed(1)}` : "");
@@ -1904,7 +1774,6 @@
             free = dx + label.length * 6 + 12;
           }
         }
-        // (Its dot where the line ends: now, or the last block's while no live price has come.)
         const end = pt || live ? k : n - 1;
         const mx = scrubX(end, w).toFixed(1), my = y(points[end]?.p ?? live).toFixed(1);
         const ghost = scrubHover === null || scrubHover === k ? "" : `<line class="scrub-hover" x1="${scrubX(scrubHover, w).toFixed(1)}" x2="${scrubX(scrubHover, w).toFixed(1)}" y1="0" y2="${lineH}"/>`;
@@ -1936,7 +1805,6 @@
         drawBlocks();
       });
       across(scrub, { move: (e) => pickAt(e.clientX) });
-      // (A tap picks too: a touch picks only once it moves across.)
       scrub.addEventListener("click", (e) => pickAt(e.clientX));
       scrub.addEventListener("keydown", (e) => {
         const by = e.shiftKey ? 36 : 1;
@@ -1946,13 +1814,10 @@
         go();
       });
 
-      /** The plate: the counts as bars (sats, log), the 19 teeth where the fingerprint is held, and under them the
-       * fit at every place the $100 tooth could be, the oracle's window shaded. */
-      /** What the plate's still layer was drawn for (see drawPlate). @type {unknown[] | null} */
+      /** @type {unknown[] | null} */
       let plateStill = null;
       function drawPlate() {
         if (!shownSearch) return;
-        // (A block whose window counted no payments at all: nothing to fit, and it says so.)
         if (!most) {
           spectrum.setAttribute("viewBox", `0 0 ${plate.clientWidth} ${plate.clientHeight}`);
           spectrum.innerHTML = `<text class="axis-text" x="${plate.clientWidth / 2}" y="${plate.clientHeight / 2}" text-anchor="middle">No payments counted at this block</text>`;
@@ -1975,12 +1840,9 @@
           const bh = (v / peak) * (base - top - 8);
           return `<rect${cls} x="${x(b - 0.5).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${bw.toFixed(2)}" height="${bh.toFixed(1)}"/>`;
         };
-        // (What stays put as the fingerprint moves (the counts, the scale, the fit along the bottom) drawn once per block
-        // and size; each frame of a drag or a glide draws only what moves: the teeth and the fit's mark.)
+        // What stays put is drawn once per block and size; a drag or glide frame draws only what moves.
         const drawnFor = [shownSearch, w, h, wide, most, own];
         const redraw = !plateStill || plateStill.some((v, i) => v !== drawnFor[i]);
-        // The teeth: a tick each at the top, a hairline down, and the count each lands on lit; each its amount above,
-        // the powers of ten first and brightest, the others dimmer wherever they fit between.
         let teeth = "";
         OFFSETS.forEach((o, k) => {
           const at = here + o, tx = x(at).toFixed(1), major = MAJOR.has(AMOUNTS[k]);
@@ -1990,19 +1852,16 @@
         const taken = [];
         for (const k of AMOUNTS.map((_, k) => k).sort((a, b) => +MAJOR.has(AMOUNTS[b]) - +MAJOR.has(AMOUNTS[a]))) {
           const major = MAJOR.has(AMOUNTS[k]), text = major ? dollars(AMOUNTS[k]) : dollars(AMOUNTS[k]).slice(1), cx = x(here + OFFSETS[k]);
-          // (A label's width at its size, monospace, and a little room either side.)
           const half = (text.length * (major ? 11 : 10) * 0.6) / 2 + 3;
           if (cx - half < 0 || cx + half > w || taken.some(([a, b]) => cx + half > a && cx - half < b)) continue;
           taken.push([cx - half, cx + half]);
           teeth += `<text class="tooth-label${major ? "" : " minor"}" x="${cx.toFixed(1)}" y="${top - 12}" text-anchor="middle">${text}</text>`;
         }
-        // The fit wherever the fingerprint could be held, across the strip at the bottom, the price it'd say under
-        // each peak: the true one, and its echoes at double and half (where $50 payments pass for $100 ones).
+        // The fit's echoes at double and half: $50 payments pass for $100 ones.
         const s0 = h - strip + 28, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
         if (redraw) {
           let bars = "";
           for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
-          // (The sats scale: each power of ten.)
           let rule = `<line class="rule" x1="0" x2="${w}" y1="${base + 0.5}" y2="${base + 0.5}"/>`;
           for (let d = Math.ceil(lo / PER_DECADE); d * PER_DECADE < hi; d++) {
             const tx = x(d * PER_DECADE), sats = 10 ** d;
@@ -2017,7 +1876,6 @@
           plateStill = drawnFor;
         }
         /** @type {SVGGElement} */ (spectrum.querySelector("#moving")).innerHTML = `<line class="here" x1="${fx(here)}" x2="${fx(here)}" y1="${s0 - 2}" y2="${s1}"/>${teeth}`;
-        // The readout: the price this place says, how well it fits, the round amounts in sats there.
         const price = priceOf(here), fitted = Math.abs(shift) < 0.5, score = wide.at(here) / most;
         $("tried").textContent = `$${grouped(price)}`;
         $("meter").style.width = `${Math.round(score * 100)}%`;
@@ -2030,7 +1888,6 @@
         plate.setAttribute("aria-valuetext", `$${grouped(price)}, fit ${Math.round(score * 100)}%${fitted ? ": the price" : ""}`);
         showSums(price);
       }
-      /** The round amounts in sats at a price (none: a dash each, their place kept). */
       function showSums(/** @type {number | null} */ price) {
         $("sums").replaceChildren(...[10, 100, 1000, 10000].map((a) => {
           const div = document.createElement("div");
@@ -2053,7 +1910,6 @@
       }
       const clampShift = (/** @type {number} */ s) => Math.max(-REACH, Math.min(REACH, s));
 
-      // Dragging moves the teeth with the pointer; let go, they stay where they are.
       let grab = { x: 0, shift: 0 };
       across(plate, {
         start: (e) => {
@@ -2079,8 +1935,6 @@
       });
       $("lock").addEventListener("click", () => glideTo(0));
 
-      // ── 02 and 04: the weights and the years ──
-
       $("weights").replaceChildren(...Array.from({ length: WINDOW }, (_, age) => {
         const weight = ALPHA * (1 - ALPHA) ** age, li = document.createElement("li");
         li.style.setProperty("--h", `${((weight / ALPHA) * 100).toFixed(1)}%`);
@@ -2088,11 +1942,10 @@
         li.setAttribute("aria-label", `${age ? `${age} blocks back` : "The newest block"}: ${(weight * 100).toFixed(1)}%`);
         return li;
       }));
-      /** What brk_oracle's README measured, from the same run (accuracy.json; tools/oracle-bench/score.py --json). Percent. */
+      /** From the run brk_oracle's README measures (tools/oracle-bench/score.py --json). */
       read("/oracle/accuracy.json").then((/** @type {{ from: number, to: number, blocks: number, median: number, p95: number, p99: number, years: { year: number, blocks: number, median: number, gt5: number, gt10: number }[] }} */ acc) => {
         const text = (/** @type {string} */ id, /** @type {string | number} */ value) => { $(id).textContent = String(value); };
         const count = acc.blocks.toLocaleString("en-US");
-        // The first year after which no block is off by 10%, and the two years with the most blocks off by 5%.
         const clean = acc.years.findLast((y) => y.gt10 > 0).year + 1;
         const weak = acc.years.toSorted((a, b) => b.gt5 - a.gt5).slice(0, 2).map((y) => y.year).sort();
         text("acc-median", `${acc.median.toFixed(2)}%`);
@@ -2118,8 +1971,6 @@
         $("years-axis").replaceChildren(...acc.years.map(({ year }) => Object.assign(document.createElement("span"), { textContent: `’${String(year).slice(2)}` })));
       });
 
-      // ── Start, then keep it live ──
-
       new ResizeObserver(() => {
         draw();
         drawHeat();
@@ -2130,9 +1981,7 @@
         drawBlocks();
       }).observe(scrub);
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawHeat);
-      // The fingerprint starts off the price, and fits itself once it's in view.
       shift = still.matches ? 0 : 70;
-      // (The live price first; the week, its histograms included, comes as it comes.)
       const week = readWeek().catch(() => {});
       await readLive(await read("/api/oracle/live").catch(() => null));
       await Promise.race([week, new Promise((r) => setTimeout(r, 4000))]);
@@ -2143,8 +1992,6 @@
           setTimeout(() => glideTo(0, 1400), 300);
         }
       }, { threshold: 0.6 }).observe(plate);
-      /** A new tip, or the same height with another block (a reorganization): the week read again, and blocks'
-       * searches (the new tip may be another branch's); a block no longer in the week gives way to now. */
       async function readTip(/** @type {string} */ hash) {
         if (hash !== weekAt) {
           searchAt.clear();
@@ -2158,12 +2005,9 @@
         weekAt = hash;
         choose(picked !== null && points.some((pt) => pt.h === picked) ? picked : null);
       }
-      // Every 10 s, now, and the tip it was read at: a new one's week read before now is drawn on it, so a new block
-      // is on the line, its header and the strip in the same look. (The next look only once this one is done: a slow
-      // one is never overtaken.)
+      // A new tip's week is read before now is drawn on it; the next look starts once this one is done, so a slow one is never overtaken.
       const look = async () => {
         try {
-          // (The tip from now's reading; without one, as before the oracle's fast blocks, asked for.)
           const s = await read("/api/oracle/live").catch(() => null);
           const hash = s?.hash ?? (await read("/api/blocks/tip/hash", "text").catch(() => null));
           if (hash && (hash !== weekAt || incomplete)) await readTip(hash);

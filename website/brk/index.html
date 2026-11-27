@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="BRK" data-color="#2549d9"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d12" />
     <title>Bitcoin Research Kit — Rust crates for Bitcoin Core data</title>
     <meta name="description" content="Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/brk/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/brk/" />
@@ -38,8 +36,6 @@
         font-variant-numeric: tabular-nums;
       }
       /* /craft rules */
-      /* A catalog of parts: paper and ink, cobalt for the parts' names and links; each crate a tile, its name set large
-         in the monospace, what it does, how to add it. One file, system fonts: it's served on its own. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f2f1ec, #0b0d12);
@@ -58,9 +54,7 @@
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Written out in OKLab, so canvases get plain colours. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#23252e, #d8dbe3);
@@ -123,7 +117,7 @@
         position: absolute;
         left: -999px;
 
-        /* (Its ring inside its own ground: over the bar's words under it, it fell under 3:1.) */
+        /* Its ring inside its own ground: over the bar's words under it, it fell under 3:1. */
         &:focus {
           left: 12px;
           top: 12px;
@@ -134,8 +128,6 @@
         }
       }
 
-      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
-         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
       .stars {
         white-space: nowrap;
       }
@@ -145,7 +137,6 @@
         color: var(--ink);
       }
 
-      /* (Where the bar has no room for them beside the way home and the sections: its words for screen readers alone, the star and the count shown.) */
       @media (width < 360px) {
         .bar .stars-words {
           position: absolute;
@@ -167,8 +158,6 @@
         stroke-width: 1;
         stroke-linejoin: round;
       }
-
-      /* ── The bar ── */
 
       .bar {
         position: sticky;
@@ -223,8 +212,6 @@
           }
         }
       }
-
-      /* ── The hero ── */
 
       .hero {
         padding-top: 40px;
@@ -292,8 +279,6 @@
         color: var(--text);
         font-size: 14.5px;
       }
-
-      /* ── The catalog: groups of tiles ── */
 
       .part {
         margin-top: 88px;
@@ -366,7 +351,6 @@
           letter-spacing: -0.02em;
           text-decoration: none;
 
-          /* (The tile is its name's link, but for its copy button.) */
           &::after {
             content: "";
             position: absolute;
@@ -395,14 +379,12 @@
         }
       }
 
-      /* Support crates: one line each, smaller. */
       .support {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         margin: 0;
         border-top: 1px solid var(--rule);
 
-        /* (Its four in two pairs, or one row on a desk: none left alone on a row.) */
         @media (min-width: 760px) {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 0 24px;
@@ -433,8 +415,6 @@
           font-size: 14px;
         }
       }
-
-      /* ── The example ── */
 
       .example {
         display: grid;
@@ -467,14 +447,12 @@
         padding: 16px 18px;
         font: 13.5px/1.7 var(--mono);
 
-        /* (On a phone the example's longest line fits whole.) */
         @media (width < 480px) {
           padding: 14px;
           font-size: 12px;
         }
       }
 
-      /* (The install line in the code's frame, its copy button at its end as on a crate's tile.) */
       .command {
         display: flex;
         align-items: center;
@@ -486,7 +464,6 @@
         }
       }
 
-      /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       :is(.code, .command) {
         border-radius: 10px;
         color: #e7e9ef;
@@ -503,7 +480,7 @@
           right: 12px;
         }
 
-        /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
+        /* Reached by keys to scroll it: the ring on the frame, the code's own clipped by it. */
         &:has(pre:focus-visible) {
           outline: 2px solid var(--focus);
           outline-offset: 3px;
@@ -555,7 +532,6 @@
           flex-wrap: wrap;
           gap: 8px 18px;
 
-          /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
           @media (pointer: coarse) {
             row-gap: 24px;
           }
@@ -569,7 +545,6 @@
           scroll-behavior: auto !important;
         }
       }
-      /* For screen readers only: the copy buttons' outcome. */
       .sr {
         position: absolute;
         width: 1px;
@@ -593,8 +568,6 @@
         }
       }
 
-      /* (In the code's dark frame, the button in the frame's own colours, its focus ring the dark theme's; on the
-         program, in its top corner.) */
       :is(.command, .code) button[data-copy] {
         color-scheme: dark;
         border-color: rgb(255 255 255 / 0.18);
@@ -606,7 +579,6 @@
         }
       }
 
-      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
       button[data-copy]:not([hidden]) {
         display: inline-flex;
         flex-direction: column;
@@ -619,12 +591,9 @@
           visibility: hidden;
         }
       }
-      /* (A finger's reach, unseen: the bar's and the foot's links, the support crates' names, a link in a section's text, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
       :is(.bar a, .button, button[data-copy], footer a, .support dt a, .intro a) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -633,14 +602,11 @@
           }
         }
       }
-      /* (The way home, drawn as its mark alone on a narrow bar: 44px wide too, into the bar's room at its side.) */
       @media (pointer: coarse) {
         .bar .brand::before {
           inset: min(0px, calc((100% - 44px) / 2)) min(0px, calc((100% - 44px) / 2));
         }
       }
-      /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,
-         none.) */
       pre[data-cut="end"] {
         mask-image: linear-gradient(to left, transparent, #000 40px);
       }
@@ -763,10 +729,8 @@
     <p class="sr" id="copied" role="status"></p>
 
     <script>
-      // A crate's add command, copied; where the page can't write the clipboard, no buttons: the text's there to select.
       for (const button of document.querySelectorAll("[data-copy]")) {
         button.hidden = !navigator.clipboard;
-        // (What it copies is what's written just before it: the command, or the whole program.)
         const text = button.previousElementSibling.textContent;
         button.addEventListener("click", async () => {
           let said = "Copied";
@@ -775,14 +739,12 @@
           } catch {
             said = "Failed";
           }
-          // (The button's word short, no wider than "Copied"; the whole said aloud.)
           button.textContent = said;
           copied.textContent = said === "Copied" ? "Copied" : "Copy failed";
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
       }
-      // A code block that scrolls sideways says where it's cut: data-cut start, end or both, read as it scrolls and as
-      // its box changes (none when it's whole).
+      // data-cut (start, end or both; none when whole) marks where a sideways-scrolling code block is cut; CSS fades those edges.
       for (const block of document.querySelectorAll("pre")) {
         const cuts = () => {
           const start = block.scrollLeft > 1, end = block.scrollLeft + block.clientWidth < block.scrollWidth - 1;

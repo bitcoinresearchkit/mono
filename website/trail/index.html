@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Trail" data-color="#ffa000"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -12,7 +11,6 @@
       name="description"
       content="A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution."
     />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/trail/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/trail/" />
@@ -69,30 +67,22 @@
         font-display: block;
       }
 
-      /* The palette, a column a scheme (light, dark): a valley in daylight, haze over pale ground and dark rock at the
-         summits; the same valley by night, snow on the summits. The page's words and the scene's lines read these same
-         tokens (see sceneOf); the terrain's own ramps are the scene's (RAMPS). */
       :root {
         color-scheme: light dark;
         --background: light-dark(#edefe7, #091513);
         --foreground: light-dark(#0f2622, rgb(253 245 223));
         --muted: light-dark(#374a42, rgb(155 171 161));
-        /* (Quiet beside the terrain, still read: 4.5:1 and more on the ground; over the terrain itself, a little more.) */
         --hint: light-dark(rgb(15 38 34 / 0.7), rgb(253 245 223 / 0.5));
         --hint-over: light-dark(#0f2622, rgb(253 245 223 / 0.67));
         --label: light-dark(#4b5f57, rgb(155 171 161 / 0.75));
         --edge: light-dark(rgb(15 38 34 / 0.2), rgb(235 243 221 / 0.13));
         --warm-accent: light-dark(rgb(110 78 20), rgb(245 229 190));
         --interaction-orange: #ffa000;
-        /* (The orange as words and focus rings: on the pale ground, deep enough to read.) */
         --orange-ink: light-dark(#955600, #ffa000);
         --profit: light-dark(#11653a, #7fe594);
         --loss: light-dark(#a82219, #ff5f53);
-        /* (Unrealized P&L paints its terrain in water, which the loss figure sits over: a red that reads there too.) */
         --loss-over-water: light-dark(#a82219, #ff8e82);
         --failed: light-dark(#b8352b, #e5675a);
-        /* The scene's lines and its words drawn in it: a line and the halo around it, the mesh over the land, the
-           floor's edges, all coins drawn behind a cohort, a range's wash; and the water's surface where it fell. */
         --line: light-dark(#0f2622, #fff);
         --halo: light-dark(#fff, #000);
         --mesh: light-dark(rgb(15 38 34), rgb(236 233 201));
@@ -126,7 +116,6 @@
         font: inherit;
       }
 
-      /* The way back to Bitview, as every showcase has it: in the screen's corner, over the scene (not scaled with it). */
       .brand {
         position: fixed;
         z-index: 10;
@@ -149,7 +138,7 @@
 
       .app {
         --stage-scale: 1;
-        /* Fixed: the unscaled 1920×1080 stage must not widen a mobile layout viewport. */
+        /* Fixed: the unscaled stage must not widen a mobile layout viewport. */
         position: fixed;
         top: 50%;
         left: 50%;
@@ -164,7 +153,6 @@
         visibility: visible;
       }
 
-      /* (A portrait touch screen gets an upright portrait stage, where the flat view is the default: see touchPortraitQuery.) */
       @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
         .app {
           width: 1080px;
@@ -180,7 +168,7 @@
         height: 100%;
       }
 
-      /* (A finger held on it holds a range: no selection, no callout to take the press first.) */
+      /* A finger held on it holds a range: no selection or callout takes the press first. */
       #terrain {
         z-index: 1;
         touch-action: none;
@@ -220,7 +208,6 @@
         letter-spacing: 0.07em;
       }
 
-      /* (On the terrain, in 3D: 4.5:1 over the land too.) */
       .axis-ui .axis-hint {
         color: var(--hint-over);
       }
@@ -249,10 +236,9 @@
       }
 
       .eyebrow {
-        /* (Clear of the title's ascenders, which stand above its line box at every size.) */
+        /* Clear of the title's ascenders, which stand above its line box at every size. */
         margin: 0 0 calc(var(--title-size, 96px) / 6);
         color: var(--muted);
-        /* (A sixth of the title, as it's sized, and never under the legible floor on screen.) */
         font-size: var(--eyebrow-size, 16px);
         font-weight: 500;
         letter-spacing: 0.14em;
@@ -263,7 +249,6 @@
         font-family:
           "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
           serif;
-        /* (At most 96px; less where the price axis it lies along is short, so it stays behind the oldest ridges.) */
         font-size: var(--title-size, 96px);
         font-weight: 400;
         line-height: 1;
@@ -281,12 +266,9 @@
         font-size: var(--ui-font-size);
         text-align: center;
         transform-origin: top center;
-        /* (Grown on a small screen, wrapping to its axis: see state.ui.) */
         scale: var(--ui);
       }
 
-      /* (Where a fall dips under a rail, its words keep their contrast: haloed in the ground, as the scene's own labels
-         are; on the ground itself the halo is unseen.) */
       .axis-ui {
         gap: 12px;
         text-shadow:
@@ -294,7 +276,6 @@
           0 0 2px var(--background);
       }
 
-      /* (Each hint says what this device does: keys and a pointer, or a finger.) */
       @media (hover: hover) and (pointer: fine) {
         .for-touch {
           display: none;
@@ -317,14 +298,10 @@
         white-space: nowrap;
       }
 
-      /* (Unseen until its first figures are in, so their arrival moves nothing in view; after that the dashes between
-         dates stay as they were.) */
       #summary:not(.is-loaded) {
         visibility: hidden;
       }
 
-      /* (The box is the rail's width and its figures sit in the middle of it, so a metric's wider or narrower figures
-         change what is inside the box, never where the box is.) */
       #summary {
         align-self: stretch;
         justify-content: center;
@@ -346,7 +323,6 @@
         letter-spacing: 0.01em;
       }
 
-      /* (A decoration, drawn rather than set as text.) */
       .profitability-separator {
         margin-inline: -3px;
         opacity: 0.34;
@@ -383,7 +359,6 @@
         gap: 10px 14px;
       }
 
-      /* The key: a ramp or a swatch a colour, its words beside it. */
       .key {
         display: flex;
         flex-wrap: wrap;
@@ -405,7 +380,6 @@
           display: none;
         }
 
-        /* (A split's legend: its title, then its parts, which wrap below it where the line is short.) */
         &#split-legend {
           flex-wrap: wrap;
           justify-content: center;
@@ -426,7 +400,6 @@
           background: linear-gradient(90deg, var(--ramp));
         }
 
-        /* (Every age a cell of its own colour, some of their first edges named below.) */
         .age-ramp {
           display: flex;
           margin-bottom: 1.3em;
@@ -447,7 +420,6 @@
           }
         }
 
-        /* (The day's parts couldn't be read: said where they'd be named.) */
         &[data-failed]::after {
           content: "COULDN’T LOAD";
           color: var(--failed);
@@ -503,8 +475,6 @@
         border-color: color-mix(in srgb, var(--warm-accent) 58%, transparent);
       }
 
-      /* (For fingers: a reach of 44 screen px, unseen, around each, as the scene is scaled down; up and down into the room
-         beside it, a little sideways, never over a neighbour.) */
       @media (pointer: coarse) {
         .selector {
           position: relative;
@@ -516,14 +486,13 @@
               calc(-1px / var(--stage-scale) / var(--ui));
           }
 
-          /* (The select itself above that reach, so a press on it is the select's own; the reach around it stays the label's.) */
+          /* The select itself above that reach, so a press on it is the select's own. */
           select {
             position: relative;
           }
         }
       }
 
-      /* (On an earlier day only: the way back to the latest, beside the toggle, so the scene isn't fitted again.) */
       .today {
         position: relative;
         padding: 4px 9px;
@@ -538,7 +507,6 @@
         text-transform: inherit;
         cursor: pointer;
 
-        /* (A finger's reach, unseen: 44px tall.) */
         &::before {
           content: "";
           position: absolute;
@@ -560,7 +528,6 @@
         outline-offset: 2px;
       }
 
-      /* The scene's 2D or 3D: in the screen's corner, as the brand is, not scaled with the scene. */
       .corner {
         position: fixed;
         z-index: 10;
@@ -588,7 +555,6 @@
         position: relative;
         cursor: pointer;
 
-        /* (A finger's reach, unseen: 44px tall; as wide as it is, already a finger's.) */
         &::before {
           content: "";
           position: absolute;
@@ -607,7 +573,6 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        /* (The option not chosen: in the muted grey, read still (4.5:1); the chosen one in the full ink.) */
         opacity: 0.78;
         transition:
           color 140ms ease,
@@ -637,11 +602,7 @@
         }
       }
 
-      /* (A finger's reach, unseen: the brand, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
-      /* (Its own place kept: fixed in the corner, the reach sized from it.) */
       a.brand {
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -654,7 +615,6 @@
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-    <!-- (The view's own controls, in the screen's corner: its 2D or 3D, and on an earlier day the way back to the latest.) -->
     <div id="corner" class="corner">
     <fieldset
       id="dimension-toggle"
@@ -717,15 +677,12 @@
           <h1>The Satoshi Trail</h1>
         </div>
 
-        <!-- (Two rails along the floor: by the dates, how to move through them and what the colours say; by the prices,
-             how to read them, what they add up to and what's drawn.) -->
         <div id="date-axis-ui" class="axis-ui date-axis-ui">
           <p id="date-axis-hint" class="axis-hint">
             Drag date through time<span class="for-keys">
             · <span class="key-hint" data-key="ArrowUp">↑</span>
             <span class="key-hint" data-key="ArrowDown">↓</span></span>
           </p>
-          <!-- What the colours say: the terrain's shade, and a split's parts. -->
           <div id="key" class="key">
             <span id="terrain-key" class="key-item"></span>
             <span id="split-legend" class="key-item" hidden></span>
@@ -868,7 +825,6 @@
       (() => {
         "use strict";
 
-        // The server that serves the page.
         const ORIGIN = location.origin;
         const clientReady = import("../modules/bitview-client/index.js").then(
           ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, browserCache: false, memCache: false }),
@@ -876,7 +832,6 @@
         const PRICE_TRAIL_LIFT = 6;
         const PRICE_TRAIL_CORNER_RADIUS = 6;
         const CACHE_LIMIT = 4_500;
-        // A touch held still this long on the terrain starts a price range.
         const RANGE_HOLD_MS = 450;
         const SUMMARY_CACHE_LIMIT = 384;
         const WEIGHT_VARIANT_COUNT = 3;
@@ -964,7 +919,6 @@
         };
         const displayRgbColor = (channels, alpha = 1) =>
           rgbColor(displayColorChannels(channels), alpha);
-        // (Alike in either scheme: a pill is a white chip keyed in black, the price and its trail red.)
         const PRICE_RED_CHANNELS = [255, 59, 48];
         const BLACK = displayRgbColor([0, 0, 0]);
         const WHITE = displayRgbColor([255, 255, 255]);
@@ -981,15 +935,11 @@
           .trim();
         const MONO_FONT =
           '"Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
-        // The scene's words, in stage pixels at a scale of 1; never under MIN_UI_TEXT screen pixels, so on a small screen
-        // they (and the room around them) grow by state.ui, and the terrain gives up that room.
+        // Stage pixels at scale 1; never under MIN_UI_TEXT screen pixels: a small screen grows them (state.ui).
         const UI_FONT_SIZE = 16;
         const MIN_UI_TEXT = 9.5;
-        /** A length beside the scene's words, grown with them. */
         const ui = (px) => px * state.ui;
-        /** A screen small enough that the scene's words are grown well past their size (a phone). */
         const smallScreen = () => state.ui > 1.2;
-        // (What the pointer's share is a share of, by the measure shown.)
         const METRIC_NOUNS = { supply: "BTC", realized_cap: "CAPITAL", unrealized_pnl: "P&L" };
         const AXIS_GAP = 8;
         const PILL_PADDING_X = 6;
@@ -1000,23 +950,15 @@
           PILL_PADDING_Y * 2 +
           PILL_BORDER_WIDTH;
         const AXIS_LABEL_OFFSET = 11;
-        // (A pill hung off an axis keeps this far from it: see pillLayout.)
         const PILL_AXIS_GAP = 4;
-        // (The rails lie past the tallest pill an axis carries, so a pill never covers their first line.)
         const RAIL_OFFSET = PILL_AXIS_GAP + TWO_LINE_PILL_HEIGHT + AXIS_GAP + AXIS_LABEL_OFFSET;
         const FLAT_FOOTER_GAP = 10;
         const FLAT_UI_GAP = 9;
-        // (The flat view's line between the title and the plot, saying what its two vertical scales are.)
         const FLAT_NOTE_ROOM = UI_FONT_SIZE * 2.75;
         const VALUE_AXIS_NOTE = "COMPRESSED SCALE";
-        // (Flat rails beside a 3D scene: the column's share of the stage's width.)
         const RAIL_COLUMN_SHARE = 0.34;
         const STAGE_EDGE_PADDING = 12;
-        // The terrain's ramps, a scheme each: stops of [at, r, g, b], the display treatment applied to the final RGB; and
-        // the haze an earlier day fades into, as far as it's drawn faded; and how bright a coin's age is at its brightest
-        // (see ageColor). By night, the lowest land sinks into the dark
-        // ground and the most is snow; an earlier day darkens. By day, the lowest is haze over pale ground, the land
-        // climbs through lilac, greens and ochre to dark rock at the most, and an earlier day pales into the sky.
+        // The terrain's ramps per scheme: stops of [at, r, g, b], the display treatment applied to the final RGB.
         const RAMPS = {
           light: {
             land: [
@@ -1108,14 +1050,9 @@
         const corner = byId("corner");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
-        // The scene's palette in the screen's scheme, made again when it changes (see darkScheme's listener).
         const darkScheme = matchMedia("(prefers-color-scheme: dark)");
         const tokenProbe = document.createElement("i");
-        /**
-         * The terrain's ramps and the page's tokens (:root) as the scheme resolves them, with a cache of its colours.
-         * (Each token read through an empty element in the page, its style asked afresh: Safari on iOS answered a
-         * hidden one's kept style with an earlier token's colour.)
-         */
+        // Each token is read through an empty element, its style asked afresh: Safari on iOS answered a hidden one's kept style with an earlier token's colour.
         function sceneOf() {
           document.body.append(tokenProbe);
           const tone = (token, alpha = 1) => {
@@ -1131,7 +1068,6 @@
             ...RAMPS[name],
             name,
             line: tone("line"),
-            // (A note beside an axis: quieter than its labels, as the hints are.)
             note: tone("line", 0.67),
             halo: tone("halo"),
             labelHalo: tone("halo", 0.9),
@@ -1141,7 +1077,7 @@
             reference: tone("reference"),
             wash: tone("wash"),
             waterCap: tone("water-cap"),
-            /** @type {Map<string, string>} elevationColor's */
+            /** @type {Map<string, string>} */
             colors: new Map(),
           };
           tokenProbe.remove();
@@ -1181,7 +1117,6 @@
         const hoverQuery = window.matchMedia(
           "(hover: hover) and (pointer: fine)",
         );
-        // (On a touch screen the way it's held picks the view: upright, the flat one; turned on its side, the 3D one.)
         const touchQuery = window.matchMedia("(hover: none) and (pointer: coarse)");
         const touchPortraitQuery = window.matchMedia(
           "(hover: none) and (pointer: coarse) and (orientation: portrait)",
@@ -1190,7 +1125,6 @@
         const state = {
           dimension: "3d",
           cohort: "all",
-          // The cohort choice as picked (a split, "split:…", splits the selected day's slice: the terrain stays all).
           cohortChoice: "all",
           split: null,
           metric: "supply",
@@ -1208,9 +1142,7 @@
           width: 0,
           height: 0,
           dpr: 1,
-          // Screen pixels per stage pixel.
           stageScale: 1,
-          // How much the scene's words are grown, so a small screen still reads them (1 where they're already big enough).
           ui: 1,
           visibleCount: 721,
           halfWindow: 360,
@@ -1252,7 +1184,6 @@
           loading: 0,
           hoverModel: null,
           hoverPriceCoordinate: null,
-          // A price range held: its two ends as price coordinates (kept until a click on the terrain); the gesture making it.
           range: null,
           rangeGesture: null,
           splitAsk: null,
@@ -1374,7 +1305,6 @@
             unrealizedProfit: 0,
             unrealizedLoss: 0,
           };
-          // (The raw JSON: its buckets as columns, under their wire names.)
           const buckets = profile.buckets ?? {};
           for (let i = 0; i < (buckets.price?.length ?? 0); i++) {
             const supply = Math.max(0, Number(buckets.supply[i]) || 0);
@@ -1543,7 +1473,6 @@
               ),
             );
           } catch {
-            // The in-memory cache remains available when storage is blocked.
           }
         }
 
@@ -1622,7 +1551,6 @@
           state.summaryStatus = "loading";
 
           try {
-            // The raw Response carries the ETag kept with the summary cache.
             const client = await clientReady;
             const response = await client.get(summaryPath(request), {
               signal: controller.signal,
@@ -1752,13 +1680,7 @@
           return Math.sign(value) * height;
         }
 
-        /**
-         * The value axis's ticks, each a value and its height: 0, then round values (1, 2 or 5 times a power of ten)
-         * at their own heights, from the top down, at least a fifth of the axis apart (none crowding 0, nor the axis's
-         * title at its top); in a change
-         * view, mirrored below it. (Labeled by the value itself: back from its height, a million comes out a hair under.)
-         * Farther apart, and from 0, where `minGap` (a label's height, in heights at the scale drawn) asks it.
-         */
+        // Labeled by the value itself: back from its height, a million comes out a hair under.
         function valueTicks(minGap = 0) {
           const top = state.valueScale, ticks = [{ value: 0, height: 0 }];
           if (!(top > 0)) return ticks;
@@ -1799,16 +1721,11 @@
           }
         }
 
-        /**
-         * Whether the rails lie flat at the stage's foot rather than along the floor: under the flat view, and where the
-         * words must grow by more than a fifth (a phone), as along the floor they'd wrap into blocks that leave the
-         * terrain half its size.
-         */
+        // Along the floor, grown words would wrap into blocks that halve the terrain: on a phone the rails lie flat at the foot.
         function flatRails() {
           return state.dimension === "2d" || smallScreen();
         }
 
-        /** Flat rails beside a 3D scene, in a column at the stage's right, where the stage is wider than tall (a phone on its side). */
         function railsBeside() {
           return state.dimension === "3d" && smallScreen() && state.width > state.height;
         }
@@ -1883,8 +1800,6 @@
           );
         }
 
-        // The UTC days with a block, oldest first: the day1 calendar's dates where the next day's first block height
-        // is higher (the latest day too). Every cohort and weight has its URPD at each.
         async function blockDays(client, options) {
           const [dates, heights] = await Promise.all([
             client.series.mappings.day1.date.by.day1.fetch(options),
@@ -2010,7 +1925,6 @@
           const params = new URLSearchParams(location.search);
           const stored = readStoredSettings();
 
-          // (A link's view is kept; otherwise a touch screen's follows how it's held, flat upright, rather than the last one.)
           const touch = touchQuery.matches;
           state.dimension = resolveChoice(
             "dimension",
@@ -2060,7 +1974,6 @@
           metricSelect.value = state.metric;
           modeSelect.value = state.mode;
           weightSelect.value = state.weight;
-          // (The cohort menu set by syncSplit: in a change view, what's drawn.)
           syncSplit();
           syncProjectionTransforms();
         }
@@ -2169,18 +2082,12 @@
           return `${cohort}:${weight}:${AGGREGATION}:${date}`;
         }
 
-        /**
-         * A coin's age as a colour, 0 the youngest to 1 the oldest: hot to cold, amber through red, magenta and violet
-         * to blue and ice, clear of the terrain's greens and browns. Brightest at both ends (as bright as the scheme's
-         * ground lets them read) and a little darker between, so neighbours differ in lightness as well as hue.
-         */
         function ageColor(age) {
           const lightness = scene.ageLightness - 0.4 * age * (1 - age) - 0.06 * age;
           const chroma = 0.17 - 0.07 * age * age;
           return `oklch(${lightness.toFixed(3)} ${chroma.toFixed(3)} ${((435 - 235 * age) % 360).toFixed(1)})`;
         }
 
-        /** A palette (stops of [at, r, g, b]) as CSS gradient stops, in the terrain's own display colours. */
         function paletteStops(stops, reversed = false) {
           return stops
             .map(([at, ...channels]) => `${displayRgbColor(channels)} ${((reversed ? 1 - at : at) * 100).toFixed(1)}%`)
@@ -2188,10 +2095,6 @@
             .join(", ");
         }
 
-        /**
-         * A split's parts, in order (by age, youngest first), each its cohort, name and age (its colour: see ageColor); by
-         * the cohort choice (none: not a split). The ages are the cohort list's own bands.
-         */
         function splitParts(choice) {
           if (choice === "split:term") {
             return [
@@ -2209,7 +2112,6 @@
           }));
         }
 
-        /** A cohort choice made: a split keeps the terrain all and splits the selected day; a cohort is the terrain. */
         function applyCohortChoice(choice) {
           state.cohortChoice = choice;
           state.split = splitParts(choice);
@@ -2221,10 +2123,8 @@
           syncSplitLegend();
         }
 
-        /** A split's legend, in the scheme's colours: its parts named beside their swatches, or every age a cell. */
         function syncSplitLegend() {
           const legend = byId("split-legend");
-          // (Its words change the controls' width: they're placed again.)
           state.projectedUiKey = "";
           if (!state.split) return legend.replaceChildren();
           if (state.split.length === 2) {
@@ -2237,7 +2137,6 @@
             }));
             return;
           }
-          // (Every age a cell of its own colour, as the slice draws them, some of their first edges named.)
           const ramp = Object.assign(document.createElement("span"), { className: "age-ramp" });
           ramp.append(...state.split.map(({ age, edge }) => {
             const cell = document.createElement("i");
@@ -2250,10 +2149,8 @@
           legend.replaceChildren("SELECTED DAY BY AGE", ages);
         }
 
-        /** The terrain's key: its shade against the day's tallest, or in a change view, its falls as water and rises as land. */
         function syncTerrainKey() {
           const key = byId("terrain-key"), mode = state.mode === "value" ? "value" : "change";
-          // (Made again for another view, or another scheme's colours.)
           if (key.dataset.mode === `${scene.name}:${mode}`) return;
           key.dataset.mode = `${scene.name}:${mode}`;
           const ramp = (stops) => {
@@ -2266,10 +2163,6 @@
           state.projectedUiKey = "";
         }
 
-        /**
-         * The split shown where it's drawn, the value view (a change view shows none): its legend there only, and the
-         * menu's together choices offered there only.
-         */
         function syncSplit() {
           syncTerrainKey();
           const shown = Boolean(state.split) && state.mode === "value", legend = byId("split-legend");
@@ -2278,14 +2171,9 @@
             state.projectedUiKey = "";
           }
           for (const option of cohortSelect.querySelectorAll('option[value^="split:"]')) option.disabled = state.mode !== "value";
-          // (The menu says what's drawn: in a change view, all coins, the split chosen kept for the value view.)
           cohortSelect.value = state.mode === "value" ? state.cohortChoice : state.cohort;
         }
 
-        /**
-         * The selected day's parts, once each are here (else asked for, the render after drawing them); the latest
-         * day's asked for again as they go stale, as its terrain is (shown meanwhile as they were).
-         */
         function ensureSplit(index) {
           const date = state.dates[index];
           if (!state.split || !date) return null;
@@ -2294,17 +2182,13 @@
           const fresh = profiles.every((profile) => profile && (!latest || Date.now() - profile.fetchedAt < LIVE_DATA_POLL_MS));
           if (!fresh) askSplit(date, latest);
           else if (state.splitAsk) {
-            // (This day's here already: an ask for another stopped, and forgotten, so one that failed is asked again.)
             state.splitAsk.stop.abort();
             state.splitAsk = null;
             byId("split-legend").removeAttribute("data-failed");
           }
           return profiles.every(Boolean) ? profiles : null;
         }
-        /**
-         * One ask for a day's parts at a time: another day, weight or choice (or, the latest day, another minute)
-         * stops the last; one that failed isn't asked again until then.
-         */
+        // One ask at a time: another day, weight or choice stops the last; a failed one isn't asked again until then.
         function askSplit(date, latest) {
           const key = `${state.cohortChoice}:${state.weight}:${date}${latest ? `:${Math.floor(Date.now() / LIVE_DATA_POLL_MS)}` : ""}`;
           if (state.splitAsk?.key === key) return;
@@ -2313,12 +2197,10 @@
           state.splitAsk = { key, stop };
           const legend = byId("split-legend");
           legend.removeAttribute("data-failed");
-          // (Failed: said beside the legend, and asked again once the day, the weight or the choice changes.)
           Promise.all(state.split.map(({ cohort }) => fetchProfileByDate(date, stop.signal, cohort, state.weight, latest)))
             .then(() => !stop.signal.aborted && scheduleRender(), () => !stop.signal.aborted && legend.setAttribute("data-failed", ""));
         }
 
-        /** A profile's metric by terrain bin, as sizes (P&L's two sides alike), kept on it per metric. */
         function metricBins(profile) {
           const key = `${state.metric}:${state.binCount}`;
           if (profile.binsKey === key) return profile.bins;
@@ -2339,7 +2221,6 @@
           return values;
         }
 
-        /** At a bin, each part's share of the day there, the largest first. */
         function splitSharesAt(profiles, bin) {
           const values = profiles.map((profile) => metricBins(profile)[bin] ?? 0);
           const total = values.reduce((sum, value) => sum + value, 0);
@@ -2408,7 +2289,6 @@
         }
 
         function putProfile(key, profile) {
-          // (A day's split parts aren't the terrain's: they change nothing it's drawn from.)
           const affectsScene = (key.startsWith(`${state.cohort}:`) || key.startsWith("all:")) && profileDateAffectsScene(profile.date);
           let scaleChanged = key.startsWith("all:") && affectsScene;
           state.cache.delete(key);
@@ -2670,7 +2550,6 @@
             dpr === state.dpr &&
             state.ui === previousUi
           ) {
-            // (The canvas is as it was, but the screen around it isn't: the brand and the toggle the rails keep clear of.)
             scheduleRender();
             return;
           }
@@ -2953,7 +2832,6 @@
           return value;
         }
 
-        /** The flat rails' height at the stage's foot, by their last measure (the hint, the readout, the key), and the corners' room below them. */
         function footerHeight() {
           return ui(
             flatAxisHint.offsetHeight + FLAT_UI_GAP + priceAxisUi.offsetHeight + FLAT_UI_GAP + dateAxisUi.offsetHeight,
@@ -2964,9 +2842,7 @@
           const signed = state.mode !== "value";
 
           if (state.dimension === "2d") {
-            // (Room above for the title block, below the brand in the corner, and the note under it.)
             const top = Math.max(170, (screenBoxInStage(brandLink)?.bottom ?? 0) + identityElement.offsetHeight + 18) + ui(FLAT_NOTE_ROOM);
-            // (Room below for the pills, the hint and the readout, as tall as they are at this width: a small screen's wrap.)
             const bottom = ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP + STAGE_EDGE_PADDING) + footerHeight();
             const available = Math.max(
               240,
@@ -3011,7 +2887,6 @@
           }
           const totalTimeExtent = Math.max(0.001, pastExtent + futureExtent);
           const timeShare = 0.37;
-          // (The tallest peak, against the floor's width: a change view's half each way.)
           const peak = signed ? 0.108 : 0.217;
           const slope = ISO_SLOPE;
           const priceDirection = { x: ISO_AXIS_X, y: -ISO_AXIS_Y };
@@ -3021,7 +2896,6 @@
             x: point.x + direction.x * distance,
             y: point.y + direction.y * distance,
           });
-          // (A rail as it lies, by its last measure: its four corners, from its axis's middle outward.)
           const railSize = (element) => ({ width: ui(element.offsetWidth), depth: ui(element.offsetHeight) });
           const railsFlat = flatRails();
           const priceRail = railSize(priceAxisUi), dateRail = railSize(dateAxisUi);
@@ -3031,8 +2905,6 @@
             return [along(near, direction, -width / 2), along(near, direction, width / 2), along(far, direction, -width / 2), along(far, direction, width / 2)];
           };
           const valueLabels = measureMonoText([valueAxisTitle(), VALUE_AXIS_NOTE, ...valueTicks().map(({ value }) => formatAxisValue(value))]);
-          // Everything the scene lays out, by the floor's width f, from the front corner of its price axis: the floor,
-          // the oldest days' ridges, the value axis and its labels, and both rails.
           const layoutAt = (f) => {
             const priceWidth = f * (1 - timeShare), depthX = (f * timeShare) / totalTimeExtent;
             const at = (price, relative, up = 0) => ({
@@ -3043,7 +2915,6 @@
               at(0, -pastExtent), at(1, -pastExtent), at(0, futureExtent), at(1, futureExtent),
               at(0, -pastExtent, f * peak),
               along(at(1, 0, f * peak + ui(UI_FONT_SIZE * 3) + 8), priceDirection, valueLabels + ui(AXIS_LABEL_OFFSET)),
-              // (Flat rails lie below the scene instead; the date pill and the year labels need their room then.)
               ...(railsFlat
                 ? [along(at(0, 0), timeOutward, ui(42 + TWO_LINE_PILL_HEIGHT))]
                 : [
@@ -3057,8 +2928,6 @@
             const minX = Math.min(...xs), minY = Math.min(...ys);
             return { minX, minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY };
           };
-          // The widest floor whose scene fits the stage inside its edge room (kept clear of the brand and the toggle in the
-          // corners), found by halving; then the scene centred.
           const room = ui(36);
           const beside = railsBeside();
           const roomWidth = state.width - room * 2 - (beside ? state.width * RAIL_COLUMN_SHARE + room : 0);
@@ -3161,7 +3030,6 @@
             todayButton.hidden = !earlier;
             state.projectedUiKey = "";
           }
-          // (Its first figures shown with its place: the one frame.)
           if (state.summaryData || state.summaryStatus === "error") {
             summaryElement.classList.add("is-loaded");
           }
@@ -3192,8 +3060,6 @@
           const titleSize = Math.min(96, priceLength * 0.082);
           identityElement.style.setProperty("--title-size", `${titleSize}px`);
           identityElement.style.setProperty("--eyebrow-size", `${Math.max(titleSize / 6, MIN_UI_TEXT / state.stageScale)}px`);
-          // (The rails grow by state.ui about their top middle, so they wrap, in their own units, to a share of the stage,
-          // the scene fitted around them so their lines stay long and few; lying flat, to the flat view's or the stage's width.)
           const railWidth = (share) =>
             `${(railsBeside() ? state.width * RAIL_COLUMN_SHARE : flatRails() ? Math.min(state.dimension === "2d" ? layout.width : Infinity, state.width - 2 * Math.max(ui(36), footClearance().inset)) : state.width * share) / state.ui}px`;
           priceAxisUi.style.maxWidth = railWidth(0.7);
@@ -3205,8 +3071,6 @@
           };
 
           if (flatRails()) {
-            // (Under the flat view's pills, at the stage's foot under a fitted terrain, or beside it, in a column at the
-            // middle of its height: the hint, the readout, the key.)
             const beside = railsBeside();
             const centerX = state.dimension === "2d"
               ? layout.left + layout.width * 0.5
@@ -3230,7 +3094,7 @@
           }
 
 
-          // (Toward the dearer end, behind where the oldest days stand lowest, so their ridges don't cover its first letters.)
+          // Toward the dearer end, behind where the oldest days stand lowest, so their ridges don't cover its first letters.
           const terrainTitleCenter = projectAtPrice(
             layout,
             start,
@@ -3386,7 +3250,6 @@
           }
           const index = lower - 1;
           if (cache.cumulativeLoss && !lossSide) {
-            // Accumulate profit outward from spot, including the hovered bucket.
             const below = index > 0 ? cumulative[index - 1] : 0;
             return ((total - below) / total) * 100;
           }
@@ -3435,7 +3298,6 @@
             upper[0] === lower[0]
               ? 0
               : (value - lower[0]) / (upper[0] - lower[0]);
-          // (Lit by its shade, then faded into the scene's haze as far as it's drawn faded.)
           const fade = colorMultiplierBand / 100;
           const multiplier = (shadeBand / 64) * fade;
           const color = displayRgbColor(
@@ -3563,7 +3425,7 @@
             if (magnitude >= size) {
               scaled = magnitude / size;
               suffix = unit;
-              // (Rounded up to a thousand, 999,600 is a million: the next unit's, not 1000K.)
+              // Rounded up to a thousand, 999,600 is a million: the next unit's, not 1000K.
               if (i > 0 && Math.round(scaled) >= 1000) {
                 scaled = magnitude / AXIS_UNITS[i - 1][0];
                 suffix = AXIS_UNITS[i - 1][1];
@@ -3576,7 +3438,7 @@
             suffix = AXIS_UNITS.at(-1)[1];
           }
           const precision = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
-          // (Under 1, by its significant digits: 0.005 isn't 0.01, nor 0.002 0; under a millionth, 0.)
+          // Under 1, by its significant digits: 0.005 isn't 0.01, nor 0.002 0; under a millionth, 0.
           const text = scaled >= 1 ? Number(scaled.toFixed(precision)) : scaled < 1e-6 ? 0 : Number(scaled.toPrecision(2));
           const sign = negative && text !== 0 ? "−" : "";
           return currency
@@ -3806,7 +3668,7 @@
           let offsetX = 0;
           let offsetY = 0;
           if (attachEdge === "top") {
-            // (Hung a little off its axis, so the selected day's line along it stays seen.)
+            // Hung a little off its axis, so the selected day's line along it stays seen.
             offsetY = boxHeight * 0.5 + halfBorder + ui(PILL_AXIS_GAP);
           } else if (attachEdge === "left") {
             offsetX = -boxX + halfBorder;
@@ -3978,7 +3840,6 @@
             state.mode === "value" ? 0 : -1,
           );
           const pastMin = projectAtTimeAxis(layout, start, start, end);
-          // (The date axis ends at the selected day, where the terrain does: an earlier day shows no floor past it.)
           const nowMin = projectAtTimeAxis(layout, axisEnd, start, end);
           const drawFloorLabel = (
             text,
@@ -4048,13 +3909,11 @@
           context.lineTo(valueTop.x, valueTop.y);
           context.stroke();
 
-          // (Ticks every $10K, or as few more as their labels need to stand apart: a small screen's grown words.)
           const labelRoom = (label) => maxTextWidth(context, [label]) + ui(12);
           const priceSpan =
             (axes.priceLength * 10_000) / Math.max(PRICE_BUCKET_WIDTH, state.maxPrice - MIN_TERRAIN_PRICE);
           const priceStep =
             10_000 * ([1, 2, 2.5, 5, 10].find((step) => priceSpan * step >= labelRoom(formatAxisPrice(axisMaxPrice))) ?? 10);
-          // (A label left out where a pill sits on it, measured along the label's own axis: the pill says more.)
           const pillSpan = (text, point, alongWidth = true) => {
             const pill = pillLayout(context, text, "center", "top");
             return { point, half: (alongWidth ? pill.boxWidth : pill.boxHeight) / 2 + ui(6) };
@@ -4064,7 +3923,6 @@
           const selectedClose = displayedPrice(selectedProfile);
           const selectedPrice = priceCoordinate(selectedClose);
           const atPrice = (coordinate) => projectAtPriceAxis(layout, axisDateIndex, coordinate);
-          // (The pointer's and the range's pills, drawn over the price's.)
           const overPills = [];
           if (selectedProfile && state.hoverPriceCoordinate !== null) {
             const coordinate = clamp(state.hoverPriceCoordinate, 0, 1);
@@ -4076,18 +3934,15 @@
           }
           const marketPill = selectedPrice === null ? null : pillSpan(formatPrice(selectedClose), atPrice(selectedPrice));
           const pricePills = marketPill ? [marketPill, ...overPills] : [...overPills];
-          // (The value axis's foot label runs on from the price axis's end, where the dearest price's label would be.)
           const valueFoot = valueTicks()[0];
           if (selectedProfile && valueFoot) {
             const half = maxTextWidth(context, [formatAxisValue(valueFoot.value)]) / 2;
             pricePills.push({ point: offsetPoint(atPrice(axisMaxCoordinate), priceAxis, ui(AXIS_LABEL_OFFSET) + half), half });
           }
-          // (The flat view's date pill sits in the corner, left of its anchor, over the cheapest price's label.)
           if (state.dimension === "2d") {
             const pill = pillSpan(datePill.text, datePill.anchor);
             pricePills.push({ ...pill, point: { x: datePill.anchor.x - pill.half, y: datePill.anchor.y } });
           } else {
-            // (In 3D it hangs off the price axis's cheap end, the selected day's, over the first price's label.)
             const { boxHeight } = pillLayout(context, datePill.text, "center", "top");
             pricePills.push({ point: offsetPoint(frontMin, priceAxis, -boxHeight / 2), half: boxHeight / 2 + ui(6) });
           }
@@ -4137,15 +3992,13 @@
               priceHandle.y + priceOut.y * floorHandleLength,
             );
             context.stroke();
-            // (The price alone: its share in profit is the readout's, exact, not this pill's bucketed one. Left out, as a
-            // label is, under the pointer's or the range's pill, which reads the same price there.)
+            // The price alone: its share in profit is the readout's, exact; left out under a pill that reads the same price.
             if (!covered(marketPill.point, marketPill.half, overPills, priceAxis))
               drawPill(context, formatPrice(selectedClose), priceHandle.x, priceHandle.y, priceAxis, priceOut, { background: PRICE_RED, attachEdge: "top" });
           }
 
           const startYear = Number(state.dates[start].slice(0, 4));
           const endYear = Number(state.dates[axisEnd].slice(0, 4));
-          // (Every year, or every other, as their labels need: along the axis in 3D, stacked by their height in 2D.)
           const yearSpan =
             Math.hypot(nowMin.x - pastMin.x, nowMin.y - pastMin.y) /
             Math.max(1, (state.dateTimes[axisEnd] - state.dateTimes[start]) / (365.25 * DAY_MS));
@@ -4203,7 +4056,6 @@
 
           if (selectedProfile && state.valueScale > 0) {
             const valueOut = priceAxis;
-            // (A value label left out where the pointer's value pill sits on it, measured up the value axis.)
             const valueLength = Math.hypot(valueTop.x - valueBottom.x, valueTop.y - valueBottom.y) || 1;
             const valueAxis = { x: (valueTop.x - valueBottom.x) / valueLength, y: (valueTop.y - valueBottom.y) / valueLength };
             const valuePills = [];
@@ -4240,7 +4092,7 @@
                 ui(UI_FONT_SIZE) -
                 4,
             );
-            // (Heights are compressed, so a tall ridge isn't read as proportionally more; flat, the rows need saying too.)
+            // Heights are compressed, so a tall ridge isn't read as proportionally more.
             context.fillStyle = scene.note;
             if (state.dimension === "2d") {
               context.textAlign = "center";
@@ -4252,7 +4104,6 @@
           context.restore();
         }
 
-        /** Where an element fixed on the screen (the brand, the 2D/3D toggle) falls in the stage's own coordinates. */
         function screenBoxInStage(element) {
           const box = element.getBoundingClientRect();
           const stage = app.getBoundingClientRect();
@@ -4267,10 +4118,6 @@
           };
         }
 
-        /**
-         * How the stage's foot keeps clear of the brand and the toggle in the screen's corners: its lines narrowed
-         * beside them, or, where that would leave them under half the stage's width (a portrait screen), lifted above them.
-         */
         function footClearance() {
           let inset = 0, top = state.height;
           for (const element of [brandLink, corner]) {
@@ -4373,13 +4220,11 @@
           context.restore();
         }
 
-        /** The selected row's drawn height at a price, and the amount it stands for. */
         function heightAndValueAt(row, profile, coordinate) {
           const height = heightAtCoordinate(row, coordinate);
           return { height, value: profile.sampledRaw ? heightAtCoordinate(profile.sampledRaw, coordinate) : valueAtTerrainHeight(height) };
         }
 
-        /** The pointer's pill: its price and share, and with a split, the day's largest parts there. */
         function hoverPillText(profile, coordinate) {
           const splitProfiles =
             state.mode === "value" ? ensureSplit(state.selectedIndex) : null;
@@ -4392,7 +4237,6 @@
           return `${pricePillLabel(profile, coordinate)}${parts ? `\n${parts}` : ""}`;
         }
 
-        /** The selected date's metric between two prices, and its share of the whole (P&L: both sides, as sizes). */
         function rangeAmount(profile, low, high) {
           const source = metricSource(profile);
           if (!source) return null;
@@ -4410,11 +4254,9 @@
           return state.metric === "supply" ? formatSupply(value) : formatCurrency(value);
         }
 
-        /** A price's place on the terrain, held to its ends. */
         function terrainCoordinateOf(price) {
           return clamp((price - MIN_TERRAIN_PRICE) / Math.max(PRICE_BUCKET_WIDTH, state.maxPrice - MIN_TERRAIN_PRICE), 0, 1);
         }
-        /** A range held, as prices (its low bucket's start, its high bucket's end): the same dollars however the axis rescales. */
         function rangeOf(coordinateA, coordinateB) {
           const [a, b] = [priceAtTerrainCoordinate(coordinateA), priceAtTerrainCoordinate(coordinateB)].sort((x, y) => x - y);
           return [a, b + PRICE_BUCKET_WIDTH];
@@ -4432,7 +4274,6 @@
             y: layout.priceEdgeYBase[edge] + offsetY - row[binIndex] * layout.heightScale,
           });
           const base = (edge) => ({ x: layout.priceEdgeX[edge] + offsetX, y: layout.priceEdgeYBase[edge] + offsetY });
-          // (The band: the slice's top from its first bin to its last, back along its foot.)
           context.save();
           context.beginPath();
           const start = base(first);
@@ -4457,7 +4298,6 @@
           drawPill(context, pill.text, point.x, point.y, priceAxis, priceOut, { attachEdge: "top" });
         }
 
-        /** A held range's pill: what it holds, at its middle, or at whichever end keeps it clear of the price's and the pointer's pills. */
         function rangePill(profile, layout) {
           const [low, high] = state.range;
           const from = terrainCoordinateOf(low), to = terrainCoordinateOf(high - PRICE_BUCKET_WIDTH);
@@ -4465,7 +4305,6 @@
           const text = `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
             amount ? `${formatMetricAmount(amount.inside)} · ${formatPercent(amount.share * 100)}` : "—"
           }`;
-          // (Half a pill's width, in price coordinates, with a little air.)
           const { priceLength } = plotAxisGeometry(layout);
           const half = (pillText) => (pillLayout(context, pillText, "center", "top").boxWidth / 2 + ui(6)) / priceLength;
           const others = [];
@@ -5872,7 +5711,6 @@
           context.save();
           bins.forEach((values, part) => {
             context.beginPath();
-            // (Its upper bound left to right, its lower bound back.)
             for (let bin = 0; bin < row.length; bin++) {
               const upper = totals[bin] ? (below[bin] + values[bin]) / totals[bin] : 0;
               const leftX = layout.priceEdgeX[bin] + offsetX;
@@ -5909,7 +5747,6 @@
           context.lineCap = "round";
           context.lineJoin = "round";
           context.beginPath();
-          // (To the day's own price axis, the dearest price yet then: not along the empty floor past it.)
           const axisCoordinate = priceCoordinate(priceAxisMaximum(dateIndex)) ?? 1;
           traceProfilePath(context, layout, row, offsetX, offsetY, Math.min(row.length, Math.ceil(axisCoordinate * row.length)));
 
@@ -6082,7 +5919,6 @@
               scaleColorPeak(state.selectedIndex),
             );
           }
-          // (A split: the day's parts over its slice, in value mode, where the slice is the day's whole.)
           const splitProfiles =
             selected && state.mode === "value"
               ? ensureSplit(state.selectedIndex)
@@ -6193,7 +6029,6 @@
               signal,
               cache: !refresh,
             });
-            // (Its buckets come as columns, one entry per bucket.)
             const buckets = data.buckets;
             const prices = Float32Array.from(buckets.price);
             const supplies = Float32Array.from(buckets.supply);
@@ -6424,7 +6259,6 @@
           scheduleRender();
 
           try {
-            // (The days with a block: the same for every cohort and weight.)
             const dateCacheKey = "days";
             const cachedDates = state.dateCache.get(dateCacheKey);
             let availableDates =
@@ -6502,8 +6336,7 @@
         async function exactSummaryChanged(request, signal) {
           const cached = state.summaryCache.get(request.key);
           if (!cached) return false;
-          // The browser revalidates its HTTP cache, so an unchanged profile
-          // costs a 304 and no body download.
+          // The browser revalidates its HTTP cache: an unchanged profile costs a 304 and no body.
           const client = await clientReady;
           let response;
           try {
@@ -7287,8 +7120,6 @@
               if (event.pointerType !== "mouse") resetHover();
               return;
             }
-            // A press on the terrain: dragged, a price range held (a touch holds still a moment first, else it scrubs);
-            // released where it began, a click letting the range go.
             state.rangeGesture = {
               pointerId: event.pointerId,
               anchor: coordinate,
@@ -7345,7 +7176,6 @@
               event.offsetX - selectedPoint.x,
               event.offsetY - selectedPoint.y,
             ) <= handleRadius;
-          // Preserve the grab point before projecting and clamping to the axis.
           state.timeDragOffsetX = grabsHandle ? event.offsetX - selectedPoint.x : 0;
           state.timeDragOffsetY = grabsHandle ? event.offsetY - selectedPoint.y : 0;
           const hoverChanged = clearHoverState();
@@ -7369,7 +7199,6 @@
               if (gesture.held) {
                 event.preventDefault();
                 if (!moved && !gesture.moved) return;
-                // (A drag begun: the pointer's readout put away, the range's own label read instead.)
                 if (!gesture.moved) clearHoverState();
                 gesture.moved = true;
                 const coordinate = priceCoordinateAtPointer(event.offsetX, event.offsetY, true);
@@ -7379,7 +7208,6 @@
                 }
                 return;
               }
-              // (A touch that moves before its hold: a scrub, as ever.)
               if (moved) {
                 clearTimeout(state.rangeHold);
                 state.rangeGesture = null;
@@ -7488,7 +7316,6 @@
           if (canvas.hasPointerCapture?.(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
-          // (Let go without a drag, a click, a tap or a hold: the range goes.)
           if (event.type === "pointerup" && !gesture.moved && state.range) {
             state.range = null;
             scheduleRender();
@@ -7499,9 +7326,8 @@
           canvas.addEventListener(type, endPriceDrag);
           canvas.addEventListener(type, endRange);
         }
-        // (A long press is a range's, not the page's menu.)
+        // A long press is a range's, not the page's menu.
         canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-        // (Escape: no range, and none being dragged out.)
         window.addEventListener("keydown", (event) => {
           if (event.key !== "Escape" || !(state.range || state.rangeGesture)) return;
           const gesture = state.rangeGesture;
@@ -7526,7 +7352,6 @@
           setTerrainCursor("");
           resetHover();
         });
-        // The scheme changed: the scene in its palette, and the key's ramps with it (the page's words follow by CSS).
         darkScheme.addEventListener("change", () => {
           scene = sceneOf();
           syncTerrainKey();
@@ -7535,7 +7360,6 @@
           scheduleRender();
         });
 
-        /** The scene shown flat or in 3D, from the toggle or the way a touch screen is held. */
         function setDimension(dimension) {
           if (dimension === state.dimension) return;
           clearHoverState();

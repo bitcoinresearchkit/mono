@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Logs" data-color="#4f5664"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0b0d" />
     <title>Logs · Bitview</title>
     <meta name="description" content="This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/logs/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/logs/" />
@@ -101,9 +99,6 @@
         font-display: swap;
       }
 
-      /* A console with its vital signs on top: the numbers a glance needs, then the lines to dig through, filters on
-         the left, a line's details on the right. Cool paper by day, near-black by night; color only for status and
-         for what needs a look. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f6f7f9, #0a0b0d);
@@ -122,7 +117,6 @@
         --error: light-dark(#c0262d, #ff6b6b);
         --error-bg: light-dark(rgb(220 40 50 / 0.07), rgb(255 107 107 / 0.08));
         --work: light-dark(#3557c4, #8aa8ff);
-        /* (A block line's words: 4.5:1 and more on the light ground too.) */
         --block: light-dark(#a8460c, #ff8a3d);
         --bar: light-dark(rgb(53 87 196 / 0.12), rgb(138 168 255 / 0.12));
         --sans: Inter, "Inter Fallback", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -130,9 +124,7 @@
         --gutter: max(16px, env(safe-area-inset-left));
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Written out in OKLab, so canvases get plain colours. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#1e222b, #d4d7de);
@@ -194,7 +186,7 @@
         outline: none;
       }
 
-      /* (A row's ring inside it: the feed clips what's past its edges.) */
+      /* A row's ring inside it: the feed clips what's past its edges. */
       .line:focus-visible {
         outline-offset: -2px;
       }
@@ -216,7 +208,6 @@
         color: var(--ok);
       }
 
-      /* (A status on a raised row: the green, a shade deeper for the light ground, 4.5:1 on it too.) */
       :root {
         --ok-row: light-dark(#117b46, #4ade80);
       }
@@ -238,7 +229,6 @@
         color: var(--error);
       }
 
-      /* ── The bar: home, and the stream's state, which pauses it ── */
       .bar {
         display: flex;
         flex: none;
@@ -308,7 +298,6 @@
         }
       }
 
-      /* ── The vital signs: five numbers, each with its last ten minutes ── */
       .tiles {
         display: grid;
         flex: none;
@@ -348,7 +337,6 @@
           }
         }
 
-        /* (In the tile's own sans, as its unit is: a narrow tile's width holds it whole.) */
         .note {
           color: var(--faint);
           font: 12px var(--sans);
@@ -373,7 +361,6 @@
         }
       }
 
-      /* ── The console: filters, the lines, a line's details ── */
       .console {
         display: grid;
         flex: 1;
@@ -452,7 +439,6 @@
           font: 500 12px var(--mono);
         }
 
-        /* (A level's color, beside its name.) */
         .dot {
           display: inline-block;
           width: 7px;
@@ -463,7 +449,6 @@
         }
       }
 
-      /* (A route: its share of the requests as a faint bar behind its name, its count, its median.) */
       .facet.route {
         grid-template-columns: minmax(0, 1fr) 40px 58px;
         font: 12px var(--mono);
@@ -499,7 +484,6 @@
         }
       }
 
-      /* (A percentile: its cut, how many requests took longer, the duration it cuts at.) */
       .facet.slow {
         grid-template-columns: 14px minmax(0, 1fr) 40px 58px;
 
@@ -561,7 +545,7 @@
           background: var(--panel);
           font: 13px var(--mono);
 
-          /* (For fingers, 16px: iOS zooms the page into a field under that as it's focused.) */
+          /* 16px: iOS zooms into a smaller field on focus. */
           @media (pointer: coarse) {
             font-size: 16px;
           }
@@ -686,7 +670,6 @@
         text-align: center;
       }
 
-      /* (Nothing shown: the list takes no room, so what's said sits under the headings, not past an empty column.) */
       .feed:has(+ .empty:not([hidden])) {
         flex: none;
       }
@@ -727,7 +710,7 @@
           background: var(--raise);
           color: var(--soft);
 
-          /* (Only where something hovers: a touch screen keeps its last tap "hovering", and the close's reach would catch it.) */
+          /* Only where hover is real: a touch screen keeps its last tap hovering. */
           @media (hover: hover) {
             &:hover {
               color: var(--ink);
@@ -820,7 +803,6 @@
         }
       }
 
-      /* Narrower desks: the details slide over the lines. */
       @media (max-width: 1279px) {
         .console {
           grid-template-columns: 260px minmax(0, 1fr);
@@ -840,7 +822,6 @@
             display: grid;
           }
 
-          /* (A finger's reach, unseen: 44px square around the 32px circle, into the room beside it.) */
           @media (pointer: coarse) {
             .close {
               position: relative;
@@ -888,14 +869,12 @@
         }
       }
 
-      /* Phones: the page scrolls; the numbers scroll sideways, the filters fold, the details rise as a sheet. */
       @media (max-width: 760px) {
         html,
         body {
           height: auto;
         }
 
-        /* (The bar and the search stay while the lines scroll.) */
         .bar {
           position: sticky;
           top: 0;
@@ -919,7 +898,6 @@
             font-size: 19px;
           }
 
-          /* (The last block, across both columns, on one line.) */
           &:last-child {
             display: flex;
             grid-column: 1 / -1;
@@ -1015,7 +993,6 @@
           }
         }
 
-        /* (Clipped at its edge: new rows slide in from under it, not over the search.) */
         .feed {
           overflow: clip;
         }
@@ -1024,7 +1001,6 @@
           display: none;
         }
 
-        /* The details as a sheet: a grip to pull it down, its title and a close beside it, held while it scrolls. */
         .detail {
           top: auto;
           left: 0;
@@ -1069,7 +1045,6 @@
             position: relative;
             margin-top: -2px;
 
-            /* (A finger's reach, unseen: 44px square around the 32px circle, into the gap beside the title.) */
             &::before {
               content: "";
               position: absolute;
@@ -1078,12 +1053,9 @@
           }
         }
       }
-      /* (A finger's reach, unseen: the brand, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
       :is(a.brand) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -1092,7 +1064,6 @@
           }
         }
       }
-      /* (On a touch screen, the rows a finger tall: lines and filters are stacked with no room between to grow into.) */
       @media (pointer: coarse) {
         .line,
         .line.block,
@@ -1101,7 +1072,6 @@
         }
       }
 
-      /* (The search a finger tall without growing: a label behind the field, unseen, so a tap on the bar around it lands in it.) */
       @media (pointer: coarse) {
         .search .reach {
           display: block;
@@ -1114,7 +1084,6 @@
         }
       }
 
-      /* (Wider than a phone the bar isn't sticky: it holds the label's reach itself.) */
       @media (pointer: coarse) and (min-width: 761px) {
         .search {
           position: relative;
@@ -1166,17 +1135,16 @@
     <footer>Everything this server logs, every request with its status, method, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
 
     <script>
-      // ── The shapes of the log's own lines ──
       const REQUEST = /^(\d{3}) ([A-Z]+) (\S+)(?: (\S+))?$/;
       const BLOCK = /^Updated to block (\d+) \S+ in ([\d.]+(?:ns|µs|ms|s))$/;
       const DURATION = /^([\d.]+)(ns|µs|ms|s)$/;
       const MS = { ns: 1e-6, "µs": 1e-3, ms: 1, s: 1000 };
 
-      const KEEP = 2000; // rows in the page
-      const HELD = 20_000; // lines the numbers are read from, at most
-      const WINDOW = 10 * 60_000; // what the numbers cover
-      const EVERY = 1000; // ms between looks
-      const BARS = 30; // a sparkline's bars: 20 seconds each
+      const KEEP = 2000;
+      const HELD = 20_000;
+      const WINDOW = 10 * 60_000;
+      const EVERY = 1000;
+      const BARS = 30;
 
       const $ = (id) => document.getElementById(id);
       const numberFormat = new Intl.NumberFormat();
@@ -1186,7 +1154,6 @@
         const d = new Date(ms);
         return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
       };
-      /** A line's moment whole, as the list's clock and the suite's dates write it: "27 Oct 2026, 11:44:34.566". */
       const moment = (ms) => {
         const d = new Date(ms);
         return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })} ${d.getFullYear()}, ${clock(ms)}.${pad(d.getMilliseconds(), 3)}`;
@@ -1195,23 +1162,19 @@
         const m = DURATION.exec(d ?? "");
         return m ? Number(m[1]) * MS[m[2]] : null;
       };
-      /** A duration as Rust prints it, to three significant digits. */
       const short = (d) => {
         const m = DURATION.exec(d ?? "");
         return m ? `${Number(Number(m[1]).toPrecision(3))}${m[2]}` : (d ?? "");
       };
       const span = (ms) => (ms >= 1000 ? `${Number((ms / 1000).toPrecision(3))}s` : ms >= 1 ? `${Number(ms.toPrecision(3))}ms` : `${Number((ms * 1000).toPrecision(3))}µs`);
-      /** A quantile, between the two nearest values (the median of 10 and 100 is 55). */
       const quantile = (xs, q) => {
         if (!xs.length) return null;
         const sorted = [...xs].sort((a, b) => a - b), at = (sorted.length - 1) * q, lo = Math.floor(at);
         return sorted[lo] + (sorted[Math.ceil(at)] - sorted[lo]) * (at - lo);
       };
       const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-      /** A path's route: its query dropped, and each identifier (a long or numeric segment) as `:id`. */
       const routeOf = (path) => path.split("?")[0].split("/").map((s) => (s.length > 20 || /^\d{4,}$/.test(s) ? ":id" : s)).join("/") || "/";
 
-      /** A line, read: its kind (a request by its status: only a 5xx is the server's problem), and its parts. */
       function parse(line) {
         const r = REQUEST.exec(line.text), b = BLOCK.exec(line.text);
         const kind = r ? (r[1][0] === "5" ? "error" : "request") : line.level === "error" ? "error" : line.level === "warn" ? "warn" : "work";
@@ -1229,22 +1192,15 @@
         };
       }
 
-      // ── State ──
-
-      /** Every line read, oldest first, the last ten minutes' worth at least. */
       let lines = [];
-      /** The last answer's `next`: where the next asks on from. */
       let started = null, lastSeq = null, cursor = null, online = null;
       const view = { levels: new Set(), kinds: new Set(), statuses: new Set(), routes: new Set(), slow: null, text: "", paused: false };
       let pending = [], frame = 0, selected = null;
 
-      // ── The numbers ──
-
-      // (By this device's clock, which an operating system keeps to within a second or so of the server's.)
       function tiles() {
         const now = Date.now(), from = now - WINDOW;
         const recent = lines.filter((l) => l.unix_ms > from), reqs = recent.filter((l) => l.status);
-        // (The time the held lines cover; a rate over less than a minute would multiply a handful into hundreds.)
+        // A rate over less than a minute of lines would multiply a handful into hundreds.
         const covered = Math.min(WINDOW, Math.max(0, now - (lines[0]?.unix_ms ?? now)));
         const bars = Array.from({ length: BARS }, () => []);
         for (const l of reqs) bars[Math.max(0, Math.min(BARS - 1, Math.floor(((l.unix_ms - from) / WINDOW) * BARS)))].push(l);
@@ -1263,14 +1219,11 @@
           tile("Median response", p50 === null ? "–" : span(p50), "", spark(ms(0.5))) +
           tile("95th percentile", p95 === null ? "–" : span(p95), "", spark(ms(0.95))) +
           tile("Refused · failed", `${num(refused)} · ${num(failed)}`, "", spark(bars.map((ls) => ls.filter((l) => l.status >= 400).length))) +
-          // (Its number alone at its size, whole in a narrow tile; when and how long it took under it.)
           tile("Last block", block ? num(block.block) : "–", "", `<div class="note">${block ? `${clock(block.unix_ms)} · in ${short(block.blockTook)}` : "none in memory yet"}</div>`);
         const minutes = Math.max(1, Math.round(covered / 60_000));
         $("window").textContent = `last ${minutes} min`;
         $("tiles").setAttribute("aria-label", `The last ${minutes} minutes`);
       }
-
-      // ── The filters ──
 
       const GROUPS = {
         levels: [["error", "Error", "var(--error)"], ["warn", "Warn", "var(--warn)"], ["info", "Info"], ["debug", "Debug"]],
@@ -1278,14 +1231,11 @@
         statuses: [["2", "2xx"], ["3", "3xx"], ["4", "4xx"], ["5", "5xx"]],
       };
       const TITLES = { levels: "Level", kinds: "Kind", statuses: "Status" };
-      /** The slowest requests, by percentile: one at a time, each holding the next. */
       const SLOW = [95, 98, 99, 99.5, 99.9];
-      /** Each percentile's duration, over the requests the page holds; a request slower than the chosen one shows. */
       let cuts = new Map();
 
       function facets() {
         const had = document.activeElement?.dataset?.key;
-        // (Counted over the lines the page holds, so a filter's count is what it shows.)
         const held = lines.slice(-KEEP);
         const durations = held.map((l) => l.ms).filter((m) => m !== null);
         cuts = new Map(SLOW.map((p) => [p, quantile(durations, p / 100)]));
@@ -1316,7 +1266,7 @@
         const any = view.levels.size + view.kinds.size + view.statuses.size + view.routes.size + (view.slow === null ? 0 : 1);
         if (any) html += `<button type="button" class="clear" id="clear">Clear filters</button>`;
         $("facets").innerHTML = html;
-        // (Route names set as text: they come from requests.)
+        // Route names set as text: they come from requests.
         for (const button of $("facets").querySelectorAll(".route")) button.title = button.querySelector(".name").textContent = decodeURIComponent(button.dataset.route);
         if (had) $("facets").querySelector(`[data-key="${CSS.escape(had)}"]`)?.focus();
         $("filters").querySelector("summary").textContent = any ? `Filters · ${any} on` : "Filters";
@@ -1339,7 +1289,6 @@
         refilter();
       });
 
-      /** Within a group any, across groups all; then the search. */
       function shown(l) {
         if (view.levels.size && !view.levels.has(l.level)) return false;
         if (view.kinds.size && !view.kinds.has(l.status ? "request" : "work")) return false;
@@ -1367,8 +1316,6 @@
         refilter();
       });
 
-      // ── The lines ──
-
       function rowFor(l) {
         const li = document.createElement("li");
         const button = document.createElement("button");
@@ -1380,7 +1327,6 @@
             ? [String(l.status), l.path, short(l.took)]
             : [l.level, l.text, ""];
         const classes = [`k${l.status ? ` s${String(l.status)[0]}` : ""}`, "p", "d"];
-        // (The time to the millisecond, its milliseconds dropped on a phone.)
         const time = Object.assign(document.createElement("span"), { className: "t", textContent: clock(l.unix_ms) });
         time.append(Object.assign(document.createElement("span"), { className: "ms", textContent: `.${pad(new Date(l.unix_ms).getMilliseconds(), 3)}` }));
         button.append(time);
@@ -1401,12 +1347,10 @@
 
       function queue(element) {
         pending.push(element);
-        // (Paused long, the oldest waiting rows go: the page holds no more than it shows.)
         if (pending.length > KEEP) pending.splice(0, pending.length - KEEP);
         if (!frame) frame = requestAnimationFrame(flush);
       }
 
-      // The rows, newest on top; the line being read kept in place when new ones arrive above it.
       function flush() {
         frame = 0;
         if (view.paused) return showState();
@@ -1419,14 +1363,11 @@
         }
         pending = [];
         const scroller = getComputedStyle(feed).overflowY === "auto" ? feed : document.scrollingElement;
-        // (Below whatever covers the feed's top: the search, pinned on a phone.)
         const covered = Math.max(document.querySelector(".search").getBoundingClientRect().bottom, 0);
         const top = Math.max(feed.getBoundingClientRect().top, covered);
-        // (Reading once the newest row has gone under that: the page scrolled only past the numbers, new rows still come in.)
         const reading = scroller === feed ? feed.scrollTop > 0 : feed.getBoundingClientRect().top < covered - 1;
         const anchor = reading ? document.elementFromPoint(feed.getBoundingClientRect().left + 40, top + 12)?.closest("#feed > li") : null;
         const before = anchor?.getBoundingClientRect().top;
-        // (Measured by the first row shown: a filtered one has no place.)
         const added = fragment.children.length, first = [...feed.children].find((li) => !li.hidden), was = first?.offsetTop;
         feed.prepend(fragment);
         while (feed.children.length > KEEP) feed.lastElementChild.remove();
@@ -1436,9 +1377,6 @@
       }
 
       const still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** The new rows in, at the top: they slide down from under the feed's edge, the rows on screen easing down by as
-       * much, the new ones fading up as they come; none of it once the rows below the screen are reached. More than a
-       * screen of them at once (the page coming back from a pause) just appears. */
       function settle(feed, added, shift) {
         if (still.matches || shift <= 0 || shift > innerHeight) return;
         const from = { transform: `translateY(${-shift}px)` };
@@ -1461,8 +1399,6 @@
         queue(rowFor(l));
       }
 
-      // ── A line's details ──
-
       const narrow = () => matchMedia("(max-width: 1279px)").matches;
 
       function select(l, button) {
@@ -1480,7 +1416,6 @@
         if (narrow()) back?.focus();
       }
 
-      /** A route's last ten minutes, as facts. */
       function routeFacts(route) {
         const same = lines.filter((x) => x.route === route && x.unix_ms > (lines.at(-1)?.unix_ms ?? 0) - WINDOW), ms = same.map((x) => x.ms).filter((m) => m !== null);
         return [["Requests", num(same.length)], ["Median", span(quantile(ms, 0.5) ?? 0)], ["95th pct", span(quantile(ms, 0.95) ?? 0)], ["Refused", num(same.filter((x) => x.status >= 400 && x.status < 500).length)], ["Failed", num(same.filter((x) => x.status >= 500).length)]];
@@ -1492,7 +1427,6 @@
         const box = $("detail"), l = selected;
         box.hidden = !l && narrow();
         $("scrim").hidden = !l || !narrow();
-        // (Over the page, the details are a dialog: focus stays in them until they close.)
         if (l && narrow()) {
           box.setAttribute("role", "dialog");
           box.setAttribute("aria-modal", "true");
@@ -1534,7 +1468,6 @@
         grip(top);
       }
 
-      /** On a phone, the sheet follows a finger pulling its top down, and closes past a third of its height. */
       function grip(top) {
         let from = null;
         top.addEventListener("pointerdown", (e) => {
@@ -1570,7 +1503,6 @@
           $("search").focus();
         }
       });
-      // Up and down move along the lines.
       $("feed").addEventListener("keydown", (e) => {
         if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
         const all = [...$("feed").querySelectorAll("li:not([hidden]) > .line")], at = all.indexOf(document.activeElement);
@@ -1578,11 +1510,8 @@
         if (!next) return;
         e.preventDefault();
         next.focus();
-        // (Beside the lines, the details follow; over them, they'd take the keys away, so they wait for a press.)
         if (!narrow()) next.click();
       });
-
-      // ── The stream's state, and pausing ──
 
       function showState() {
         const waiting = pending.filter((li) => rows.has(li)).length;
@@ -1590,7 +1519,6 @@
         if ($("state").dataset.state !== state) $("said").textContent = { live: "Live", paused: "Paused", offline: "Offline: can't reach the server", connecting: "Connecting" }[state];
         $("state").dataset.state = state;
         $("state").textContent = label;
-        // (Nothing read yet: the empty list says whether it's waiting or can't reach the server.)
         if (!lines.length) empty();
         $("state").setAttribute("aria-label", `${label}; press to ${view.paused ? "resume" : "pause"}`);
       }
@@ -1599,8 +1527,6 @@
         showState();
         if (!view.paused) flush();
       });
-
-      // ── Reading: every second, the lines since the last; none while the page isn't seen ──
 
       async function poll() {
         try {
@@ -1614,17 +1540,15 @@
           started = logs.started_unix_ms;
           cursor = logs.next;
           for (const line of logs.lines) take(line);
-          // (Ten minutes kept for the numbers: never fewer lines than the page shows, never more than HELD.)
+          // Never fewer lines than the page shows, never more than HELD.
           let drop = lines.findIndex((l) => l.unix_ms > Date.now() - WINDOW);
           if (drop < 0) drop = lines.length;
           drop = Math.max(Math.min(drop, lines.length - KEEP), lines.length - HELD);
           if (drop > 0) lines = lines.slice(drop);
           online = true;
-          // (The numbers each look, so the old age out even when nothing new comes.)
           tiles();
           if (logs.lines.length || !$("facets").children.length) {
             facets();
-            // (The cut moves with the lines held: the rows already shown are judged again by it.)
             if (view.slow !== null) refilter();
             if (selected?.route && $("route-facts")) fill($("route-facts"), routeFacts(selected.route));
           }
@@ -1644,17 +1568,13 @@
         if (!document.hidden) next = setTimeout(loop, EVERY);
       }
       document.addEventListener("visibilitychange", () => (document.hidden ? clearTimeout(next) : loop()));
-      // (Phones start with the filters folded.)
       const phone = matchMedia("(max-width: 760px)");
       if (phone.matches) $("filters").open = false;
-      // (Widened past a phone, the filters can't fold: they open.)
       phone.addEventListener("change", (e) => e.matches || ($("filters").open = true));
       detail();
-      // (The tiles drawn at once, empty, so the first lines fill them in place rather than pushing the list down.)
       tiles();
       loop();
 
-      // Focus rings for keyboards only.
       addEventListener("pointerdown", () => document.documentElement.setAttribute("data-pointer", ""), true);
       addEventListener("keydown", () => document.documentElement.removeAttribute("data-pointer"), true);
     </script>
