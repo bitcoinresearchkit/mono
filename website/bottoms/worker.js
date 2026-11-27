@@ -1,7 +1,7 @@
 // @ts-check
 // The page's reading and measuring, off the main thread, in the order the eye waits on: the ranking stored with the
 // page (shown at once), the price (the chart starts on it; beside it the server's catalog, which says what the lines
-// are), the first three lines whole (the chart draws them), every line by week (the chart's crowd, drawn as it lands),
+// are), the first three lines whole and any the page asks for (the chart draws them), every line by week (the chart's crowd, drawn as it lands),
 // every line on the days it's held to (today's ranking, which only confirms or replaces the stored one; with the
 // crowd's weeks it says which lines are ceilings), and last the price's candles.
 
@@ -55,6 +55,10 @@ async function stored() {
   return board;
 }
 const post = (/** @type {any} */ message, /** @type {Transferable[]} */ handed = []) => /** @type {any} */ (self).postMessage(message, handed);
+/** A line the page asks to see whole (a row tapped), by id: kept until the price is read, then read. */
+const asked = /** @type {string[]} */ ([]);
+let ask = (/** @type {string} */ id) => void asked.push(id);
+self.onmessage = (/** @type {MessageEvent<{ id: string }>} */ { data }) => ask(data.id);
 const why = (/** @type {unknown} */ error) => (error instanceof Error ? error.message : String(error));
 
 async function main() {
@@ -86,20 +90,28 @@ async function main() {
   // (The lines worked out here, the daily refit's second or so on a phone among them: in slices, beside the reads, so
   // nothing in hand waits on them.)
   const worked = Promise.all(Object.entries(WORKED).map(async ([id, line]) => got.set(id, await line(close))));
-  // (The chart draws the first three over every day it shows: read whole, the stored ranking's first, not waiting for the
-  // catalog, as the stored ranking is of the same release as the server it's served with; ahead of the ranking's reads.)
+  // (The chart draws the first three over every day it shows, and a line the page asks for: each read whole once, the
+  // stored ranking's first three not waiting for the catalog, as the stored ranking is of the same release as the server
+  // it's served with; ahead of the ranking's reads. One that fails can be asked again.)
   const whole = new Set();
-  const draw = async (/** @type {import("./study.js").Ranked[]} */ ranked) => {
-    const more = ranked.slice(0, 3).map((r) => r.row.id).filter((id) => !whole.has(id));
+  const draw = async (/** @type {string[]} */ ids) => {
+    const more = ids.filter((id) => !whole.has(id));
     if (!more.length) return;
     more.forEach((id) => whole.add(id));
-    await Promise.all([fill(more.filter((id) => !(id in WORKED)), SHOWN, n), more.some((id) => id in WORKED) && worked]);
+    try {
+      await Promise.all([fill(more.filter((id) => !(id in WORKED)), SHOWN, n), more.some((id) => id in WORKED) && worked]);
+    } catch (error) {
+      throw (more.forEach((id) => whole.delete(id)), error);
+    }
     const top = more.map((id) => ({ id, line: /** @type {Float64Array} */ (got.get(id)).slice() }));
     post({ type: "lines", lines: top }, top.map((l) => l.line.buffer));
   };
+  const firstOf = (/** @type {import("./study.js").Ranked[]} */ ranked) => ranked.slice(0, 3).map((r) => r.row.id);
+  ask = (id) => void draw([id]).catch((error) => post({ type: "unread", id, why: why(error) }));
+  asked.forEach(ask);
   // (A stored line the server stopped serving since the release it was written before is read again, as today's first
   // three, once ranked: the stored ranking only starts the reads, the catalog says what is served.)
-  const drawn = known.then((board) => draw(board?.ranked ?? [])).catch(() => whole.clear());
+  const drawn = known.then((board) => draw(firstOf(board?.ranked ?? []))).catch(() => {});
   const made = linesOf(await named), ids = made.map((l) => l.id).filter((id) => !(id in WORKED)), board = await known;
   // (Every line by week, the chart's crowd, each ask's lines sent as they land, the worked lines' once worked out: asked
   // once the first three are drawn, so they don't share a slow link with them, and before the ranking's spans, as the
@@ -132,12 +144,12 @@ async function main() {
   // (Ceilings as the stored ranking has them until the crowd's weeks say: they change only as weeks add up.)
   let ceilings = new Set(board?.ceilings.map((m) => m.id)), ranked = await rank(ceilings);
   said(ceilings, ranked);
-  const redrawn = drawn.then(() => draw(ranked));
+  const redrawn = drawn.then(() => draw(firstOf(ranked)));
   // (Which lines are ceilings, once the crowd's weeks are in.)
   const [read1, worked1] = await Promise.all([crowd, modelled]);
   const weekly = [...ids.map((id, i) => /** @type {const} */ ([id, read1[i]])), ...Object.keys(WORKED).map((id, k) => /** @type {const} */ ([id, worked1[k]]))];
   const today = new Set(weekly.filter(([, body]) => ceiling(close, body.data, body.start)).map(([id]) => id));
-  if (today.size !== ceilings.size || [...today].some((id) => !ceilings.has(id))) (ceilings = today), (ranked = await rank(ceilings)), said(ceilings, ranked), await draw(ranked);
+  if (today.size !== ceilings.size || [...today].some((id) => !ceilings.has(id))) (ceilings = today), (ranked = await rank(ceilings)), said(ceilings, ranked), await draw(firstOf(ranked));
   await redrawn;
   // (The price as candles, for a view zoomed in: a column each.)
   const [ohlc] = await read(["price_ohlc"], SHOWN), candles = [0, 1, 2].map(() => new Float64Array(n).fill(NaN));
