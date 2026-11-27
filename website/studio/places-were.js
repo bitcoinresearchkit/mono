@@ -257,7 +257,13 @@ const PLACES_WERE = [
   // Entry price, said plainly.
   ["Holders › Entry price › Discount coins", "Holders › Bought at a discount or premium › Bought at a discount"],
   ["Holders › Entry price › Premium coins", "Holders › Bought at a discount or premium › Bought at a premium"],
-  ["Holders › Entry price", "Holders › Bought at a discount or premium"]
+  ["Holders › Entry price", "Holders › Bought at a discount or premium"],
+  // Compass, one config: each group's percentiles and average, of its mobile coins or its awake ones; the others folded into the mobile one.
+  ["Valuation › On-chain prices › Compass › Percentiles and average", "Valuation › On-chain prices › Compass › Mobile"],
+  ["Valuation › On-chain prices › Compass › Percentiles", "Valuation › On-chain prices › Compass › Mobile"],
+  ["Valuation › On-chain prices › Compass › Medians", "Valuation › On-chain prices › Compass › Mobile"],
+  ["Valuation › On-chain prices › Compass › Averages", "Valuation › On-chain prices › Compass › Mobile"],
+  ["Valuation › On-chain prices › Compass › Medians and averages", "Valuation › On-chain prices › Compass › Mobile"]
 ];
 
 /** @typedef {{ steps: string[], wild: number, row: number, window?: string }} Side */

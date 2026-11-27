@@ -25,26 +25,16 @@ export const DAY = 86400e3, EPOCH = Date.UTC(2009, 0, 1);
 
 export const SERIES = { close: "price_close" };
 /** @typedef {"mobile" | "awake"} Coins */
-/**
- * @typedef {"percentiles-and-average" | "percentiles" | "medians" | "averages" | "medians-and-averages"} Basis
- */
-export const STATS = {
-  "percentiles-and-average": ["p40", "p60", "avg"],
-  percentiles: ["p40", "p60"],
-  "medians-and-averages": ["median", "avg"],
-  medians: ["median"],
-  averages: ["avg"],
-};
-/** The steadiest basis: its nine moods about as even as any. */
-export const BASIS = /** @type {Basis} */ ("percentiles-and-average");
-export const cloudIds = (/** @type {"long" | "short"} */ cloud, /** @type {Coins} */ which, /** @type {Basis} */ by) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => STATS[by].map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
+/** Each group's 40th and 60th percentiles and its average: the steadiest clouds, their nine moods about as even as any. */
+const STATS = ["p40", "p60", "avg"];
+export const cloudIds = (/** @type {"long" | "short"} */ cloud, /** @type {Coins} */ which) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => STATS.map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
 /** @type {Map<string, Promise<Answer>>} */
 export const answers = new Map();
 /** Every block moves each series' last day, so they are read together or not at all. */
-export async function readAll(/** @type {Coins} */ which, /** @type {Basis} */ by) {
+export async function readAll(/** @type {Coins} */ which) {
   // The tip is asked first: a block landing between only makes the next ask read them again.
   const tip = await (await ask("/api/blocks/tip/hash")).text();
-  const ids = [SERIES.close, ...cloudIds("long", which, by), ...cloudIds("short", which, by)];
+  const ids = [SERIES.close, ...cloudIds("long", which), ...cloudIds("short", which)];
   for (const id of ids) {
     const held = answers.get(id);
     answers.set(id, (held ? held.then((answer) => (answer.tip === tip ? answer : renew(id, answer, tip))) : read(id).then((answer) => ({ ...answer, tip }))).catch((error) => (answers.delete(id), Promise.reject(error))));
@@ -141,7 +131,7 @@ export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number
   return extreme;
 }
 
-export function compute(/** @type {Record<string, Answer>} */ answered, /** @type {Coins} */ which, /** @type {Basis} */ by) {
+export function compute(/** @type {Record<string, Answer>} */ answered, /** @type {Coins} */ which) {
   const n = Math.max(...Object.values(answered).map((a) => a.start + a.data.length));
   const get = (/** @type {string} */ id) => byDay(answered[id], n);
   const close = get(SERIES.close);
@@ -159,7 +149,7 @@ export function compute(/** @type {Record<string, Answer>} */ answered, /** @typ
     }
     return /** @type {[Float64Array, Float64Array]} */ ([bottom, top]);
   };
-  const long = cloudOf(lines(cloudIds("long", which, by))), short = cloudOf(lines(cloudIds("short", which, by)));
+  const long = cloudOf(lines(cloudIds("long", which))), short = cloudOf(lines(cloudIds("short", which)));
   const state = new Int8Array(n).fill(-1);
   let first = -1, last = -1;
   for (let i = 0; i < n; i++) {

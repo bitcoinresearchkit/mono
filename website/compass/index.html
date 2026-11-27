@@ -1493,8 +1493,8 @@
             <h3>The clouds</h3>
             <div>
               <p>Every coin was last bought at some price: what it cost its holder. Above what they paid, holders are in profit; below it, at a loss. The compass’s rows are the long-term cloud, the price against what coins held over 4, over 5 and over 6 months cost, three age groups; its columns are the short-term cloud, coins held under 4, under 5 and under 6 months.</p>
-              <p>Each cloud is drawn from its three groups: <span id="cloud-what">the prices 40% and 60% of their dollars were bought under, and their average cost</span>. Coins that never move, lost ones among them, would drag it down, so each group counts mostly its coins that move: <span id="weighting">each group weighted by how likely its coins are ever to be spent</span>.</p>
-              <p id="cloud-reads"></p>
+              <p>Each cloud is drawn from its three groups: the prices 40% and 60% of their dollars were bought under, and their average cost. Coins that never move, lost ones among them, would drag it down, so each group counts mostly its coins that move: <span id="weighting">each group weighted by how likely its coins are ever to be spent</span>.</p>
+              <p>Above a cloud, more than 60% of each group’s dollars are in profit, and its average dollar too; below it, fewer than 40%, and its average dollar at a loss; inside, they’re split, or they disagree.</p>
             </div>
           </li>
           <li>
@@ -1509,7 +1509,7 @@
             <h3>Each day</h3>
             <div>
               <p>Price is each day’s close. Every reading is made from that day’s numbers alone, never from what came after: today’s can change by tonight’s close.</p>
-              <p>A day is extreme when the price is further above or below either cloud than on 99 in 100 days before it, each cloud ranked against its own earlier days alone, recent years counting more (each day half as much every four years back), from a year after the first day: about 2.2% of days with the clouds the page opens on, 1.9 to 2.5% with the others. It follows the coins and the clouds chosen at the page’s foot. Its mood is called extreme over the chart and in the panel by the compass, and its colour is drawn stronger in the chart’s fill, the pan bar and the strip under the compass; the lines keep theirs.</p>
+              <p>A day is extreme when the price is further above or below either cloud than on 99 in 100 days before it, each cloud ranked against its own earlier days alone, recent years counting more (each day half as much every four years back), from a year after the first day: about 2.5% of days, with mobile or awake coins. It follows the coins chosen at the page’s foot. Its mood is called extreme over the chart and in the panel by the compass, and its colour is drawn stronger in the chart’s fill, the pan bar and the strip under the compass; the lines keep theirs.</p>
               <p>A run is a mood’s days in a row. A mood’s median run, in the panel by the compass, is the middle length of its runs ended by the day shown, recent ones counting more: half are shorter, half longer.</p>
             </div>
           </li>
@@ -1518,8 +1518,8 @@
     </main>
 
     <footer class="shell">
-      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders’ cost basis, as Bitview computes it from the chain. The same clouds, to explore: <a id="in-studio" href="/studio/presets/valuation/on-chain-prices/compass/percentiles-and-average">Compass in Studio</a>.</p>
-      <div class="coins"><span role="group" aria-labelledby="basis-label"><span id="basis-label">Clouds from</span> <button type="button" data-basis="percentiles-and-average" aria-pressed="true">40th–60th percentiles and averages</button> <button type="button" data-basis="percentiles" aria-pressed="false">40th–60th percentiles</button> <button type="button" data-basis="medians" aria-pressed="false">medians</button> <button type="button" data-basis="averages" aria-pressed="false">averages</button> <button type="button" data-basis="medians-and-averages" aria-pressed="false">medians and averages</button></span><span role="group" aria-labelledby="coins-label"><span id="coins-label">Coins counted</span> <button type="button" data-coins="mobile" aria-pressed="true">mobile</button> <button type="button" data-coins="awake" aria-pressed="false">awake</button></span><span id="coins-said" aria-live="polite"></span></div>
+      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders’ cost basis, as Bitview computes it from the chain. The same clouds, to explore: <a id="in-studio" href="/studio/presets/valuation/on-chain-prices/compass/mobile">Compass in Studio</a>.</p>
+      <div class="coins"><span role="group" aria-labelledby="coins-label"><span id="coins-label">Coins counted</span> <button type="button" data-coins="mobile" aria-pressed="true">mobile</button> <button type="button" data-coins="awake" aria-pressed="false">awake</button></span><span id="coins-said" aria-live="polite"></span></div>
     </footer>
 
     <script type="module">
@@ -1532,9 +1532,9 @@
       import { Line } from "/modules/bitview-charts/line.js";
       import { Shade } from "/modules/bitview-charts/shade.js";
       import { legible, over } from "/modules/bitview-charts/color.js";
-      import { STATES, stateOf, TRENDS, DAY, EPOCH, weight, SERIES, BASIS, cloudIds, answers, ask, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
+      import { STATES, stateOf, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, ask, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
       import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, SIDE_WORDS, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
-      /** @typedef {import("./market.js").Basis} Basis @typedef {import("./market.js").Days} Days @typedef {import("./market.js").Answer} Answer @typedef {import("./market.js").Run} Run @typedef {import("./draw.js").Paint} Paint @typedef {import("./draw.js").Lit} Lit */
+      /** @typedef {import("./market.js").Days} Days @typedef {import("./market.js").Answer} Answer @typedef {import("./market.js").Run} Run @typedef {import("./draw.js").Paint} Paint @typedef {import("./draw.js").Lit} Lit */
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       function named(/** @type {HTMLElement} */ at, /** @type {string} */ id) {
@@ -1573,29 +1573,6 @@
       /** @type {"mobile" | "awake"} */
       let coins = "mobile";
       const WEIGHTING = { mobile: "each group weighted by how likely its coins are ever to be spent", awake: "each group weighted by how much of its coins’ held time has been spent" };
-      const BASES = {
-        "percentiles-and-average": {
-          what: "the prices 40% and 60% of their dollars were bought under, and their average cost",
-          reads: "Above a cloud, more than 60% of each group’s dollars are in profit, and its average dollar too; below it, fewer than 40%, and its average dollar at a loss; inside, they’re split, or they disagree.",
-        },
-        percentiles: {
-          what: "the prices 40% and 60% of their dollars were bought under",
-          reads: "Above a cloud, more than 60% of each group’s dollars are in profit; below it, fewer than 40%; inside, they’re split, or they disagree.",
-        },
-        "medians-and-averages": {
-          what: "their median and their average cost",
-          reads: "Above a cloud, each group’s median and average dollar is in profit; below it, both at a loss; inside, they differ.",
-        },
-        medians: {
-          what: "their median cost, half their dollars bought under it",
-          reads: "Above a cloud, more than half of each group’s capital is in profit; below it, more than half is at a loss; inside, the groups differ.",
-        },
-        averages: {
-          what: "their average cost",
-          reads: "Above a cloud, each group’s average dollar is in profit; below it, at a loss; inside, the groups differ.",
-        },
-      };
-      let basis = BASIS;
 
       /** @type {Days | null} */
       let days = null;
@@ -1672,7 +1649,6 @@
         if (span !== SPAN && name) query.set("span", name);
         if (pinned !== null) query.set("day", iso(pinned));
         if (coins !== "mobile") query.set("coins", coins);
-        if (basis !== BASIS) query.set("clouds", basis);
         // Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.
         try {
           history.replaceState(history.state, "", query.size ? `?${query}` : location.pathname);
@@ -2538,16 +2514,12 @@
 
       function pressCoins() {
         for (const button of document.querySelectorAll("[data-coins]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.coins === coins));
-        for (const button of document.querySelectorAll("[data-basis]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.basis === basis));
         $("weighting").textContent = WEIGHTING[coins];
-        const b = BASES[basis];
-        $("cloud-what").textContent = b.what;
-        $("cloud-reads").textContent = b.reads;
-        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/valuation/compass/${basis}`;
+        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/valuation/on-chain-prices/compass/${coins}`;
       }
       let switching = false;
-      async function choose(/** @type {"mobile" | "awake"} */ nextCoins, /** @type {Basis} */ nextBasis) {
-        if (!days || switching || (nextCoins === coins && nextBasis === basis)) return;
+      async function choose(/** @type {"mobile" | "awake"} */ nextCoins) {
+        if (!days || switching || nextCoins === coins) return;
         // The page's choice changes only once the new clouds are read and usable.
         stopPlay();
         switching = true;
@@ -2556,25 +2528,25 @@
         /** @type {Days} */
         let computed;
         try {
-          computed = compute(await readAll(nextCoins, nextBasis), nextCoins, nextBasis);
+          computed = compute(await readAll(nextCoins), nextCoins);
           if (computed.first < 0) throw new Error("they have no days yet");
         } catch (error) {
           // Forgotten, so another try asks the server again.
-          for (const id of [...cloudIds("long", nextCoins, nextBasis), ...cloudIds("short", nextCoins, nextBasis)]) answers.delete(id);
+          for (const id of [...cloudIds("long", nextCoins), ...cloudIds("short", nextCoins)]) answers.delete(id);
           $("coins-said").textContent = ` Those clouds’ series couldn’t be read: ${error instanceof Error ? error.message : error}.`;
           return;
         } finally {
           switching = false;
           chartPlay.disabled = false;
         }
-        (coins = nextCoins), (basis = nextBasis);
+        coins = nextCoins;
         pressCoins();
         hovered = null;
         use(computed);
         remember();
         show(true);
       }
-      /** Rebuilt only for other coins or another basis: rebuilt, they'd fade back in. */
+      /** Rebuilt only for other coins: rebuilt, they'd fade back in. */
       function use(/** @type {Days} */ computed, rebuild = true) {
         const before = /** @type {Days} */ (days);
         days = computed;
@@ -2593,8 +2565,7 @@
         tell();
         redraw();
       }
-      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
-      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-basis]"))) button.addEventListener("click", () => choose(coins, /** @type {Basis} */ (button.dataset.basis)));
+      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins)));
 
       const LIVE = 10_000;
       let living = false;
@@ -2605,7 +2576,7 @@
         living = true;
         try {
           // Anything past the reading is a bug: thrown to the console, not shown as the server's.
-          const read = await Promise.all([readAll(coins, basis), ask("/api/oracle/price").then((response) => response.text()).then(Number)]).catch(() => null);
+          const read = await Promise.all([readAll(coins), ask("/api/oracle/price").then((response) => response.text()).then(Number)]).catch(() => null);
           if (!read) {
             failing = true;
             return;
@@ -2621,7 +2592,7 @@
             // Today's close so far: kept in what's read, so a switch of coins keeps it too.
             close.data[close.data.length - 1] = price;
           }
-          const computed = compute(answered, coins, basis);
+          const computed = compute(answered, coins);
           // Something else changed the days meanwhile, or the new ones have none: left as they are.
           if (days !== was || switching || computed.first < 0) return;
           liveKey = key;
@@ -2648,11 +2619,9 @@
         $("failed").hidden = true;
         chartBox.classList.add("loading");
         try {
-          const asked = new URLSearchParams(location.search), clouds = asked.get("clouds");
-          if (asked.get("coins") === "awake") coins = "awake";
-          if (clouds !== null && clouds !== BASIS && Object.hasOwn(BASES, clouds)) basis = /** @type {Basis} */ (clouds);
+          if (new URLSearchParams(location.search).get("coins") === "awake") coins = "awake";
           pressCoins();
-          const computed = compute(await readAll(coins, basis), coins, basis);
+          const computed = compute(await readAll(coins), coins);
           if (computed.first < 0) throw new Error("the holders' series have no days yet");
           days = computed;
           (readAt = Date.now()), (failing = false);

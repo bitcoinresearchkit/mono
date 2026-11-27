@@ -110,8 +110,8 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages, SMA (4): https://bitview.space/studio/presets/price/moving-averages-sma/index.html.md
   - Moving averages, EMA (3): https://bitview.space/studio/presets/price/moving-averages-ema/index.html.md
   - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
-- Valuation (273): https://bitview.space/studio/presets/valuation/index.html.md
-  - On-chain prices (18): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
+- Valuation (270): https://bitview.space/studio/presets/valuation/index.html.md
+  - On-chain prices (15): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
   - Rarity meter (197): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
   - Realized cap (4): https://bitview.space/studio/presets/valuation/realized-cap/index.html.md
   - Cost basis (15): https://bitview.space/studio/presets/valuation/cost-basis/index.html.md

@@ -1446,64 +1446,39 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
     ]);
   }
+  /** Compass's clouds (/compass/): each group's 40th and 60th percentiles and its average cost basis by dollar, of its mobile coins or its awake ones. */
   function compassCharts() {
     /** @param {(keyof typeof HOLDER_COLORS)[]} keys @returns {[string, string, string][]} */
     const groups = (keys) => keys.map((key) => [key, holderName(key).shown, HOLDER_COLORS[key]]);
     const short = groups(["under4m", "sth", "under6m"]), long = groups(["over4m", "lth", "over6m"]);
-    const stat = (/** @type {string} */ key, /** @type {string} */ which) => {
-      const by = cf.cohorts[key].mobile.costBasis.byDollar;
-      return which === "avg" ? by.avg.value : by[which];
-    };
-    /** @param {string} said */
-    const title = (said) => capitalized(`${said} cost basis by dollar of each holder group's mobile coins, with the trends of the three youngest groups`);
-    // Over all its coins, not its mobile ones alone.
+    const STATS = /** @type {[string, string][]} */ ([["p40", "40th percentile"], ["p60", "60th percentile"], ["avg", "average"]]);
+    // Over all its coins, not its mobile or awake ones alone.
     const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest cost basis of all its coins`, { color: "gray", opacity: 0.4 }), series(t.holders[key].costBasis.max, `${label}, highest cost basis of all its coins`, { color: "gray", opacity: 0.4 })]);
-    const trends = (/** @type {number} */ from) => short.map(([, label, color], i) => ({ trend: [letter(from + 2 * i), letter(from + 1 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 }));
+    const trends = short.map(([, label, color], i) => ({ trend: [letter(22 + 2 * i), letter(23 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 }));
     /**
-         * Layer letters: the price A, the short-term lines B to D, the long-term E to G, all holders' H, the clouds I and
-         * J, the trends' edges K to P.
+         * Layer letters: the price A, the short-term lines B to J, the long-term K to S, all holders' T, the clouds U and
+         * V, the trends' edges W to AB. A cloud's bands join its neighbor lines in its list, so they're listed as they
+         * usually lie, lowest to highest (a band painted over another darkens): 40th percentile, average, 60th
+         * percentile, each one's three groups back and forth. Measured over its history: a third to a quarter of the
+         * overlap of listing by group.
          */
-    const ofOne = (/** @type {string} */ name, /** @type {string} */ which, /** @type {string} */ said) => {
-      const line = (/** @type {[string, string, string]} */ [key, label, color]) => series(stat(key, which), label, { color, opacity: 0.5 });
-      return chart(name, title(said), [
-        price(),
-        ...short.map(line),
-        ...long.map(line),
-        series(stat("all", which), holderName("all").shown, { color: HOLDER_COLORS.all, shape: "curved" }),
-        { cloud: ["D", "C", "B"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
-        { cloud: ["F", "E", "G"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
-        ...edges,
-        ...trends(10),
-      ]);
-    };
-    /**
-         * Same letters. A cloud's bands join its neighbor lines in its list, so they're listed as they usually lie, lowest
-         * to highest (a band painted over another darkens): by statistic, each one's three groups back and forth. Measured
-         * over its history: a third to a quarter of the overlap of listing by group.
-         */
-    const ofMany = (/** @type {string} */ name, /** @type {string[]} */ which, /** @type {string} */ said) => {
-      const STAT = /** @type {Record<string, string>} */ ({ p40: "40th percentile", p60: "60th percentile", median: "median", avg: "average" });
-      const lines = (/** @type {[string, string, string][]} */ groups) => groups.flatMap(([key, label, color]) => which.map((w) => series(stat(key, w), `${label}, ${STAT[w]}`, { color, opacity: 0.5 })));
-      const RANK = /** @type {Record<string, number>} */ ({ p40: 0, avg: 1, median: 2, p60: 3 }), n = 3 * which.length;
-      const at = (/** @type {number} */ from) => [...which.keys()].sort((a, b) => RANK[which[a]] - RANK[which[b]]).flatMap((stat, k) => (k % 2 ? [0, 1, 2] : [2, 1, 0]).map((g) => letter(from + g * which.length + stat)));
-      return chart(name, title(said), [
+    const cloud = (/** @type {number} */ from) => [0, 2, 1].flatMap((stat, k) => (k % 2 ? [0, 1, 2] : [2, 1, 0]).map((g) => letter(from + 3 * g + stat)));
+    const of = (/** @type {string} */ name, /** @type {"mobile" | "awake"} */ coins) => {
+      const cohorts = { mobile: cf.cohorts, awake: ct.cohorts }[coins];
+      const stat = (/** @type {string} */ key, /** @type {string} */ which) => ((by) => (which === "avg" ? by.avg.value : by[which]))(cohorts[key][coins].costBasis.byDollar);
+      const lines = (/** @type {[string, string, string][]} */ groups) => groups.flatMap(([key, label, color]) => STATS.map(([which, said]) => series(stat(key, which), `${label}, ${said}`, { color, opacity: 0.5 })));
+      return chart(name, capitalized(`40th–60th percentiles and average cost basis by dollar of each holder group's ${coins} coins, with the trends of the three youngest groups`), [
         price(),
         ...lines(short),
         ...lines(long),
         series(stat("all", "median"), holderName("all").shown, { color: HOLDER_COLORS.all, shape: "curved" }),
-        { cloud: at(1), label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
-        { cloud: at(1 + n), label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
+        { cloud: cloud(1), label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
+        { cloud: cloud(10), label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
         ...edges,
-        ...trends(2 * n + 4),
+        ...trends,
       ]);
     };
-    return [
-      ofMany("Percentiles and average", ["p40", "p60", "avg"], "40th–60th percentiles and average"),
-      ofMany("Percentiles", ["p40", "p60"], "40th–60th percentiles"),
-      ofOne("Medians", "median", "median"),
-      ofOne("Averages", "avg", "average"),
-      ofMany("Medians and averages", ["median", "avg"], "median and average"),
-    ];
+    return [of("Mobile", "mobile"), of("Awake", "awake")];
   }
   function eventsChart() {
     return chart("Events", "Rarity meter extreme events", [
