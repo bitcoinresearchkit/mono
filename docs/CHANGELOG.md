@@ -8,6 +8,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Four power-law floors under the price, per block, in the market plugin (`market.power_law`):
+  `burger_power_law_floor` (Burger's support line, 2019), `mooij_power_law_floor` (0.42 of Mooij's trend,
+  btcpowerlaw.nl), `rainbow_lowest_band` (the bottom line of blockchaincenter.net's Rainbow chart) and
+  `sminston_power_law_floor` (Sminston With's 5% quantile line of log price on log days, refit exactly each day on the
+  closes before it, so a block's value uses only earlier prices). The three published lines are formulas of the block's
+  day, computed on read; Sminston With's is stored, each block reading the fit of the days before its own.
+
 - `--website` is gone: bitviewd always serves the site, and there is no API-only mode. A `config.toml` or command line
   that still sets `website` fails at startup, saying so (remove it). `/` is the home page again, never a redirect to
   `/openapi.json`. `bitview_server::ServerConfig` has no `website` field and `bitview_website::router` takes only

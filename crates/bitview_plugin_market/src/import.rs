@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 
-use super::{STORAGE, Vecs, ath, moving_average, range, returns};
+use super::{STORAGE, Vecs, ath, moving_average, power_law, range, returns};
 
 impl Vecs {
     pub fn import(
@@ -19,6 +19,7 @@ impl Vecs {
         let returns = returns::import(version, mappings, prices);
         let range = range::Vecs::import(&db, version, mappings)?;
         let moving_average = moving_average::Vecs::import(&db, version, mappings)?;
+        let power_law = power_law::Vecs::import(&db, version, mappings)?;
 
         let this = Self {
             db,
@@ -26,6 +27,7 @@ impl Vecs {
             returns,
             range,
             moving_average,
+            power_law,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

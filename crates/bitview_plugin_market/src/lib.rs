@@ -3,6 +3,7 @@ mod compute;
 mod dependencies;
 mod import;
 mod moving_average;
+mod power_law;
 mod range;
 mod returns;
 
@@ -15,6 +16,7 @@ use vecdb::{Database, Rw, StorageMode};
 
 use ath::Vecs as AthVecs;
 use moving_average::Vecs as MovingAverageVecs;
+use power_law::Vecs as PowerLawVecs;
 use range::Vecs as RangeVecs;
 use returns::Returns;
 
@@ -37,4 +39,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     range: RangeVecs<M>,
     #[traversable(flatten)]
     moving_average: MovingAverageVecs<M>,
+    #[traversable(lead = "Power-law floors: published long-term lines of the price, and Sminston With's refit each day.")]
+    power_law: PowerLawVecs<M>,
 }
