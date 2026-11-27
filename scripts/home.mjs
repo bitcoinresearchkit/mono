@@ -14,18 +14,19 @@
 //
 //   bun scripts/home.mjs [server]              writes FROM_APPS, then checks
 //   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
-//   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
+//   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found), shot from this checkout's pages with bitview.space's data (server serves only the series check)
 //   bun scripts/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than website/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
 //                                                page's share card too if it's its picture
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = join(REPO, "website");
+const PROD = "https://bitview.space";
 const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.includes(name);
 const check = flag("--check"), icons = flag("--icons"), pictures = flag("--pictures") && !icons;
 const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(SITE, "index.html");
@@ -483,11 +484,34 @@ if (problems.length) {
 }
 console.log(`In step: ${apps.length} apps and ${dev.length} developers' pages, ${studioPaths.length} ways into Studio, ${ids.size} series.`);
 
+/** This checkout's website on a free port, the way bitviewd serves it (a folder's index.html; an app's own address with no
+ * file, as /studio/presets/…, its nearest folder's page), and every other path (the API, /version) from prod. Pictures
+ * are this checkout's pages with the data readers see; SERVER's own node may be behind or at another tip, and its numbers
+ * would be in every card. A worker's fetches are relative, so only an origin of its own can send them to prod. */
+function serveSite() {
+  return Bun.serve({ port: 0, idleTimeout: 120, async fetch(req) {
+    const { pathname, search } = new URL(req.url), path = decodeURIComponent(pathname);
+    let file = resolve(SITE, "." + path);
+    if (file.startsWith(SITE) && !existsSync(file) && !path.startsWith("/api/") && !/\.[a-z0-9]+$/i.test(path))
+      for (let dir = dirname(file); dir.startsWith(SITE + "/"); dir = dirname(dir)) if (existsSync(join(dir, "index.html"))) { file = dir; break; }
+    if (file.startsWith(SITE) && existsSync(file)) {
+      if (statSync(file).isDirectory()) file = join(file, "index.html");
+      if (existsSync(file)) return new Response(Bun.file(file));
+    }
+    const r = await fetch(PROD + pathname + search);
+    // (fetch hands the body decoded: its encoding and length go with it.)
+    const headers = new Headers(r.headers);
+    headers.delete("content-encoding"), headers.delete("content-length");
+    return new Response(r.body, { status: r.status, headers });
+  } });
+}
+
 /** The pictures: a Chromium, headless, each app's screen as a dark one with less motion, each picture cut from it at the
  * density its size needs. */
 async function makePictures() {
   const binary = process.env.CHROMIUM ?? ["/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/chromium", "/usr/bin/google-chrome"].find(existsSync);
   if (!binary) return void problems.push("No Chromium for --pictures or --icons: set CHROMIUM to one");
+  const site = serveSite(), origin = String(site.url).replace(/\/$/, "");
   const profile = mkdtempSync(join(tmpdir(), "home-pictures-"));
   /** @type {ReturnType<typeof Bun.spawn> | null} */
   let browser = null;
@@ -510,7 +534,7 @@ async function makePictures() {
       // (One screen at the density the largest cut needs.)
       const density = Math.max(...wanted.map(([, box, width]) => Math.ceil((width / box[2]) * 10) / 10), 1);
       // (An app that fails: said, its pictures kept as they were, the others made.)
-      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, PAINT, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
+      const tab = await screen(port, `${origin}${recipe.url}`, recipe.screen ?? [1440, 900], density, PAINT, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
       if (!tab) continue;
       try {
         for (const [file, [x, y, w, h], width] of wanted) {
@@ -529,7 +553,7 @@ async function makePictures() {
     for (const [name, color] of Object.entries(pictures || icons ? ICONS : {})) {
       if (ONLY && name !== ONLY) continue;
       const icon = (color ? svg.replace(/--color: [^;"]+/, `--color: ${color}`) : svg).replace("<svg", '<svg width="512" height="512"');
-      const tab = await screen(port, `${SERVER}/llms.txt`, [512, 512], 1, 300, undefined, `<style>body { margin: 0 } svg { display: block }</style>${icon}`);
+      const tab = await screen(port, `${origin}/llms.txt`, [512, 512], 1, 300, undefined, `<style>body { margin: 0 } svg { display: block }</style>${icon}`);
       try {
         const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
         writeFileSync(join(SITE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
@@ -549,7 +573,7 @@ async function makePictures() {
     if (!ONLY || ONLY === "bitview") {
       const svg = readFileSync(join(SITE, "assets", "favicon", "favicon.svg"), "utf8"), sizes = [16, 32, 48], pngs = [];
       for (const size of sizes) {
-        const tab = await screen(port, `${SERVER}/llms.txt`, [64, 64], 1, 300, undefined, `<style>html, body { margin: 0; background: transparent } svg { display: block }</style>${svg.replace("<svg", `<svg width="${size}" height="${size}"`)}`);
+        const tab = await screen(port, `${origin}/llms.txt`, [64, 64], 1, 300, undefined, `<style>html, body { margin: 0; background: transparent } svg { display: block }</style>${svg.replace("<svg", `<svg width="${size}" height="${size}"`)}`);
         try {
           await tab.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
           pngs.push(Buffer.from((await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: size, height: size, scale: 1 } })).data, "base64"));
@@ -564,7 +588,7 @@ async function makePictures() {
     for (const [name, recipe] of Object.entries(pictures ? CARDS : {})) {
       if (ONLY && name !== ONLY) continue;
       const [width, height] = /** @type {any} */ (recipe).screen ?? [1200, 630];
-      const tab = await screen(port, `${SERVER}${recipe.url}`, [width, height], 2, PAINT).catch((error) => (problems.push(`${name}'s card: ${error.message}`), null));
+      const tab = await screen(port, `${origin}${recipe.url}`, [width, height], 2, PAINT).catch((error) => (problems.push(`${name}'s card: ${error.message}`), null));
       if (!tab) continue;
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
@@ -577,7 +601,7 @@ async function makePictures() {
     }
     // (The share card: the billboard's first picture, Bitview's mark and name over it, set as the page is.)
     if (!pictures || (ONLY && ONLY !== featured[0])) return;
-    const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
+    const card = await screen(port, `${origin}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
       const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY.jpeg, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
       writeFileSync(join(out, "og.jpg"), Buffer.from(shot.data, "base64"));
@@ -590,6 +614,7 @@ async function makePictures() {
   } finally {
     browser?.kill();
     await browser?.exited;
+    await site.stop(true);
     rmSync(profile, { recursive: true, force: true });
   }
 }
