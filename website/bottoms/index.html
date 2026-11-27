@@ -72,6 +72,8 @@
         --one: light-dark(#cc350d, #ff6a45);
         --two: light-dark(#622cb5, #9167ea);
         --three: light-dark(#00a99c, #41dfcf);
+        /* (A line a reader chose to see beside the three.) */
+        --four: light-dark(#2f6fd6, #5fb0ff);
         /* (A place's number on its colour.) */
         --on-mark: light-dark(#fff, #0f1113);
         --board: light-dark(#101114, #1a1d21);
@@ -129,6 +131,67 @@
       :focus-visible {
         outline: 2px solid currentColor;
         outline-offset: 2px;
+      }
+
+      /* A line's name, a button that draws it on the chart: its whole row is its reach, and the line drawn is marked at
+         the row's edge in its colour. */
+      .pick {
+        padding: 0;
+        border: 0;
+        background: none;
+        text-align: inherit;
+        cursor: pointer;
+
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+        }
+
+        &[aria-pressed="true"] {
+          color: var(--ink);
+          font-weight: 650;
+
+          &::after {
+            box-shadow: inset 3px 0 0 var(--tone);
+          }
+        }
+
+        &:focus-visible {
+          outline: none;
+
+          &::after {
+            outline: 2px solid currentColor;
+            outline-offset: -2px;
+          }
+        }
+
+        @media (hover: hover) {
+          &:hover {
+            text-decoration: underline 1px;
+            text-underline-offset: 3px;
+
+            &::after {
+              background: color-mix(in srgb, currentColor 6%, transparent);
+            }
+          }
+        }
+      }
+
+      [data-tone="1"] {
+        --tone: var(--one);
+      }
+
+      [data-tone="2"] {
+        --tone: var(--two);
+      }
+
+      [data-tone="3"] {
+        --tone: var(--three);
+      }
+
+      [data-tone="4"] {
+        --tone: var(--four);
       }
 
       .shell {
@@ -329,6 +392,11 @@
           font-size: 12px;
           font-weight: 600;
 
+          /* (An empty one, the day at rest or a line not drawn, takes no gap.) */
+          span:empty {
+            display: none;
+          }
+
           span:not(:first-child):not(:empty)::before {
             content: "";
             display: inline-block;
@@ -349,6 +417,63 @@
 
           [data-n="3"]::before {
             background: var(--three) !important;
+          }
+
+          [data-n="4"]::before {
+            background: var(--four) !important;
+          }
+        }
+
+        /* The line a reader chose, after its colour (faint while it's read), with its place and worst miss: pressed, it
+           comes off the chart. Its name on two lines at most. */
+        .picked:not([hidden]) {
+          display: flex;
+          max-width: 100%;
+          align-items: center;
+          gap: 4px;
+          padding: 13px 0;
+          margin: -11px 0 -13px;
+          border: 0;
+          background: none;
+          font-size: 12px;
+          font-weight: 600;
+          text-align: left;
+          cursor: pointer;
+          pointer-events: auto;
+
+          &::before {
+            content: "";
+            flex: none;
+            width: 7px;
+            height: 7px;
+            border-radius: 2px;
+            background: var(--tone);
+          }
+
+          &[aria-busy]::before {
+            opacity: 0.35;
+          }
+
+          .name {
+            display: -webkit-box;
+            min-width: 0;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+
+          .at {
+            flex: none;
+            margin-left: 4px;
+            color: var(--soft);
+            font-weight: 500;
+          }
+
+          &::after {
+            content: "×" / "";
+            margin-left: 2px;
+            font-size: 15px;
+            line-height: 1;
           }
         }
       }
@@ -411,6 +536,7 @@
         }
 
         li {
+          position: relative;
           display: grid;
           flex: none;
           grid-template-columns: 22px minmax(0, 1fr) auto;
@@ -1010,8 +1136,14 @@
 
       .rank {
         li {
+          position: relative;
           padding-block: 8px;
           border-bottom: 1px solid var(--rule);
+
+          /* (A whole row presses its line: a finger's 44px.) */
+          @media (pointer: coarse) {
+            min-height: 44px;
+          }
         }
 
         /* (Laid out only near the screen: hundreds of rows.) */
@@ -1246,16 +1378,17 @@
       <div class="title" id="title">
         <h1>Bottoms</h1>
         <p id="said">Every price line, ranked by how close it came to Bitcoin's cycle bottoms.</p>
-        <p class="read" id="read" aria-hidden="true"><span id="when"></span><span></span><span data-n="1"></span><span data-n="2"></span><span data-n="3"></span></p>
+        <p class="read" id="read" aria-hidden="true"><span id="when"></span><span></span><span data-n="1"></span><span data-n="2"></span><span data-n="3"></span><span data-n="4"></span></p>
+        <button type="button" class="picked" id="picked" hidden></button>
       </div>
       <figure class="chart" id="chart" tabindex="0" aria-label="Bitcoin's price day by day, its cycle bottoms marked, every ranked line in grey behind it and the three that came closest in colour"></figure>
       <div class="failed" id="failed" role="alert" hidden></div>
       <div class="tower" id="tower">
         <a class="heads fine" id="every" href="#ranking">All lines</a>
         <ol id="top" aria-label="The closest lines and each one's worst miss">
-          <li class="first"><i class="n" data-n="1">1</i><span class="who"><span class="label">&nbsp;</span></span><span class="off"><b class="value num"></b><small>worst miss · smaller is better</small></span></li>
-          <li><i class="n" data-n="2">2</i><span class="label">&nbsp;</span><b class="value num"></b></li>
-          <li><i class="n" data-n="3">3</i><span class="label">&nbsp;</span><b class="value num"></b></li>
+          <li class="first"><i class="n" data-n="1">1</i><span class="who"><button type="button" class="label pick" disabled>&nbsp;</button></span><span class="off"><b class="value num"></b><small>worst miss · smaller is better</small></span></li>
+          <li><i class="n" data-n="2">2</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num"></b></li>
+          <li><i class="n" data-n="3">3</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num"></b></li>
         </ol>
       </div>
     </section>
@@ -1313,6 +1446,7 @@
           <p class="note" id="caveat"></p>
           <p class="note" id="checked"></p>
           <figure class="field" id="field" role="img"></figure>
+          <p class="note" id="press">Press a line's name to see it on the chart.</p>
           <input class="find" id="find" type="search" placeholder="Find a line" aria-label="Find a line by its name" autocomplete="off" />
           <p class="note" id="found" aria-live="polite"></p>
           <div class="table" id="table" role="table" aria-label="Every line's misses, sorted by the column whose header is marked">
@@ -1373,6 +1507,60 @@
       let crowd = /** @type {{ from: number, weeks: number, sent: Float32Array[] } | null} */ (null);
       const bottomName = (/** @type {Bottom} */ l) => (l.open ? `${month(l.low)}, so far` : month(l.low));
 
+      // ── The line a reader chose: its row tapped, drawn on the chart beside the three ──
+
+      /** The chart's own label, said again with the chosen line's name. */
+      const CHART = /** @type {string} */ ($("chart").getAttribute("aria-label"));
+      /** Its id, or null; in the address, so a link shares it. */
+      let chosen = new URLSearchParams(location.search).get("line");
+      /** The chosen line when its read failed (pressing its chip asks again), and the name it was chosen from (focus goes back to it). */
+      let unread = /** @type {string | null} */ (null), from = /** @type {HTMLElement | null} */ (null);
+      /** A line's colour on the chart, by number: its place's among the first three, else the fourth. */
+      const toneOf = (/** @type {string} */ id) => { const k = ranked.findIndex((r) => r.row.id === id); return String(k >= 0 && k < 3 ? k + 1 : 4); };
+      /** The choice said everywhere: the address, the names' buttons, the chip under the chart's key (with the line's place
+       * and worst miss, and whether it's still being read), the chart and its label, and the worker asked for the line
+       * (it reads it once). */
+      function marked() {
+        const r = chosen ? ranked.find((r) => r.row.id === chosen) : undefined;
+        // (A line no ranking has, from an old link, isn't chosen: once a ranking is in.)
+        if (chosen && ranked.length && !r) chosen = null;
+        const address = `${location.pathname}${chosen ? `?line=${encodeURIComponent(chosen)}` : ""}${location.hash}`;
+        if (address !== location.pathname + location.search + location.hash) history.replaceState(history.state, "", address);
+        if (r && !lines.has(r.row.id) && unread !== r.row.id) worker.postMessage({ id: r.row.id });
+        const tone = chosen ? toneOf(chosen) : "";
+        // (Only the names whose state changes: hundreds of rows.)
+        for (const b of all('.pick[aria-pressed="true"]')) b.setAttribute("aria-pressed", "false"), (b.dataset.tone = "");
+        if (chosen) for (const b of all(`.pick[data-id="${CSS.escape(chosen)}"]`)) b.setAttribute("aria-pressed", "true"), (b.dataset.tone = tone);
+        const picked = $("picked"), name = r ? fullName(r.row) : "", ready = !!r && lines.has(r.row.id), failed = !!r && unread === r.row.id;
+        // (Focus on the chip as it goes, goes back to the name it was chosen from.)
+        if (!r && document.activeElement === picked) {
+          const back = from?.isConnected ? from : from && document.querySelector(`.pick[data-id="${CSS.escape(/** @type {string} */ (from.dataset.id))}"]`);
+          /** @type {HTMLElement} */ (back ?? $("chart")).focus({ preventScroll: true });
+        }
+        picked.hidden = !r;
+        if (r) {
+          picked.replaceChildren(el("span", "name", name), el("span", "at", failed ? "couldn't be read · try again" : ready ? `#${r.rank} · ${percent(r.worst)}` : "loading…"));
+          (picked.dataset.tone = tone), picked.toggleAttribute("aria-busy", !ready && !failed);
+          picked.setAttribute("aria-label", failed ? `${name} couldn't be read: try again` : `${name}, place ${r.rank}, worst miss ${percent(r.worst)}${ready ? "" : ", being read"}: take it off the chart`);
+        }
+        $("chart").setAttribute("aria-label", `${CHART}${r ? `, and ${name} in blue, chosen` : ""}`);
+        heroChart?.drawn();
+      }
+      // A name pressed: its line chosen (a new step in the history, so going back undoes it and returns to where the
+      // reader was), or taken off when it was, as the chip takes it off (or asks again for a line that couldn't be read).
+      document.addEventListener("click", (event) => {
+        const b = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".pick[data-id], #picked"));
+        if (!b) return;
+        if (b.id === "picked" && unread === chosen) return void ((unread = null), marked());
+        const id = b.id === "picked" || b.dataset.id === chosen ? null : /** @type {string} */ (b.dataset.id);
+        if (!id) return void (history.state?.chose ? history.back() : ((chosen = null), marked()));
+        if (!chosen) history.pushState({ chose: true }, "");
+        (chosen = id), (unread = null), (from = b), marked();
+        // (Brought into view when its chip isn't: focus then goes to the chip, which names it; else it stays on the name.)
+        const chip = $("picked").getBoundingClientRect();
+        if (chip.top < 0 || chip.bottom > innerHeight) scrollTo({ top: 0, behavior: still.matches ? "instant" : "smooth" }), $("picked").focus({ preventScroll: true });
+      });
+      addEventListener("popstate", () => ((chosen = new URLSearchParams(location.search).get("line")), marked()));
       // ── The hero: the price, its bottoms, and the three closest lines ──
 
       /** A colour of the page's, as the browser resolves it now (its scheme's). */
@@ -1390,7 +1578,7 @@
 
       function hero() {
         heroChart?.destroy();
-        const box = $("chart"), ink = colour("ink"), paper = colour("paper"), soft = colour("soft"), tones = ["one", "two", "three"].map(colour);
+        const box = $("chart"), ink = colour("ink"), paper = colour("paper"), soft = colour("soft"), tones = ["one", "two", "three", "four"].map(colour);
         const n = close.length, last = n - 1, times = Float64Array.from({ length: n }, (_, i) => EPOCH / 1000 + i * 86400);
         const chart = createChart(box, { theme: { background: paper, text: soft, grid: "transparent", font: FONT, crosshair: ink, across: "transparent", badge: ink, separator: "transparent", active: "transparent" }, axis: 0, leftAxis: 0, timeHeight: 28, embedded: true, dateFormat: (t) => dated(Math.round((t * 1000 - EPOCH) / DAY)) });
         const pane = chart.addPane({ scale: { mode: "log", top: 0, bottom: 0 }, format: () => "" });
@@ -1403,6 +1591,9 @@
         const [red, green, blue, deepest = 1] = /** @type {number[]} */ (colour("crowd").match(/[\d.]+/g)?.map(Number));
         const layer = document.createElement("canvas"), pen = layer.getContext("2d");
         if (!pen) throw new Error("the crowd's layer has no 2D context");
+        // (Stroked again only when what it shows moves: its days, its scale, its size, or more lines in. Redrawn for
+        // anything else, a line chosen or the price's candles, it is laid on as it was: hundreds of lines a frame.)
+        let stroked = "";
         const crowded = pane.add(new Custom({
           draw(g, { time, scale, x0, x1 }) {
             if (!crowd) return;
@@ -1412,35 +1603,41 @@
             if (b < a) return;
             const xs = new Float64Array(b - a + 1);
             for (let w = a; w <= b; w++) xs[w - a] = time.x(Math.min(last, (first + w) * WEEK.days + WEEK.day));
-            if (layer.width !== g.canvas.width || layer.height !== g.canvas.height) (layer.width = g.canvas.width), (layer.height = g.canvas.height);
-            pen.resetTransform(), pen.clearRect(0, 0, layer.width, layer.height), pen.setTransform(g.getTransform());
-            (pen.strokeStyle = `rgb(${red} ${green} ${blue} / ${CROWD})`), (pen.lineWidth = Math.max(1, pane.height / 400)), (pen.lineJoin = "round");
-            for (const values of sent) for (let row = 0; row < values.length; row += weeks) {
-              pen.beginPath();
-              for (let w = a, down = false; w <= b; w++) {
-                const v = values[row + w];
-                if (!(v > 0)) down = false;
-                else down ? pen.lineTo(xs[w - a], scale.y(v)) : (pen.moveTo(xs[w - a], scale.y(v)), (down = true));
+            const now = `${xs[0]} ${xs[b - a]} ${scale.y(1)} ${scale.y(10)} ${g.canvas.width}x${g.canvas.height} ${g.getTransform()} ${pane.height} ${sent.length}`;
+            if (now !== stroked) {
+              stroked = now;
+              if (layer.width !== g.canvas.width || layer.height !== g.canvas.height) (layer.width = g.canvas.width), (layer.height = g.canvas.height);
+              pen.resetTransform(), pen.clearRect(0, 0, layer.width, layer.height), pen.setTransform(g.getTransform());
+              (pen.strokeStyle = `rgb(${red} ${green} ${blue} / ${CROWD})`), (pen.lineWidth = Math.max(1, pane.height / 400)), (pen.lineJoin = "round");
+              for (const values of sent) for (let row = 0; row < values.length; row += weeks) {
+                pen.beginPath();
+                for (let w = a, down = false; w <= b; w++) {
+                  const v = values[row + w];
+                  if (!(v > 0)) down = false;
+                  else down ? pen.lineTo(xs[w - a], scale.y(v)) : (pen.moveTo(xs[w - a], scale.y(v)), (down = true));
+                }
+                pen.stroke();
               }
-              pen.stroke();
             }
             g.save(), g.resetTransform(), (g.globalAlpha = deepest), g.drawImage(layer, 0, 0), g.restore();
           },
         }, { behind: true }));
         /** The price: its closes as a line, and once its candles are read, candles in a view zoomed in. @type {InstanceType<typeof Line> | InstanceType<typeof Candles>} */
         let price = pane.add(new Line({ values: close, color: ink, outline: paper }));
-        /** The three closest lines, by place. @type {InstanceType<typeof Line>[]} */
+        /** The three closest lines by place, then the one a reader chose, if it isn't one of them. @type {InstanceType<typeof Line>[]} */
         let coloured = [];
         /** @type {(Float64Array | undefined)[]} */ let tops = [];
         function drawn() {
           if (candles && !(price instanceof Candles)) pane.remove(price), (price = pane.add(new Candles({ ...candles, close, up: paper, down: ink, upWick: ink, downWick: ink, upBorder: ink, downBorder: ink, color: ink, outline: paper })));
           for (const line of coloured) pane.remove(line);
           tops = ranked.slice(0, 3).map((r) => lines.get(r.row.id));
-          coloured = tops.flatMap((values, k) => (values ? [new Line({ values, color: tones[k], width: k ? 1.5 : 2 })] : []));
+          if (chosen && toneOf(chosen) === "4") tops.push(lines.get(chosen));
+          coloured = tops.flatMap((values, k) => (values ? [new Line({ values, color: tones[k], width: k === 1 || k === 2 ? 1.5 : 2 })] : []));
           // (None widens the scale: the price alone sets it.)
           for (const line of coloured) (line.fit = () => {}), pane.add(line);
-          // (The price over the three, as a line or as candles.)
-          pane.order([...coloured.toReversed(), price]), chart.invalidate(true), tell();
+          // (The price over the rest, as a line or as candles; the three over the chosen line, the first over the third.)
+          const mine = tops[3] ? coloured.slice(-1) : [], three = tops[3] ? coloured.slice(0, -1) : coloured;
+          pane.order([...mine, ...three.toReversed(), price]), chart.invalidate(true), tell();
         }
         // (Over everything: each bottom marked on the price and named at the foot, with where each coloured line was
         // that day.)
@@ -1480,16 +1677,17 @@
         }, { over: true }));
 
         // The reading: the day under the pointer, else the bottom the view is on, else the last day in view.
-        const [when, ...reads] = all("#read span"), KEY = ["Bitcoin's price", "1st", "2nd", "3rd"];
+        const [when, ...reads] = all("#read span"), KEY = ["Bitcoin's price", "1st", "2nd", "3rd", ""];
         let hovered = /** @type {number | null} */ (null), was = "";
         function tell() {
           const g = chart.controller.target ?? chart.time, shown = lastIn(close, g.from, g.to), day = hovered ?? (typeof view === "number" ? lows[view].low : shown >= SHOWN ? shown : last);
-          const now = `${day} ${hovered === null} ${ranked.length} ${lines.size}`;
+          const now = `${day} ${hovered === null} ${ranked.length} ${lines.size} ${chosen}`;
           if (now === was) return;
           was = now;
           // (At rest the chart's key: what is black, and which colour is which place. Under the pointer, that day's prices in their places.)
           const read = hovered !== null;
           when.textContent = !read ? "" : day === last ? "Today" : dated(day);
+          reads[4].textContent = "";
           [close, ...tops].forEach((line, k) => { const v = line?.[day]; reads[k].textContent = !line ? "" : !read ? KEY[k] : /** @type {number} */ (v) > 0 ? usd(/** @type {number} */ (v)) : ""; });
         }
         chart.onCrosshair((index, _pane, _y, input) => {
@@ -1637,7 +1835,10 @@
         const li = el("li"), cell = (/** @type {HTMLElement} */ e, role = "cell") => (e.setAttribute("role", role), e);
         li.setAttribute("role", "row");
         li.appendChild(cell(el("i", "n", String(r.rank)))).dataset.n = String(r.rank);
-        li.append(cell(el("span", "who", fullName(r.row)), "rowheader"));
+        const name = Object.assign(el("button", "pick", fullName(r.row)), { type: "button" });
+        (name.dataset.id = r.row.id), name.setAttribute("aria-describedby", "press"), name.setAttribute("aria-pressed", String(r.row.id === chosen)), r.row.id === chosen && (name.dataset.tone = toneOf(chosen));
+        const who = cell(el("span", "who"), "rowheader");
+        li.append(who), who.append(name);
         r.row.at.forEach((at, k) => li.append(cell(el("span", `at${k ? "" : " first"}${at?.miss === r.worst ? " worst" : ""}${k === sortedBy ? " by" : ""}`, at ? percent(at.miss) : "–"))));
         li.append(cell(el("b", "score num", scoreOf(r))));
         return li;
@@ -1652,7 +1853,10 @@
         const words = typed.split(/[\s-]+/).map(plain).filter(Boolean), shown = ranked.filter((r) => { const name = plain(fullName(r.row)); return words.every((w) => name.includes(w)); });
         $("found").textContent = !words.length ? "" : shown.length ? `${shown.length} of ${ranked.length} lines.` : `No line's name has "${typed.trim()}". Not ranked: averages and lows shorter than a year, percentiles above the median, rarity levels above 5%, short-term holders' lines, coins under a year old, and lines the price stayed under.`;
         for (const head of all("#cols [data-k]")) head.dataset.k === String(sortedBy) ? head.setAttribute("aria-sort", "ascending") : head.removeAttribute("aria-sort");
+        // (A name with focus keeps it as its rows are made again.)
+        const focused = /** @type {HTMLElement} */ (document.activeElement).closest?.("#rank .pick")?.getAttribute("data-id");
         $("rank").replaceChildren(...shown.map((r, i) => ({ r, i })).sort((a, b) => key(a.r) - key(b.r) || a.i - b.i).map(({ r }) => rowOf(r)));
+        if (focused) /** @type {HTMLElement | null} */ ($("rank").querySelector(`.pick[data-id="${CSS.escape(focused)}"]`))?.focus({ preventScroll: true });
       }
       $("find").addEventListener("input", sorted);
       function ranking() {
@@ -1661,10 +1865,11 @@
         const top = $("top"), ten = ranked.slice(0, 10);
         ten.forEach((r, k) => {
           let li = top.children[k];
-          if (!li) (li = top.appendChild(el("li", "more"))), li.append(el("i", "n"), el("span", "label"), el("b", "value num"));
+          if (!li) (li = top.appendChild(el("li", "more"))), li.append(el("i", "n"), Object.assign(el("button", "label pick"), { type: "button" }), el("b", "value num"));
           const n = /** @type {HTMLElement} */ (li.querySelector(".n"));
           (n.textContent = String(r.rank)), (n.dataset.n = String(r.rank));
-          /** @type {HTMLElement} */ (li.querySelector(".label")).textContent = fullName(r.row), (/** @type {HTMLElement} */ (li.querySelector(".value")).textContent = scoreOf(r));
+          const label = /** @type {HTMLElement} */ (li.querySelector(".label"));
+          (label.textContent = fullName(r.row)), (label.dataset.id = r.row.id), label.setAttribute("aria-pressed", "false"), label.setAttribute("aria-describedby", "press"), label.removeAttribute("disabled"), (/** @type {HTMLElement} */ (li.querySelector(".value")).textContent = scoreOf(r));
         });
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
         $("caveat").textContent = `Ranked on the ${worded(judged.length)} ${judged.length === 1 ? "bottom" : "bottoms"} so far${open ? ", one still open" : ""}: the order will change as new ones come.`;
@@ -1713,9 +1918,10 @@
           // (Today's ranking replaces the stored one, and says so only when it differs: each of today's, as the ceilings can make a second.)
           if (!data.live) stored = data;
           else if (stored) $("checked").textContent = JSON.stringify(told(stored)) !== JSON.stringify(told(data)) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
-          (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), heroChart?.drawn(), miss();
+          (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
         }
-        else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); heroChart?.drawn(), miss(); }
+        else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); marked(), miss(); }
+        else if (data.type === "unread") (unread = data.id), marked();
         else if (data.type === "candles") (candles = data), heroChart?.drawn();
         else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();
         else if (data.type === "unstored") $("checked").textContent = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`;
