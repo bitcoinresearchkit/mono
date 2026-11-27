@@ -956,6 +956,7 @@
     <script type="module">
       import { createChart, Custom, Candles, Band, lastIn } from "/modules/bitview-charts/index.js";
       import { patternOf } from "/modules/bitview-charts/texture.js";
+      import { reduced } from "/modules/motion/reduced.js";
       import { LANDSCAPE, SKY } from "/studio/palette.js";
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -969,7 +970,6 @@
       const about = (/** @type {number} */ v) => (v >= 1e3 ? `$${(v / 1e3).toPrecision(3)}k` : `$${+v.toPrecision(3)}`);
       const coins = (/** @type {number} */ v) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : `${WHOLE.format(v / 1e3)}k`);
       const percent = (/** @type {number} */ share) => `${Math.round(share * 100)}%`;
-      const still = matchMedia("(prefers-reduced-motion: reduce)");
 
       const WEIGHTS = /** @type {const} */ ({ awake: "wakefulness", mobile: "mobility" });
       /** @typedef {keyof typeof WEIGHTS} Mode */
@@ -1187,7 +1187,7 @@
         const press = () => { for (const b of buttons) b.setAttribute("aria-pressed", String(Number(b.dataset.span) === span)); };
         const lengthOf = (/** @type {number} */ s) => (s ? Math.min(s, since) : since);
         let goal = /** @type {{ from: number, to: number } | null} */ (null);
-        const glide = (/** @type {number} */ s) => { span = s; press(); controller.viewTo((goal = time.shown(lengthOf(s))), still.matches ? 0 : GLIDE); };
+        const glide = (/** @type {number} */ s) => { span = s; press(); controller.viewTo((goal = time.shown(lengthOf(s))), GLIDE); };
         for (const b of buttons) b.addEventListener("click", () => glide(Number(b.dataset.span)), { signal });
         chart.onLayout(() => { if (span !== -1 && !controller.target) chart.show(lengthOf(span)); });
         chart.onRange((from, to) => {
@@ -1380,7 +1380,7 @@
           picked = k;
           [...list.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === k)));
           const view = views[k];
-          glide && !still.matches ? chart.controller.viewTo({ from: view.from, to: view.to }, 600) : (chart.setRange(view.from, view.to, { exact: true }), tell());
+          glide && !reduced() ? chart.controller.viewTo({ from: view.from, to: view.to }, 600) : (chart.setRange(view.from, view.to, { exact: true }), tell());
         };
         list.replaceChildren(...views.map((view, k) => {
           const button = document.createElement("button");

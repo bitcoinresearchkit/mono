@@ -1494,6 +1494,7 @@
       import { Scale } from "/modules/bitview-charts/scale.js";
       import { Line } from "/modules/bitview-charts/line.js";
       import { Shade } from "/modules/bitview-charts/shade.js";
+      import { reduced } from "/modules/motion/reduced.js";
       import { legible, over } from "/modules/bitview-charts/color.js";
       import { STATES, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
       import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
@@ -1585,7 +1586,6 @@
         };
       }
 
-      const still = matchMedia("(prefers-reduced-motion: reduce)");
       const SPAN = 2922;
       /** 0: all; -1: none, moved by hand. */
       let span = SPAN;
@@ -1630,7 +1630,6 @@
       /** The room a price's marks take past it: the crosshair's dot with its glow. */
       const MARK = 12;
       const GLIDE = 380;
-      const glideTime = () => (still.matches ? 0 : GLIDE);
       const themeOf = (/** @type {Paint} */ p) => ({ background: p.app, text: p.faint, grid: "transparent", font: FONTS.dates, crosshair: "transparent", across: "transparent", badge: "transparent", separator: "transparent", active: "transparent" });
       /** Crosshair and date tag drawn as nothing: the page's own marks show the day, a tag under a finger being hidden. */
       const engine = createChart(chartBox, { axis: 0, leftAxis: 0, timeHeight: YEARS, embedded: true, dateFormat: () => "" });
@@ -1795,7 +1794,7 @@
         pressSpans();
         spanGoal = spanRange(s);
         if (pinned !== null && pinned < spanGoal.from + 0.5) pinned = Math.ceil(spanGoal.from + 0.5);
-        controller.viewTo(spanGoal, glideTime());
+        controller.viewTo(spanGoal, GLIDE);
         remember();
         show();
       }
@@ -1807,7 +1806,7 @@
       }
       function keepVisible(/** @type {number} */ day, ease = false) {
         const g = goal(), length = g.to - g.from, room = (time.rightOffset / time.width) * length;
-        const to = (/** @type {number} */ from) => controller.viewTo(fit(from, length), ease ? glideTime() : 0);
+        const to = (/** @type {number} */ from) => controller.viewTo(fit(from, length), ease ? GLIDE : 0);
         if (day < Math.ceil(g.from + 0.5)) to(day - 0.5);
         else if (day > Math.floor(g.to - room)) to(day + room - length + 0.5);
       }
@@ -1833,7 +1832,7 @@
       function zoom(/** @type {number} */ by) {
         stopPlay();
         const g = goal(), next = time.within((g.to - g.from) * by);
-        controller.viewTo(fit((g.from + g.to) / 2 - next / 2, next), glideTime());
+        controller.viewTo(fit((g.from + g.to) / 2 - next / 2, next), GLIDE);
       }
       chartBox.addEventListener("keyup", (e) => {
         if (days && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) show(true);
@@ -1852,7 +1851,7 @@
           const over = to - from - time.within(to - from);
           return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
         },
-        glide: ({ from, to }) => controller.viewTo(fit(from, to - from), glideTime()),
+        glide: ({ from, to }) => controller.viewTo(fit(from, to - from), GLIDE),
         window: pan,
         least: PAN_LEAST,
         grip: TOUCH ? 7 : 5,
@@ -1963,7 +1962,7 @@
         light(key);
         if (!oneColumn.matches || !at.closest("#compass") || key.includes(",") || !allLit(key)) return;
         const room = 12, by = Math.min($("mood-name").getBoundingClientRect().bottom - (innerHeight - room), at.getBoundingClientRect().top - room);
-        if (by > 0) scrollBy({ top: by, behavior: still.matches ? "instant" : "smooth" });
+        if (by > 0) scrollBy({ top: by, behavior: reduced() ? "instant" : "smooth" });
       }
       document.addEventListener("click", (e) => {
         const at = e.target instanceof Element ? /** @type {HTMLElement | null} */ (e.target.closest("[data-light]")) : null;
