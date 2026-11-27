@@ -1386,9 +1386,16 @@
       <div class="tower" id="tower">
         <a class="heads fine" id="every" href="#ranking">All lines</a>
         <ol id="top" aria-label="The closest lines and each one's worst miss">
-          <li class="first"><i class="n" data-n="1">1</i><span class="who"><button type="button" class="label pick" disabled>&nbsp;</button></span><span class="off"><b class="value num"></b><small>worst miss · smaller is better</small></span></li>
-          <li><i class="n" data-n="2">2</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num"></b></li>
-          <li><i class="n" data-n="3">3</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num"></b></li>
+          <li class="first"><i class="n" data-n="1">1</i><span class="who"><button type="button" class="label pick" disabled>&nbsp;</button></span><span class="off"><b class="value num">&nbsp;</b><small>worst miss · smaller is better</small></span></li>
+          <li><i class="n" data-n="2">2</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li><i class="n" data-n="3">3</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="4">4</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="5">5</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="6">6</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="7">7</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="8">8</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="9">9</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
+          <li class="more"><i class="n" data-n="10">10</i><button type="button" class="label pick" disabled>&nbsp;</button><b class="value num">&nbsp;</b></li>
         </ol>
       </div>
     </section>
@@ -1861,11 +1868,11 @@
       $("find").addEventListener("input", sorted);
       function ranking() {
         const first = ranked[0], open = judged.some((l) => l.open);
-        // The board's top, beside the chart: its first ten (the first three alone on a phone).
-        const top = $("top"), ten = ranked.slice(0, 10);
-        ten.forEach((r, k) => {
-          let li = top.children[k];
-          if (!li) (li = top.appendChild(el("li", "more"))), li.append(el("i", "n"), Object.assign(el("button", "label pick"), { type: "button" }), el("b", "value num"));
+        // The board's top, beside the chart: its first ten (the first three alone on a phone), their rows in the markup
+        // from the first paint so the column's shares never change.
+        const top = $("top");
+        ranked.slice(0, 10).forEach((r, k) => {
+          const li = top.children[k];
           const n = /** @type {HTMLElement} */ (li.querySelector(".n"));
           (n.textContent = String(r.rank)), (n.dataset.n = String(r.rank));
           const label = /** @type {HTMLElement} */ (li.querySelector(".label"));
