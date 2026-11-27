@@ -754,7 +754,6 @@
         }
 
         figcaption { margin-top: 16px; max-width: 52ch; color: var(--soft); font-size: 13px; }
-        #distribution-span { display: block; margin-bottom: 4px; }
       }
 
       [data-light] {
@@ -1267,71 +1266,18 @@
           font-weight: 600;
         }
 
-        .key {
-          width: calc(100% + 8px);
-          margin: 6px -4px 6px;
-          border-spacing: 4px;
-          font-size: 13px;
-          line-height: 1.25;
-
-          th {
-            padding: 0 2px;
-            color: var(--soft);
-            font-weight: 400;
-            text-align: left;
-            white-space: nowrap;
-
-            &[scope="row"] {
-              vertical-align: middle;
-            }
-          }
-
-          td {
-            padding: 8px;
-            border-radius: 8px;
-            background: color-mix(in srgb, var(--c) 12%, transparent);
-            /* A step darker in light: the trend's own colour gave 4.2:1 on its tint, under 4.5. */
-            color: light-dark(color-mix(in oklab, var(--c) 90%, black), var(--c));
-            font-weight: 600;
-          }
-        }
-      }
-
-      .note {
-        max-width: 65ch;
-        margin-top: 32px;
-        color: var(--soft);
-        font-size: 14px;
-
-        + .note {
-          margin-top: 10px;
-        }
-      }
-
-      footer {
-        padding: 28px 0 max(40px, env(safe-area-inset-bottom));
-        border-top: 1px solid var(--line);
-        margin-top: 56px;
-        color: var(--soft);
-        font-size: 13px;
-
+        /* Label over the choices, not beside them: the first choice would read as the label's. */
         .coins {
-          display: grid;
-          gap: 20px;
-          margin-top: 14px;
-          color: var(--faint);
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          margin: 14px 0;
 
-          /* Label over, not beside (the first choice would read as its own); rows apart so 44px reaches don't meet. */
-          [role="group"] {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 14px 8px;
-
-            > span {
-              flex-basis: 100%;
-              margin-bottom: -6px;
-            }
+          > span {
+            flex-basis: 100%;
+            color: var(--soft);
+            font-size: 13px;
           }
 
           button {
@@ -1359,6 +1305,25 @@
             }
           }
         }
+      }
+
+      .note {
+        max-width: 65ch;
+        margin-top: 32px;
+        color: var(--soft);
+        font-size: 14px;
+
+        + .note {
+          margin-top: 10px;
+        }
+      }
+
+      footer {
+        padding: 28px 0 max(40px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        margin-top: 56px;
+        color: var(--soft);
+        font-size: 13px;
       }
 
       :is(a.brand, .today) {
@@ -1430,7 +1395,7 @@
             </div>
             <div class="compass-foot">
               <b id="scrub-day">Today</b>
-              <span class="legend">Each mood’s arrow is its trend: <span id="trends-key">bull, mixed or bear</span>. Each percent is a share of all days so far, recent cycles counting more. The dot is the day shown; the line into it, the year before.</span>
+              <span class="legend">Each mood’s arrow is its trend: <span id="trends-key">bull, mixed or bear</span>. Each percent is a share of all days so far. The dot is the day shown; the line into it, the year before.</span>
             </div>
           </div>
           <div class="mood" id="mood">
@@ -1453,7 +1418,6 @@
             </section>
             <section>
               <h4>What came next</h4>
-              <p id="mood-next-said"></p>
               <p class="split" id="mood-split" aria-hidden="true"></p>
               <ol class="next" id="mood-next"></ol>
             </section>
@@ -1465,7 +1429,7 @@
         <header><h2 id="index-title">The index</h2></header>
         <p class="dek" id="index-read">Where the day sits on the compass.</p>
         <figure class="index-chart" id="index-chart" aria-label="The index day by day, from a year after the first day to today: point at a day to read it"></figure>
-        <p class="note"><b class="low">0</b> is the compass’s Fear corner, <b class="high">100</b> its Optimism corner, and each level one of its diagonals, as the trends are; both clouds count the same.</p>
+        <p class="note"><b class="low">0</b> is the compass’s Fear corner, <b class="high">100</b> its Optimism corner.</p>
         <div class="distribution" id="distribution" role="group" aria-labelledby="distribution-title">
           <header>
             <h3 id="distribution-title">Time at each value</h3>
@@ -1480,37 +1444,37 @@
               <canvas id="distribution-canvas" aria-hidden="true"></canvas>
               <input class="distribution-input" id="distribution-input" type="range" min="0" max="0" value="0" aria-label="Index distribution bucket" aria-valuetext="No daily data loaded" aria-describedby="distribution-help" disabled />
             </div>
-            <figcaption><span id="distribution-span">Daily history</span>Bars: the time at each value, stacked by trend, bear at the foot. Line: the share of time below, on the right. Point or slide to read a bar; press a trend to hide it.</figcaption>
+            <figcaption id="distribution-span">Daily history</figcaption>
           </figure>
           <p class="sr" id="distribution-help">Two-point buckets include their lower edge; the last includes 100. Cumulative shares count time below a bucket's lower edge, each day counting half as much every four years back. The days counted run up to the day shown above, as known that day. Use the arrow keys, Home and End to read buckets. Escape returns to the day shown.</p>
         </div>
       </section>
-
       <section class="part" id="how" aria-labelledby="how-title">
         <header><h2 id="how-title">How it’s computed</h2></header>
         <ol class="how">
           <li>
             <h3>The clouds</h3>
             <div>
-              <p>Every coin was last bought at some price: what it cost its holder. Above what they paid, holders are in profit; below it, at a loss. The compass’s rows are the long-term cloud, the price against what coins held over 4, over 5 and over 6 months cost, three age groups; its columns are the short-term cloud, coins held under 4, under 5 and under 6 months.</p>
-              <p>Each cloud is drawn from its three groups: the prices 40% and 60% of their dollars were bought under, and their average cost. Coins that never move, lost ones among them, would drag it down, so each group counts mostly its coins that move: <span id="weighting">each group weighted by how likely its coins are ever to be spent</span>.</p>
-              <p>Above a cloud, more than 60% of each group’s dollars are in profit, and its average dollar too; below it, fewer than 40%, and its average dollar at a loss; inside, they’re split, or they disagree.</p>
+              <p>A coin’s cost is the price it last moved at. The long-term cloud is the cost of coins held over 4, 5 and 6 months; the short-term cloud, of coins held under 4, 5 and 6 months.</p>
+              <p>Each cloud spans its three groups’ 40th and 60th percentiles and average cost, by dollar. Above it, most of every group’s dollars are in profit; below it, most are at a loss.</p>
+              <p>Lost coins never move and would drag the clouds down, so coins that move count more. The whole page follows the weight chosen here.</p>
+              <div class="coins" role="group" aria-labelledby="coins-label"><span id="coins-label">Weight</span><button type="button" data-coins="mobile" aria-pressed="true">Mobile</button><button type="button" data-coins="awake" aria-pressed="false">Awake</button></div>
+              <p><span id="weighting">Mobile counts each coin by how likely it is ever to be spent.</span><span id="coins-said" aria-live="polite"></span></p>
             </div>
           </li>
           <li>
             <h3>The nine moods</h3>
             <div>
-              <p>Each day sits in one of the compass’s nine cells, by where the price is against each cloud: above it, inside or below.</p>
-              <table class="key" id="moods-key"></table>
-              <p>The nine fall into three trends along the diagonals. Each side counts +1 above its cloud, 0 inside and −1 below; added, they give the trend: <b style="color: var(--s-optimism)">Bull</b> above zero, <b style="color: var(--s-doubt)">Mixed</b> at zero, <b style="color: var(--s-fear)">Bear</b> below.</p>
+              <p>Each day sits in one of the compass’s nine cells: the price above, inside or below each cloud.</p>
+              <p>A mood’s trend adds its two sides, +1 above a cloud, 0 inside and −1 below: <b style="color: var(--s-optimism)">Bull</b> above zero, <b style="color: var(--s-doubt)">Mixed</b> at zero, <b style="color: var(--s-fear)">Bear</b> below.</p>
             </div>
           </li>
           <li>
             <h3>Each day</h3>
             <div>
-              <p>Price is each day’s close. Every reading is made from that day’s numbers alone, never from what came after: today’s can change by tonight’s close.</p>
-              <p>A day is extreme when the price is further above or below either cloud than on 99 in 100 days before it, each cloud ranked against its own earlier days alone, recent years counting more (each day half as much every four years back), from a year after the first day: about 2.5% of days, with mobile or awake coins. It follows the coins chosen at the page’s foot. Its mood is called extreme over the chart and in the panel by the compass, and its colour is drawn stronger in the chart’s fill, the pan bar and the strip under the compass; the lines keep theirs.</p>
-              <p>A run is a mood’s days in a row. A mood’s median run, in the panel by the compass, is the middle length of its runs ended by the day shown, recent ones counting more: half are shorter, half longer.</p>
+              <p>Each day is read from its close and the days before it, never after: today’s can change until the day closes.</p>
+              <p>About 2.5% of days are extreme: the price further from a cloud than on 99 in 100 earlier days.</p>
+              <p>A run is a mood’s days in a row. Whatever is measured against the past counts recent years more: a day counts half as much every four years back.</p>
             </div>
           </li>
         </ol>
@@ -1519,7 +1483,6 @@
 
     <footer class="shell">
       <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders’ cost basis, as Bitview computes it from the chain. The same clouds, to explore: <a id="in-studio" href="/studio/presets/valuation/on-chain-prices/compass/mobile">Compass in Studio</a>.</p>
-      <div class="coins"><span role="group" aria-labelledby="coins-label"><span id="coins-label">Coins counted</span> <button type="button" data-coins="mobile" aria-pressed="true">mobile</button> <button type="button" data-coins="awake" aria-pressed="false">awake</button></span><span id="coins-said" aria-live="polite"></span></div>
     </footer>
 
     <script type="module">
@@ -1532,8 +1495,8 @@
       import { Line } from "/modules/bitview-charts/line.js";
       import { Shade } from "/modules/bitview-charts/shade.js";
       import { legible, over } from "/modules/bitview-charts/color.js";
-      import { STATES, stateOf, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, ask, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
-      import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, SIDE_WORDS, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
+      import { STATES, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, ask, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
+      import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
       /** @typedef {import("./market.js").Days} Days @typedef {import("./market.js").Answer} Answer @typedef {import("./market.js").Run} Run @typedef {import("./draw.js").Paint} Paint @typedef {import("./draw.js").Lit} Lit */
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -1572,7 +1535,7 @@
 
       /** @type {"mobile" | "awake"} */
       let coins = "mobile";
-      const WEIGHTING = { mobile: "each group weighted by how likely its coins are ever to be spent", awake: "each group weighted by how much of its coins’ held time has been spent" };
+      const WEIGHTING = { mobile: "Mobile counts each coin by how likely it is ever to be spent.", awake: "Awake counts each coin by how much of its held time has been spent." };
 
       /** @type {Days | null} */
       let days = null;
@@ -2017,8 +1980,6 @@
       /** @type {ReturnType<typeof compassParts> & { shares: [Element, string][] } | null} */
       let parts = null;
 
-      const ROWS = /** @type {const} */ ([1, 0, -1]), COLUMNS = /** @type {const} */ ([-1, 0, 1]);
-      $("moods-key").innerHTML = `<thead><tr><th>Long-term</th><th scope="colgroup" colspan="3">Short-term</th></tr><tr><td></td>${COLUMNS.map((c) => `<th scope="col">${SIDE_WORDS[c]}</th>`).join("")}</tr></thead><tbody>${ROWS.map((r) => `<tr><th scope="row">${SIDE_WORDS[r]}</th>${COLUMNS.map((c) => STATES[stateOf(r, c)]).map((s) => `<td style="--c: var(--s-${TRENDS[s.trend].color})">${s.name}</td>`).join("")}</tr>`).join("")}</tbody>`;
       const trendKeys = TRENDS.map((t) => `<svg viewBox="0 0 16 16" aria-hidden="true" stroke="var(--s-${t.color})"><path d="${t.arrow}" /></svg> ${t.name.toLowerCase()}`);
       $("trends-key").innerHTML = `${trendKeys.slice(0, -1).join(", ")} or ${trendKeys.at(-1)}`;
       function setUpCompass() {
@@ -2338,7 +2299,7 @@
           if (source !== d) (source = d), (slotted = slotsOf(d)), (counted = NaN);
           if (counted !== toldDay) (counted = toldDay), (histogram = distributionOf(slotted, counted));
           combined = combinedDistribution(histogram, visible);
-          give(spanLabel, counted < slotted.from ? "No days yet" : `${grouped(histogram.reduce((n, p) => n + p.days.reduce((a, b) => a + b, 0), 0))} days, ${dated(slotted.from)} to ${dated(counted)}, each counting half as much every four years back.`);
+          give(spanLabel, counted < slotted.from ? "No days yet" : `${grouped(histogram.reduce((n, p) => n + p.days.reduce((a, b) => a + b, 0), 0))} days, ${dated(slotted.from)} to ${dated(counted)}.`);
           readBucket(d, histogram, combined);
           if (!seen.has("distribution")) return;
           const dpr = density();
@@ -2461,7 +2422,7 @@
       function tellMood() {
         if (!told) return;
         const d = /** @type {Days} */ (days), pressed = moodPressed !== null && lit.state.has(moodPressed) ? moodPressed : null;
-        const { day, spells, percents: shares } = told, i = moodPointed ?? pressed ?? spells.now.mood, s = STATES[i];
+        const { day, spells } = told, i = moodPointed ?? pressed ?? spells.now.mood, s = STATES[i];
         const all = runsOf(d)[i], going = spells.now.mood === i, ended = endedBy(all, day);
         const run = going ? { first: spells.now.first, length: day - spells.now.first + 1 } : all[ended - 1], before = going ? ended : ended - 1;
         give($("mood"), `var(--s-${s.id})`, "--c");
@@ -2479,13 +2440,13 @@
         for (let r = 0; r < ended; r++) counts[binOf(all[r].length)] += weight(all[r].last);
         const most = Math.max(...counts) || 1, at = run ? binOf(run.length) : -1;
         for (const [b, range] of [...$("mood-hist").children].entries()) range.classList.toggle("at", b === at), range.classList.toggle("longer", at >= 0 && b > at), give(/** @type {Element} */ (range.firstElementChild), Math.max(0.02, counts[b] / most).toFixed(3), "--h");
-        give($("mood-hist-said"), ended ? `${ended} ${s.name} run${ended === 1 ? "" : "s"} by length in days, recent ones counting more\u00a0· median run ${lengthWords(medianOf(all, ended))}\u00a0· ${shares[i]}% of all days` : `${shares[i]}% of all days`);
+        give($("mood-hist-said"), ended ? `${ended} ${s.name} run${ended === 1 ? "" : "s"} by length in days\u00a0· median run ${lengthWords(medianOf(all, ended))}` : "");
         const long = [];
         let asLong = 0;
         for (let r = before - 1; r >= 0; r--) if (all[r].length >= (run?.length ?? Infinity) && asLong++ < 5) long.push(all[r]);
         const into = long.length > 1 && long.every((r) => r.next === long[0].next) ? STATES[long[0].next].name : "";
         const shown = asLong > long.length ? `The latest ${long.length} of ${asLong}` : long.length > 1 ? `All ${long.length}` : "";
-        give($("mood-long-said"), !long.length ? "" : `${shown ? `${shown}${into ? `, each turned into ${into}` : ""}; e` : "E"}ach bar against the longest shown.`);
+        give($("mood-long-said"), shown ? `${shown}${into ? `, each turned into ${into}` : ""}.` : "");
         const dayWords = (/** @type {number} */ n) => `${n} day${n === 1 ? "" : "s"}`;
         const toldRow = $("mood-told"), [toldWhen, , , toldLength, toldTo] = toldRow.children;
         if (toldRow.hidden !== !run) toldRow.hidden = !run;
@@ -2498,10 +2459,8 @@
         give(/** @type {Element} */ ($("mood-long").parentElement), String(Math.max(run?.length ?? 1, ...long.map((r) => r.length))), "--longest");
         give($("mood-long"), long.length ? long.map((r) => `<li style="--len: ${r.length}"><time>${monthOf(r.first)}</time><span class="sr"> · </span><i></i><span>${dayWords(r.length)}</span>${into ? "" : `<span class="to" style="--to: var(--s-${STATES[r.next].id})"> → ${STATES[r.next].name}</span>`}</li>`).join("") : `<li class="none">${run && before ? `None: the longest ${s.name} run so far.` : "None yet."}</li>`);
         const turned = ended ? STATES.map((_, j) => ({ j, share: shareOf(all, ended, (r) => r.next === j) })).filter((x) => x.share).sort((a, b) => b.share - a.share) : [], next = turned.slice(0, 3);
-        const top = next[0];
-        give($("mood-next-said"), !top ? "" : `${s.name} turned into ${STATES[top.j].name} ${top.share === 1 ? "every time" : `${tenths(top.share)} times in 10`} (${ended} run${ended === 1 ? "" : "s"}).`);
         give($("mood-split"), turned.map(({ j, share }) => `<i style="--to: var(--s-${STATES[j].id}); --w: ${share.toFixed(3)}"></i>`).join(""));
-        give($("mood-next"), next.length < 2 ? "" : next.map(({ j, share }) => `<li style="--to: var(--s-${STATES[j].id})"><span>${STATES[j].name}</span><b>${Math.round(share * 100)}%</b></li>`).join(""));
+        give($("mood-next"), next.map(({ j, share }) => `<li style="--to: var(--s-${STATES[j].id})"><span>${STATES[j].name}</span><b>${Math.round(share * 100)}%</b></li>`).join(""));
       }
       compass.addEventListener("pointermove", (e) => {
         if (e.pointerType !== "mouse") return;
