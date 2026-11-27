@@ -107,7 +107,7 @@ const SIDES = [
   { cloud: "long", title: "long-term cloud", of: "cycle" },
   { cloud: "short", title: "short-term cloud", of: "local" },
 ];
-export const SIDE_WORDS = { 1: "above", 0: "inside", [-1]: "below" };
+const SIDE_WORDS = { 1: "above", 0: "inside", [-1]: "below" };
 const COST = { 1: "in profit", 0: "about even", [-1]: "at a loss" };
 export const coinsWords = (/** @type {{ cycle: number, local: number }} */ s) =>
   s.cycle === s.local ? `old and new holders ${COST[s.cycle]}` : `old holders ${COST[s.cycle]}, new ${COST[s.local]}`;
