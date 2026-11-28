@@ -47,6 +47,12 @@ let nearest = qm.nearest_ids("file_names_v2", 3); // [0]: "file_name"
 
 // How many of the query's distinct words each item holds whole.
 let held = qm.words_held("file name"); // [2, 1, 0, 0]
+
+// For documents assembled from items: each query word's items, whole, singular or plural.
+let hits = qm.word_hits("files name"); // [[0, 1], [0]]
+
+// Whole words alone, without the prefix and trigram indexes (`matches_with…` panics on it).
+let whole = QuickMatch::new_owned_whole_words(vec!["file_name".to_owned()]);
 ```
 
 **JavaScript**

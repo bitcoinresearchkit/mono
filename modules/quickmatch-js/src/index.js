@@ -175,10 +175,37 @@ export class QuickMatch {
     return remember(this._prefixCache, key, this._merge(lists));
   }
 
-  /** Whole word only (a plural's word, not two joined). @private @param {string} key @returns {Uint32Array | null} */
+  /** Whole word only, not two joined. @private @param {string} key @returns {Uint32Array | null} */
   _wordPostings(key) {
     const at = lowerBound(this._words, key);
     return this._words[at] === key ? this._wordItems[at] : null;
+  }
+
+  /**
+   * The word a letter shorter than `key`: a plural, "prices" for "price" (or a slip there).
+   * @private @param {string} key @param {number} from @returns {Uint32Array | null}
+   */
+  _shorter(key, from) {
+    const word = cut(key, from);
+    return word === null ? null : this._wordPostings(word);
+  }
+
+  /**
+   * `key` whole in either number: as typed (a word, or two joined), without its last "s" ("rewards": "reward"), or
+   * with an "s" after it ("ribbon": "ribbons"; the longer one four letters or more). No other letter goes, as it may
+   * for a name: "hash" isn't "has".
+   * @private @param {string} key @param {number} from @returns {Uint32Array[]}
+   */
+  _eitherNumber(key, from) {
+    /** @type {Uint32Array[]} */
+    const lists = [];
+    for (const whole of [key, key.endsWith("s") ? cut(key, from) : null, key.length >= 3 ? `${key}s` : null]) {
+      if (whole === null) continue;
+      const word = this._wordPostings(whole);
+      if (word) lists.push(word);
+      for (let i = lowerBound(this._compounds, whole); this._compounds[i] === whole; i++) lists.push(this._compoundItems[i]);
+    }
+    return lists;
   }
 
   /** @private @param {string} tri @returns {Uint32Array | null} */
@@ -302,6 +329,25 @@ export class QuickMatch {
   }
 
   /**
+   * Per distinct query word, the IDs of the items holding it whole, singular or plural (or joined to the word beside it),
+   * ascending and unranked; none at all if some word is held by no item. A word also finds one an "s" shorter or longer.
+   * For documents assembled from these items, to intersect at document scope; compound words stay within an item.
+   * @param {string} query @returns {Uint32Array[]}
+   */
+  wordHits(query) {
+    const typed = splitWords(normalize(query), this._sepLookup, Infinity, true), distinct = [...new Set(typed)];
+    const joins = joinsOf(typed, distinct, (pair, from) => this._eitherNumber(pair, from).length > 0);
+    /** @type {Uint32Array[]} */
+    const hits = [];
+    for (let i = 0; i < distinct.length; i++) {
+      const items = this._merge([...this._eitherNumber(distinct[i], 0), ...joins[i].flatMap(([pair, from]) => this._eitherNumber(pair, from))]);
+      if (!items) return [];
+      hits.push(items);
+    }
+    return hits;
+  }
+
+  /**
    * @private
    * @param {string} query
    * @param {QuickMatchConfig} config
@@ -330,7 +376,7 @@ export class QuickMatch {
 
     // `slip`: held only by a word one letter shorter ("pice" past "pic"), not as a word of its own.
     // A pair the index holds nothing under fits nothing, so none when split otherwise than the index.
-    const joins = joinsOf(splitWords(q, sep, Infinity, true), qwords, (pair, from) => sep === this._sepLookup && (this._postings(pair) !== null || (!exactWords && pair.length >= 4 && pair.length - 1 > from && this._wordPostings(pair.slice(0, -1)) !== null)));
+    const joins = joinsOf(splitWords(q, sep, Infinity, true), qwords, (pair, from) => sep === this._sepLookup && (this._postings(pair) !== null || (!exactWords && this._shorter(pair, from) !== null)));
     const held = qwords.map((w, i) => {
       /** @type {Uint32Array[]} */
       const lists = [];
@@ -342,7 +388,7 @@ export class QuickMatch {
       for (const [key, from] of keys) {
         const own = this._postings(key);
         if (own) (firm = true), lists.push(own);
-        const shorter = !exactWords && key.length >= 4 && key.length - 1 > from ? this._wordPostings(key.slice(0, -1)) : null;
+        const shorter = exactWords ? null : this._shorter(key, from);
         if (shorter) lists.push(shorter);
       }
       const hits = this._merge(lists);
@@ -669,6 +715,15 @@ function bsearch(arr, val) {
     else hi = mid - 1;
   }
   return false;
+}
+
+/**
+ * `key` without its last letter, where that may be the word meant: of four letters or more, and of two words joined (the
+ * first `from` long) leaving more than the first: "hash rates", not "tatmaspool h".
+ * @param {string} key @param {number} from @returns {string | null}
+ */
+function cut(key, from) {
+  return key.length >= 4 && key.length - 1 > from ? key.slice(0, -1) : null;
 }
 
 /**

@@ -33,10 +33,12 @@ fn matches<'a>(
     let mut result = Vec::with_capacity(limit);
     let mut seen = FxHashSet::default();
 
-    // Five tiers: a name's whole words; a name every word of which matches
-    // (its starts, joined words, a plural); a description's whole words; a
-    // name some word of which only a typo matches; a description's starts and
-    // slips. What a series' name says comes first, unless it takes a typo to.
+    // Four tiers: a name's whole words; a name every word of which matches
+    // (its starts, joined words, a plural); a description's whole words,
+    // singular or plural; a name some word of which only a typo matches. What
+    // a series' name says comes first, unless it takes a typo to. Descriptions
+    // take no other start nor a typo: those answered with series nobody asked
+    // for.
     append(
         matcher
             .matches_exact_with_ids_and_matched_words(&query, &config)
@@ -67,7 +69,7 @@ fn matches<'a>(
     if result.len() < limit {
         let name_words = matcher.words_held(&query);
         append(
-            sentences.ranked(&query, true, names, &name_words, limit),
+            sentences.ranked(&query, names, &name_words, limit),
             &mut result,
             &mut seen,
             limit,
@@ -78,14 +80,6 @@ fn matches<'a>(
             &mut seen,
             limit,
         );
-        if result.len() < limit {
-            append(
-                sentences.ranked(&query, false, names, &name_words, limit),
-                &mut result,
-                &mut seen,
-                limit,
-            );
-        }
     }
     result.into_iter().map(|id| names[id as usize]).collect()
 }
@@ -140,20 +134,20 @@ impl SentenceIndex {
             .map(|(text, ids)| (normalize(text), ids.into_boxed_slice()))
             .unzip();
         Self {
-            matcher: QuickMatch::new_owned(sentences),
+            matcher: QuickMatch::new_owned_whole_words(sentences),
             series,
         }
     }
 
+    /// The series whose description holds every query word whole, singular or plural, best first.
     fn ranked(
         &self,
         query: &str,
-        exact: bool,
         names: &[&str],
         name_words: &[u8],
         limit: usize,
     ) -> Vec<u32> {
-        let hits = self.matcher.word_hits(query, exact);
+        let hits = self.matcher.word_hits(query);
         // A series' words are counted in a byte: no hit, or more words than that, answers nothing.
         let words = u8::try_from(hits.len()).unwrap_or(0);
         if words == 0 {

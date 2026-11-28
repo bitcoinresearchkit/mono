@@ -305,7 +305,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .id("search_series")
                 .tag(tags::SERIES)
                 .summary("Search series")
-                .description(&format!("Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
+                .description(&format!("Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then names matching every word by its start, joined words or a plural, then descriptions holding every word whole, singular or plural (never a part of a word or a typo), then names with a typo. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                 .json_response::<Vec<SeriesName>>()
                 .not_modified(),
         ),

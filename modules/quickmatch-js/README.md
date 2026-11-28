@@ -28,6 +28,8 @@ word whole (not only as a prefix or a plural: "1" holds "1" before "13"), first
 match position, item length, then text. Identical items tie-break by original ID.
 `matchesExactWithIdsAndMatchedWords(query, config)` matches whole words only,
 with no prefixes or typos. Set `unionFallback` to `false` to require every query word: one the index doesn't hold and that is no typo of anything leaves no results.
+`wordHits(query)` gives, per distinct query word, the IDs of the items holding it whole, singular or plural (none at all
+if some word is held by no item), for searching documents assembled from the items.
 The best-tier method returns only results with the highest matched-word count,
 subject to the same limit. Union fallback defaults to `true`.
 

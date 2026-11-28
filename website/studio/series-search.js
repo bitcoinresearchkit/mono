@@ -58,7 +58,6 @@ export async function seriesSearch(catalog, dated) {
     return {
       names,
       about,
-      descriptions,
       nameInitials,
       byNameInitials: grouped(nameInitials),
       descriptionInitials,
@@ -99,15 +98,15 @@ export async function seriesSearch(catalog, dated) {
     return [...result, ...last].slice(0, limit).map((id) => found.names[id]);
   }
   /** @param {Awaited<typeof index>} found @param {string} query @param {number} limit @returns {(() => number[])[]} */
-  function stages({ names, descriptions, nameInitials, byNameInitials, descriptionInitials, byDescriptionInitials, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
+  function stages({ names, nameInitials, byNameInitials, descriptionInitials, byDescriptionInitials, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
     const room = Math.min(names.length, limit * 3), config = new QuickMatchConfig().withLimit(room).withUnionFallback(false);
-    /** @param {[number, number][]} matches @param {Map<number, number>} nameWords */
-    const ranked = (matches, nameWords) => matches
-      .flatMap(([description], rank) => seriesOf[description].map((id) => [id, rank, nameWords.get(id) ?? 0, wordCounts[id]]))
-      .sort((a, b) => b[2] * a[3] - a[2] * b[3] || names[a[0]].length - names[b[0]].length || a[1] - b[1] || byBytes(names[a[0]], names[b[0]]))
+    // As the server orders them: the larger share of a name's words in the query first, then by id.
+    /** @param {number[]} descriptions @param {Map<number, number>} nameWords */
+    const ranked = (descriptions, nameWords) => descriptions
+      .flatMap((description) => seriesOf[description].map((id) => [id, nameWords.get(id) ?? 0, wordCounts[id]]))
+      .sort((a, b) => b[1] * a[2] - a[1] * b[2] || a[0] - b[0])
       .slice(0, room)
       .map(([id]) => id);
-    const descriptionConfig = new QuickMatchConfig().withLimit(seriesOf.length).withUnionFallback(false);
     /** @type {Map<number, number> | null} */
     let nameWords = null;
     const words = () => (nameWords ??= new Map(matcher.matchesExactWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(names.length))));
@@ -116,32 +115,41 @@ export async function seriesSearch(catalog, dated) {
     /** @type {[number, number][] | null} */
     let fuzzy = null;
     const slips = () => (fuzzy ??= matcher.matchesWithIdsAndMatchedWords(query, config));
-    let descriptionSlips = /** @type {[number, number][] | null} */ (null);
-    const described = () => (descriptionSlips ??= descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig));
+    // A description is found by whole words only, singular or plural, as on the server.
+    const described = () => {
+      const [first, ...rest] = descriptionMatcher.wordHits(query);
+      const others = rest.map((ids) => new Set(ids));
+      return Array.from(first ?? []).filter((id) => others.every((ids) => ids.has(id)));
+    };
     const typed = query.split(/[_\-\s:/]+/).filter(Boolean), initialWords = typed.map((word) => initialsWord(word) ? word : "\0");
-    const initialMatches = (/** @type {string[]} */ texts, /** @type {string[]} */ initials, /** @type {Map<string, number[]>} */ groups) => {
+    const initialMatches = (/** @type {string[]} */ initials, /** @type {Map<string, number[]>} */ groups, /** @type {(id: number, word: number) => boolean} */ holds) => {
       const candidates = /** @type {Set<number>} */ (new Set());
       for (const word of typed) {
         if (!initialsWord(word)) continue;
         for (const [letters, ids] of groups) if (letters.includes(word)) for (const id of ids) candidates.add(id);
       }
-      const found = /** @type {[number, number][]} */ ([]);
+      const found = /** @type {number[]} */ ([]);
       for (const i of candidates) {
         let held = true;
-        for (let k = 0; k < typed.length; k++) if (!texts[i].includes(typed[k]) && !initials[i].includes(initialWords[k])) { held = false; break; }
-        if (held) found.push([i, count]);
+        for (let k = 0; k < typed.length; k++) if (!holds(i, k) && !initials[i].includes(initialWords[k])) { held = false; break; }
+        if (held) found.push(i);
       }
-      return found.sort((a, b) => a[0] - b[0]);
+      return found.sort((a, b) => a - b);
+    };
+    const nameInitialMatches = () => initialMatches(nameInitials, byNameInitials, (i, k) => names[i].includes(typed[k]));
+    const descriptionInitialMatches = () => {
+      // (Read at the first candidate: most queries have none.)
+      /** @type {Set<number>[] | undefined} */
+      let held;
+      return initialMatches(descriptionInitials, byDescriptionInitials, (i, k) => (held ??= typed.map((word) => new Set(descriptionMatcher.wordHits(word)[0])))[k].has(i));
     };
     return [
       () => matcher.matchesExactWithIdsAndMatchedWords(query, config).map(([id]) => id),
       () => initialsWord(query) ? byNameInitials.get(query) ?? [] : [],
       () => slips().filter(([, matched]) => matched >= count).map(([id]) => id),
-      () => ranked(descriptionMatcher.matchesExactWithIdsAndMatchedWords(query, descriptionConfig), words()),
-      () => ranked(described().filter(([, matched]) => matched >= count), words()),
-      () => [...initialMatches(names, nameInitials, byNameInitials).map(([id]) => id), ...ranked(initialMatches(descriptions, descriptionInitials, byDescriptionInitials), words())],
+      () => ranked(described(), words()),
+      () => [...nameInitialMatches(), ...ranked(descriptionInitialMatches(), words())],
       () => slips().filter(([, matched]) => matched < count).map(([id]) => id),
-      () => ranked(described().filter(([, matched]) => matched < count), words()),
     ];
   }
   const found = await index;

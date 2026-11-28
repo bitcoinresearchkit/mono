@@ -1014,6 +1014,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   word lists alone: the items holding the most of its words, at least half, shortest first (a word counts whole, a
   letter past, joined to the word beside it, or as a typo when the rest of the query then fits). `words_held(query)`
   counts, for every item, how many of a query's distinct words it holds whole (255 words at most)
+- quickmatch (Rust): `word_hits(query)` answers each query word's items, whole, singular or plural, and
+  `QuickMatch::new_owned_whole_words(items)` builds an index without the prefix and trigram lists, for a caller that
+  matches whole words only. The series search's index of its description sentences is one: 1.5 MB of heap where it
+  took 6.5 MB, built in 2 ms where it took 9
+- quickmatch-js: `wordHits(query)`, as the Rust `word_hits`
 - `GET /api/server/logs` carries an ETag: a request holding it gets `304`
 
 ### Performance
@@ -1121,6 +1126,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Series search (`/api/series/search`, MCP `search_series`): descriptions match whole words only, singular or plural
+  (`hash ribbon` finds "Hash Ribbons", `miner rewards` "miner reward"). Another start of a word or a typo no longer
+  finds a series through its description alone (`globe` listed `outpoint` and `tx_index` through "global",
+  `satoshi trail` the `fees_avg_*` through "trailing"); names still match starts, joined words, plurals and typos,
+  and a query nothing holds answers `[]`
+- Studio's series search matches the words of a description as the server does, whole, singular or plural (it took a
+  word's start, a typo or any part of a word). It still finds a series by the initials of consecutive words in its name
+  or description, which the server doesn't; the other words typed with them must now be whole in a description
 - Oracle's bar lists drew every bar shorter than its share, because each value took room from the bar under it: the
   tallest of the accuracy by year was 167 of its 190 px, and the tallest of the twelve blocks' weights 127 of 150.
   Since 24 October. Each bar shows its exact share of the list's height now, the value above it.
