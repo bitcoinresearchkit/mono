@@ -399,12 +399,23 @@ impl<'a> QuickMatch<'a> {
 
     fn query_joins(&self, typed: &[&str], distinct: &[&str], exact: bool) -> Vec<Vec<Pair>> {
         joins(typed, distinct, |pair, from| {
-            self.word_index.contains_key(pair)
-                || (!exact
-                    && pair.len() >= 4
-                    && pair.len() - 1 > from
-                    && self.exact_words.contains_key(&pair[..pair.len() - 1]))
+            self.word_index.contains_key(pair) || (!exact && self.shorter(pair, from).is_some())
         })
+    }
+
+    /// The items holding the word a letter shorter than `key`: a plural, "prices" for "price" (or
+    /// a slip there).
+    fn shorter(&self, key: &str, from: usize) -> Option<&[ItemId]> {
+        self.exact_words.get(cut(key, from)?).map(Vec::as_slice)
+    }
+
+    /// The items holding `key` whole in either number: as typed, without its last "s"
+    /// ("rewards": "reward"), or with an "s" after it ("ribbon": "ribbons"; the longer one four
+    /// letters or more). No other letter goes, as it may for a name: "hash" isn't "has".
+    fn either_number<'s>(&'s self, key: &str, from: usize) -> impl Iterator<Item = &'s [ItemId]> + use<'s> {
+        let singular = cut(key, from).filter(|_| key.ends_with('s')).map(|word| self.exact(word));
+        let plural = (key.len() >= 3).then(|| self.exact(&format!("{key}s")));
+        self.exact(key).chain([singular, plural].into_iter().flatten().flatten())
     }
 
     fn exact_lists(&self, word: &str, pairs: &[Pair]) -> Option<Cow<'_, [ItemId]>> {
@@ -426,31 +437,34 @@ impl<'a> QuickMatch<'a> {
                 firm = true;
                 lists.push(own.as_slice());
             }
-            if !exact && key.len() >= 4 && key.len() - 1 > from
-                && let Some(shorter) = self.exact_words.get(&key[..key.len() - 1])
-            {
-                lists.push(shorter.as_slice());
+            if !exact && let Some(shorter) = self.shorter(key, from) {
+                lists.push(shorter);
             }
         }
         Self::sorted_union(&lists).map(|items| (items, !firm))
     }
 
-    /// Unranked item positions for each distinct query word held whole (or joined to the word
-    /// beside it); none at all if some word is held by no item. A caller searching documents
-    /// assembled from these items can intersect at document scope. Compound words stay
-    /// within an item.
+    /// Unranked item positions for each distinct query word held whole, singular or plural (or
+    /// joined to the word beside it); none at all if some word is held by no item. A word also
+    /// finds one an "s" shorter or longer.
+    /// A caller searching documents assembled from these items can intersect at document scope.
+    /// Compound words stay within an item.
     pub fn word_hits(&self, query: &str) -> Vec<Vec<u32>> {
         let query = normalize(query);
         let sep = sep_table(SEPARATORS);
         let typed: Vec<_> = words(&query, &sep).collect();
         let mut seen = FxHashSet::default();
         let distinct: Vec<_> = typed.iter().copied().filter(|word| seen.insert(*word)).collect();
-        let pairs = self.query_joins(&typed, &distinct, true);
+        let pairs = joins(&typed, &distinct, |pair, from| self.either_number(pair, from).next().is_some());
         distinct
             .into_iter()
             .zip(&pairs)
             .map(|(word, pairs)| {
-                let items = self.exact_lists(word, pairs)?;
+                let lists = iter::once((word, 0))
+                    .chain(pairs.iter().map(|pair| (pair.text.as_str(), pair.from)))
+                    .flat_map(|(key, from)| self.either_number(key, from))
+                    .collect::<Vec<_>>();
+                let items = Self::sorted_union(&lists)?;
                 Some(items.iter().map(|id| id.0).collect())
             })
             .collect::<Option<_>>()
@@ -527,7 +541,7 @@ impl<'a> QuickMatch<'a> {
                 at.checked_sub(1).map(|before| format!("{}{word}", typed[before])),
                 typed.get(at + 1).map(|after| format!("{word}{after}")),
             ];
-            let lists: Vec<&[ItemId]> = [Some(word), (!EXACT_WORDS && word.len() >= 4).then(|| &word[..word.len() - 1])]
+            let lists: Vec<&[ItemId]> = [Some(word), cut(word, 0).filter(|_| !EXACT_WORDS)]
                 .into_iter()
                 .flatten()
                 .chain(joined.iter().flatten().map(String::as_str))
@@ -831,6 +845,13 @@ struct Pair {
     from: usize,
     /// Whether the word it's of is the second.
     second: bool,
+}
+
+/// `key` without its last letter, where that may be the word meant: of four letters or more, and
+/// of two words joined (the first `from` long) leaving more than the first: "hash rates", not
+/// "tatmaspool h".
+fn cut(key: &str, from: usize) -> Option<&str> {
+    (key.len() >= 4 && key.len() - 1 > from).then(|| &key[..key.len() - 1])
 }
 
 /// Each query word's pairs: it joined to a word beside it as typed. Never

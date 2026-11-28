@@ -34,10 +34,10 @@ fn matches<'a>(
     let mut seen = FxHashSet::default();
 
     // Four tiers: a name's whole words; a name every word of which matches
-    // (its starts, joined words, a plural); a description's whole words; a
-    // name some word of which only a typo matches. What a series' name says
-    // comes first, unless it takes a typo to. Descriptions match whole words
-    // only: their words' starts and typos answered with series nobody asked
+    // (its starts, joined words, a plural); a description's whole words,
+    // singular or plural; a name some word of which only a typo matches. What
+    // a series' name says comes first, unless it takes a typo to. Descriptions
+    // take no other start nor a typo: those answered with series nobody asked
     // for.
     append(
         matcher
@@ -139,7 +139,7 @@ impl SentenceIndex {
         }
     }
 
-    /// The series whose description holds every query word whole, best first.
+    /// The series whose description holds every query word whole, singular or plural, best first.
     fn ranked(
         &self,
         query: &str,

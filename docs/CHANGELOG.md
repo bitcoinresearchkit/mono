@@ -1121,10 +1121,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
-- Series search (`/api/series/search`, MCP `search_series`): descriptions match whole words only. A word's start or a
-  typo no longer finds a series through its description alone (`globe` listed `outpoint` and `tx_index` through
-  "global", `satoshi trail` the `fees_avg_*` through "trailing"); names still match starts, joined words, plurals and
-  typos, and a query nothing holds answers `[]`
+- Series search (`/api/series/search`, MCP `search_series`): descriptions match whole words only, singular or plural
+  (`hash ribbon` finds "Hash Ribbons", `miner rewards` "miner reward"). Another start of a word or a typo no longer
+  finds a series through its description alone (`globe` listed `outpoint` and `tx_index` through "global",
+  `satoshi trail` the `fees_avg_*` through "trailing"); names still match starts, joined words, plurals and typos,
+  and a query nothing holds answers `[]`
 - Oracle's bar lists drew every bar shorter than its share, because each value took room from the bar under it: the
   tallest of the accuracy by year was 167 of its 190 px, and the tallest of the twelve blocks' weights 127 of 150.
   Since 24 October. Each bar shows its exact share of the list's height now, the value above it.
