@@ -4,8 +4,8 @@ use bitcoin::hashes::Hash;
 use bitcoin::{ScriptBuf, Witness};
 use brk_cpfp::Cluster;
 use brk_types::{
-    BlockHash, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, MempoolTxSummary, Sats, SigOps,
-    Timestamp, Transaction, TxIn, TxOut, TxStatus, Txid, VSize, Vout, Weight,
+    BlockHash, Chain, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, MempoolTxSummary, Sats,
+    SigOps, Timestamp, Transaction, TxIn, TxOut, TxStatus, Txid, VSize, Vout, Weight,
 };
 use rapidhash::{RapidHashMap, RapidHashSet};
 use serde_json::{Value, to_value};
@@ -287,6 +287,7 @@ fn served_blocks_publish_and_diff() {
 /// without what's in limbo (h and hc, spending from what only the left block mined).
 #[test]
 fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
+    Chain::MAIN.activate().unwrap();
     let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([7; 20]));
     let raw = |spends: bitcoin::OutPoint, sats: u64| bitcoin::Transaction {
         version: bitcoin::transaction::Version::TWO,
@@ -688,6 +689,7 @@ fn copy_on_write_containers_match_their_models() {
 /// nothing is read in its place.
 #[test]
 fn graveyard_outlives_a_restart() {
+    Chain::MAIN.activate().unwrap();
     use crate::stores::tx_graveyard::GraveyardFile;
     let dir = std::env::temp_dir().join(format!("bitview-graveyard-{}", std::process::id()));
     let file = GraveyardFile::new(dir.join("graveyard"));
