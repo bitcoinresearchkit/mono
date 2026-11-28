@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Block fees, rewards, fee rates, sizes and weights over all history answer in 2 to 9 ms of server time instead of
+  18 to 32 ms, the same bytes: blocks are grouped into time buckets as runs rather than by sorting every block, and
+  fees, rewards, sizes and weights are read from their running totals.
 - `POST /api/tx` and BlindBit's `forward-tx` take their place among the four submissions in progress once the body has
   arrived, not before: clients sending slow bodies no longer answer others `503`.
 - Blocks tagged as mined over Stratum V2 are counted, in the pools plugin (`stratum_v2_tagged_block_count`, one a

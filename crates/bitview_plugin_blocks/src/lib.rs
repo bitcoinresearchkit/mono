@@ -49,7 +49,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
     #[traversable(lead = "Block weight: each block measured against the limit of 4 million weight units.")]
-    weight: BlockRolling<Weight32, M>,
+    pub weight: BlockRolling<Weight32, M>,
     /// Block total of BIP-141 signature-operation cost, including coinbase:
     /// legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops cost four
     /// units; P2WPKH and P2WSH sigops cost one. This is a static count, not the

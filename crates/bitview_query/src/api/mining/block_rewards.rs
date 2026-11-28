@@ -1,5 +1,3 @@
-use std::convert::identity;
-
 use bitview_types::{BlockRewardsEntry, TimePeriod};
 
 use super::block_window::BlockWindow;
@@ -16,8 +14,9 @@ impl Query {
     ) -> Result<Vec<BlockRewardsEntry>> {
         let tip = at.height;
         let bw = BlockWindow::new(self, time_period, tip)?;
-        let rewards =
-            bw.means_rounded(&self.plugins().mining.rewards.coinbase.block.sats, identity)?;
+        let rewards = bw.means_from_totals(
+            &self.plugins().mining.rewards.coinbase.cumulative.sats.height,
+        )?;
         let prices = bw.mean_prices(&self.plugins().price.spot.cents.height)?;
 
         Ok(bw
