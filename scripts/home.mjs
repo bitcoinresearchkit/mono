@@ -462,8 +462,8 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 
 // ── Its pictures, made again from the apps ──
 
-/** How long a page is let paint once its network has gone quiet (its data in, its chart drawn): a card or a cover's own,
- * no page's guess of its own loading. */
+/** How long a page is let paint once its data is in: once its network has gone quiet and, where it reads in a worker
+ * (which the network's quiet doesn't see), once it says it's drawn, by taking `data-drawing` off its <html>. */
 const PAINT = 2000;
 
 /** Each format's quality, Chromium's own encoders: the lowest that shows no loss at twice the density of a phone, in the
@@ -695,8 +695,8 @@ function ico(/** @type {number[]} */ sizes, /** @type {Buffer[]} */ pngs) {
   return Buffer.concat([head, ...pngs]);
 }
 
-/** A page in a new tab, as a phone-free desk sees it, dark, less motion; its network quiet (a page still loading after a
- * minute fails, loudly) and `settle` ms more to paint; its words or all but its scene hidden;
+/** A page in a new tab, as a phone-free desk sees it, dark, less motion; its network quiet and no `data-drawing` left
+ * on its <html> (a page still loading or drawing after a minute fails, loudly) and `settle` ms more to paint; its words or all but its scene hidden;
  * or, given its HTML, that page in its place (its address's origin kept, for its files). */
 async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html) {
   const target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })).json();
@@ -735,8 +735,9 @@ async function screen(/** @type {string} */ port, /** @type {string} */ url, /**
   if (hide) await send("Page.addScriptToEvaluateOnNewDocument", { source: `const P = CanvasRenderingContext2D.prototype; P.fillText = P.strokeText = ${hide === "scene" ? "P.roundRect = " : ""}function () {};` });
   const went = await send("Page.navigate", { url });
   if (went.errorText) throw new Error(`${url}: ${went.errorText}`);
-  for (let waited = 0; !quiet.has(went.loaderId); waited += 100) {
-    if (waited >= 60_000) throw new Error(`${url}: its network wasn't quiet in 60 s (still loading?)`);
+  const drawing = async () => (await send("Runtime.evaluate", { expression: `document.documentElement.hasAttribute("data-drawing")`, returnByValue: true })).result.value;
+  for (let waited = 0; !quiet.has(went.loaderId) || (await drawing()); waited += 100) {
+    if (waited >= 60_000) throw new Error(`${url}: ${quiet.has(went.loaderId) ? "it wasn't drawn" : "its network wasn't quiet"} in 60 s (still loading?)`);
     await Bun.sleep(100);
   }
   if (html) {

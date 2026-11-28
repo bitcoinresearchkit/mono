@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<!-- (data-drawing until its last layer is drawn: home.mjs waits on it before shooting the page.) -->
+<html lang="en" data-drawing>
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
@@ -1937,7 +1938,7 @@
         else if (data.type === "settled") (settled = true), marked();
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); if (data.lines.some((l) => l.id === unread)) unread = null; marked(), miss(); }
         else if (data.type === "unread") (unread = data.id), marked();
-        else if (data.type === "candles") (candles = data), heroChart?.drawn();
+        else if (data.type === "candles") { (candles = data), heroChart?.drawn(); if (!missed.size) document.documentElement.removeAttribute("data-drawing"); }
         else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();
         else if (data.type === "unstored") (against = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`), checked();
         else if (data.type === "missed") missed.set(data.layer, `${WITHOUT[/** @type {keyof typeof WITHOUT} */ (data.layer)]} (${data.why}).`), checked(), miss();
