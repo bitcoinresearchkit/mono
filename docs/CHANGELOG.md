@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- `POST /api/tx` and BlindBit's `forward-tx` take their place among the four submissions in progress once the body has
+  arrived, not before: clients sending slow bodies no longer answer others `503`.
 - Blocks tagged as mined over Stratum V2 are counted, in the pools plugin (`stratum_v2_tagged_block_count`, one a
   block, with its `_cumulative` and `_sum_*` windows): those whose coinbase tag holds `Sv2/` in any letter case, the
   pool's own word, with no hand overrides (MARA Pool's 11 since height 975,369 so far). Studio shows them under Mining ›

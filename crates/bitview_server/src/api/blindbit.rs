@@ -22,7 +22,7 @@ use brk_types::{Height, Sats, Tweak, Txid};
 use serde::Serialize;
 use tower_http::limit::RequestBodyLimitLayer;
 
-use super::broadcast::{self, BroadcastPermit};
+use super::broadcast;
 use crate::{
     AppState,
     answer::Answer,
@@ -114,12 +114,11 @@ fn info(height: Height) -> BlindbitInfo {
 /// Submits a transaction to the node, BlindBit's way: its hex as `data` in a JSON body. Answers
 /// its txid as a JSON string (BlindBit answers an empty 200, which spdk can't read).
 async fn forward_tx(
-    permit: BroadcastPermit,
     _: Empty,
     RequestState(state): RequestState,
     Json(body): Json<ForwardTx>,
 ) -> Result<Response> {
-    let txid = broadcast::submit(permit, &state, &body.data).await?;
+    let txid = broadcast::submit(&state, &body.data).await?;
     let mut response = Json(txid).into_response();
     CachePolicy::NoStore.apply(response.headers_mut());
     Ok(response)
