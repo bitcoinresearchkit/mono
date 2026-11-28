@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<!-- (data-drawing until its days and summary are drawn: home.mjs shoots it then, as the price, read every second, can keep its network from ever going quiet.) -->
+<html lang="en" data-drawing>
   <head>
     <meta charset="UTF-8" />
     <script src="/assets/launch/launch.js" data-app="Trail" data-color="#ffa000"></script>
@@ -5959,6 +5960,10 @@
             selected,
             selectedProfile,
           );
+          // (Drawn whole: every day of the window up to the selected one, and its summary.)
+          if (historyStart === start && state.summaryStatus === "ready") {
+            document.documentElement.removeAttribute("data-drawing");
+          }
         }
 
         function abortError() {

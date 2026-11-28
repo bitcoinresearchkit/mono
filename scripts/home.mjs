@@ -465,8 +465,7 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 
 // ── Its pictures, made again from the apps ──
 
-/** How long a page is let paint once its data is in: once its network has gone quiet and, where it reads in a worker
- * (which the network's quiet doesn't see), once it says it's drawn, by taking `data-drawing` off its <html>. */
+/** How long a page is let paint once its data is in. */
 const PAINT = 2000;
 
 /** Each format's quality, Chromium's own encoders: the lowest that shows no loss at twice the density of a phone, in the
@@ -564,9 +563,10 @@ function serveSite() {
     const r = await fetch(DATA + pathname + search).catch((error) => new Response(error.message, { status: 502 }));
     const by = req.headers.get("referer")?.replace(/^https?:\/\/[^/]+/, "") ?? "?";
     if (!r.ok && pathname.startsWith("/api/") && !failing.has(by)) failing.add(by), problems.push(`${DATA} answers ${r.status} for ${pathname}${search}, asked by ${by}: its picture would show the page failing`);
-    // (fetch hands the body decoded: its encoding and length go with it.)
+    // (fetch hands the body decoded: its encoding and length go with it. A server's own address goes too: the pages'
+    // client would go there from then on, past this proxy, its --data and its check.)
     const headers = new Headers(r.headers);
-    headers.delete("content-encoding"), headers.delete("content-length");
+    headers.delete("content-encoding"), headers.delete("content-length"), headers.delete("bitview-origin");
     return new Response(r.body, { status: r.status, headers });
   } });
 }
@@ -703,9 +703,11 @@ function ico(/** @type {number[]} */ sizes, /** @type {Buffer[]} */ pngs) {
   return Buffer.concat([head, ...pngs]);
 }
 
-/** A page in a new tab, as a phone-free desk sees it, dark, less motion; its network quiet and no `data-drawing` left
- * on its <html> (a page still loading or drawing after a minute fails, loudly) and `settle` ms more to paint; its words or all but its scene hidden;
- * or, given its HTML, that page in its place (its address's origin kept, for its files). */
+/** A page in a new tab, as a phone-free desk sees it, dark, less motion; its words or all but its scene hidden; or,
+ * given its HTML, that page in its place (its address's origin kept, for its files). Handed over once its data is in
+ * and `settle` ms more to paint: a page that says when it's drawn (`data-drawing` on its <html>, from its markup until
+ * then) is taken at its word, as one that polls may never go quiet and the network's quiet doesn't see what a worker
+ * reads; any other once its network has gone quiet. One not there after a minute fails, loudly. */
 async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html) {
   const target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })).json();
   const ws = new WebSocket(target.webSocketDebuggerUrl);
@@ -744,8 +746,12 @@ async function screen(/** @type {string} */ port, /** @type {string} */ url, /**
   const went = await send("Page.navigate", { url });
   if (went.errorText) throw new Error(`${url}: ${went.errorText}`);
   const drawing = async () => (await send("Runtime.evaluate", { expression: `document.documentElement.hasAttribute("data-drawing")`, returnByValue: true })).result.value;
-  for (let waited = 0; !quiet.has(went.loaderId) || (await drawing()); waited += 100) {
-    if (waited >= 60_000) throw new Error(`${url}: ${quiet.has(went.loaderId) ? "it wasn't drawn" : "its network wasn't quiet"} in 60 s (still loading?)`);
+  let says = false;
+  for (let waited = 0; ; waited += 100) {
+    const busy = await drawing();
+    says ||= busy;
+    if (!busy && (says || quiet.has(went.loaderId))) break;
+    if (waited >= 60_000) throw new Error(`${url}: ${says ? "it wasn't drawn" : "its network wasn't quiet"} in 60 s (still loading?)`);
     await Bun.sleep(100);
   }
   if (html) {
