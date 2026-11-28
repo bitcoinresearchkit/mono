@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 
-use bitview_compute::{prepare_computed, write_chunks, write_locked};
+use bitview_compute::{Retained, day_closes, prepare_days, write_locked};
 use bitview_primitives::{Day1, Float};
 use bitview_traversable::Traversable;
-use brk_error::Result;
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
@@ -38,17 +38,16 @@ pub struct DayModels<M: StorageMode = Rw> {
     )]
     seller_exhaustion: M::Stored<PcoVec<Day1, Float>>,
     #[traversable(skip)]
-    days: ReadableBoxedVec<Height, Day1>,
+    day_of_height: ReadableBoxedVec<Height, Day1>,
+    #[traversable(skip)]
+    first_height: ReadableBoxedVec<Day1, Height>,
     /// The closed days folded so far, kept between updates.
-    folded: M::WriteOnly<Option<Folded>>,
+    folded: M::WriteOnly<Retained<Folded>>,
 }
 
-/// What the models keep of the closed days before `day`, whose first block is `height`.
+/// What the models keep of the closed days.
 #[derive(Clone, Default)]
 struct Folded {
-    version: Version,
-    day: usize,
-    height: usize,
     caps: f64,
     squares: f64,
     priced_days: u32,
@@ -132,17 +131,19 @@ impl DayModels {
     pub(crate) fn import(
         db: &Database,
         version: Version,
-        days: ReadableBoxedVec<Height, Day1>,
+        day_of_height: ReadableBoxedVec<Height, Day1>,
+        first_height: ReadableBoxedVec<Day1, Height>,
     ) -> Result<Self> {
         Ok(Self {
             mvrv_z: PcoVec::import(db, "mvrv_z", version)?,
             seller_exhaustion: PcoVec::import(db, "seller_exhaustion", version)?,
-            days,
+            day_of_height,
+            first_height,
             folded: Default::default(),
         })
     }
 
-    /// From the day of block `from` on.
+    /// Writes the days from the one before block `from`'s on.
     pub(crate) fn compute(
         &mut self,
         from: Height,
@@ -154,7 +155,7 @@ impl DayModels {
             inputs.supply_profit.len(),
             inputs.realized_cap.len(),
             inputs.spot.len(),
-            self.days.len(),
+            self.day_of_height.len(),
         ]
         .into_iter()
         .min()
@@ -167,85 +168,61 @@ impl DayModels {
             + inputs.supply_profit.version()
             + inputs.realized_cap.version()
             + inputs.spot.version()
-            + self.days.version();
-        // From the last day written at the latest: it was written open, and a stop between the
-        // inputs crossing its midnight and this update would otherwise leave it at an older tip.
-        let from_day = self
-            .days
-            .collect_one_at(from.to_usize().min(end - 1))
-            .unwrap()
-            .to_usize()
-            .min(self.mvrv_z.len().saturating_sub(1));
-        let start_day = prepare_computed(
+            + self.day_of_height.version()
+            + self.first_height.version();
+        let last_day = self.day_of_height.collect_one_at(end - 1).data()?.to_usize();
+        let start_day = prepare_days(
             [
                 &mut self.mvrv_z as &mut dyn AnyStoredVec,
                 &mut self.seller_exhaustion,
             ],
             version,
-            from_day,
+            &self.day_of_height,
+            from,
+            last_day + 1,
             exit,
         )?;
-        // Continued from the open day it stopped in (its blocks walked again), else rebuilt from the
-        // first block (restart, a reorg into an earlier day, new version).
-        let mut folded = self
-            .folded
-            .take()
-            .filter(|kept| kept.version == version && kept.day <= start_day)
-            .unwrap_or(Folded {
-                version,
-                ..Default::default()
-            });
-        let mut open: Option<Close> = None;
-        for chunk in write_chunks(folded.height..end) {
-            let days = self.days.collect_range_at(chunk.start, chunk.end);
-            let supply = inputs.supply.collect_range_at(chunk.start, chunk.end);
-            let profit = inputs
-                .supply_profit
-                .collect_range_at(chunk.start, chunk.end);
-            let realized = inputs.realized_cap.collect_range_at(chunk.start, chunk.end);
-            let spot = inputs.spot.collect_range_at(chunk.start, chunk.end);
-            for at in 0..days.len() {
-                let day = days[at].to_usize();
-                if let Some(closed) = open.take_if(|close| close.day != day) {
-                    self.push(&folded, &closed, start_day);
-                    folded.fold(&closed);
-                    folded.day = day;
-                    folded.height = chunk.start + at;
-                }
+        // Only each day's close is read, so a rebuild (restart, a rewrite into an earlier day,
+        // new version) is cheap.
+        let (first, mut folded) = self.folded.resume(start_day, version, Folded::default);
+        let closes = day_closes(&self.first_height, first..last_day + 1, end);
+        let heights = closes.iter().flatten().copied().collect::<Vec<_>>();
+        let supply = inputs.supply.read_sorted_at(&heights);
+        let profit = inputs.supply_profit.read_sorted_at(&heights);
+        let realized = inputs.realized_cap.read_sorted_at(&heights);
+        let spot = inputs.spot.read_sorted_at(&heights);
+        let mut rows = 0..heights.len();
+        for (day, close) in (first..).zip(closes) {
+            let close = close.map(|_| {
+                let at = rows.next().expect("a row per close");
                 let supply_btc = f64::from(supply[at]) / 100_000_000.0;
-                open = Some(Close {
+                Close {
                     day,
                     market_cap: supply_btc * f64::from(spot[at]),
                     realized_cap: f64::from(realized[at]),
                     price: f64::from(spot[at]),
                     profit_share: f64::from(profit[at]) / f64::from(supply[at]),
-                });
+                }
+            });
+            if day >= start_day {
+                // A day without blocks (January 2009) has neither.
+                let (mvrv_z, seller_exhaustion) = close.as_ref().map_or_else(
+                    || (Float::from(f64::NAN), Float::from(f64::NAN)),
+                    |close| folded.models(close),
+                );
+                self.mvrv_z.push(mvrv_z);
+                self.seller_exhaustion.push(seller_exhaustion);
             }
-            if chunk.end < end {
-                write_locked(self.outputs(), exit)?;
+            // The last day may have more blocks to come: written, not folded.
+            if day < last_day
+                && let Some(close) = &close
+            {
+                folded.fold(close);
             }
-        }
-        // The last day may have more blocks to come: written, not folded.
-        if let Some(last) = open {
-            self.push(&folded, &last, start_day);
         }
         write_locked(self.outputs(), exit)?;
-        self.folded = Some(folded);
+        self.folded.keep(last_day, version, folded);
         Ok(())
-    }
-
-    fn push(&mut self, folded: &Folded, close: &Close, start_day: usize) {
-        if close.day < start_day {
-            return;
-        }
-        let (mvrv_z, seller_exhaustion) = folded.models(close);
-        // A day without blocks (January 2009) has neither.
-        while self.mvrv_z.len() < close.day {
-            self.mvrv_z.push(Float::from(f64::NAN));
-            self.seller_exhaustion.push(Float::from(f64::NAN));
-        }
-        self.mvrv_z.push(mvrv_z);
-        self.seller_exhaustion.push(seller_exhaustion);
     }
 
     fn outputs(&mut self) -> [&mut dyn AnyStoredVec; 2] {

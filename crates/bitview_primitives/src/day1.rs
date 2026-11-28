@@ -1,4 +1,4 @@
-use std::ops::Rem;
+use std::{ops::Rem, sync::OnceLock};
 
 use brk_error::{Error, Result};
 use brk_types::Timestamp;
@@ -18,6 +18,15 @@ use vecdb::{Pco, PrintableIndex};
 pub struct Day1(u16);
 
 brk_types::impl_integer_index!(Day1, u16);
+
+/// The day (UTC) of the chain's genesis block, where a market age in days starts.
+pub fn genesis_day() -> Day1 {
+    static DAY: OnceLock<Day1> = OnceLock::new();
+    *DAY.get_or_init(|| {
+        Day1::try_from(Date::from(brk_types::chain().genesis_time()))
+            .expect("every chain's genesis block is dated 2009 or later")
+    })
+}
 
 impl Day1 {
     pub fn to_timestamp(&self) -> Timestamp {

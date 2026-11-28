@@ -10,7 +10,7 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /api/series` Series catalog
 - `GET /api/series/count` Series count
 - `GET /api/series/indexes` List available indexes
-- `GET /api/series/list` Series list. Query: `q`, `page`, `per_page`
+- `GET /api/series/list` Series list. Query: `page`, `per_page`, `q`
 - `GET /api/series/search` Search series. Query: `q`*, `limit`
 - `GET /api/series/{series}` Get series info
 - `GET /api/series/{series}/{index}` Get series data. Query: `start`, `end`, `limit`, `format`

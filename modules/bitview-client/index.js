@@ -3356,16 +3356,20 @@ const _PowerLaw = _s({
 /**
  * @typedef {{
  *   sma111d: SeriesPattern1<?Dollars>,
+ *   sma111dRatio: SeriesPattern1<?Multiple>,
  *   sma350d: SeriesPattern1<?Dollars>,
+ *   sma350dRatio: SeriesPattern1<?Multiple>,
  *   line: SeriesPattern1<?Dollars>,
  *   top: SeriesPattern1<?Multiple>,
  * }} PiCycle
  */
 const _PiCycle = _s({
-  sma111d: [_i1, 'price_sma_111d'],
-  sma350d: [_i1, 'price_sma_350d'],
-  line: [_i1, '*_line'],
-  top: [_i1, '*'],
+  sma111d: [_i1, '*_111d'],
+  sma111dRatio: [_i1, '*_111d_ratio'],
+  sma350d: [_i1, '*_350d'],
+  sma350dRatio: [_i1, '*_350d_ratio'],
+  line: [_i1, 'pi_cycle_top_line'],
+  top: [_i1, 'pi_cycle_top'],
 });
 
 /**
@@ -3604,7 +3608,7 @@ const _Market = _s({
   returns: [_ByLookbackPeriod, '*_return'],
   range: [_MarketRange, '*'],
   sma: [(c, b) => _Ema(c, b, _MarketPriceWithRatio), '*_sma'],
-  piCycle: [_PiCycle, 'pi_cycle_top'],
+  piCycle: [_PiCycle, '*_sma'],
   ema: [(c, b) => _Ema(c, b, _PriceWithRatio), '*_ema'],
   powerLaw: [_PowerLaw, 'power_law'],
 });
@@ -7359,7 +7363,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "6bb3c6b59797b430160ca4eae2029039fc06ceda07bb0eaa049fe4b86b8f05ac";
+  static HASH = "a139ba1952423dd8568ddff7777cbd2fa8c41126cdfcdedaf7a4b179ef1b5cd5";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8341,20 +8345,20 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/list`
    *
    * @param {object} [options]
-   * @param {string} [options.q] - Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
    * @param {number} [options.page] - Zero-based page number (default: 0)
    * @param {number} [options.per_page] - Results per page, 1 to 1,000 (default: 1000)
+   * @param {string} [options.q] - Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<PaginatedSeries>) => void} [options.onValue]
    * @param {boolean} [options.cache]
    * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PaginatedSeries>>}
    */
-  async listSeries({ q, page, per_page, signal, onValue, cache, memCache } = {}) {
+  async listSeries({ page, per_page, q, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (q != null) params.set('q', String(q));
     if (page != null) params.set('page', String(page));
     if (per_page != null) params.set('per_page', String(per_page));
+    if (q != null) params.set('q', String(q));
     const query = params.toString();
     const path = `/api/series/list${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });

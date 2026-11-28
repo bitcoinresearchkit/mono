@@ -5,11 +5,8 @@ use crate::PageSize;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+// The generated clients take the fields in this order, so a new one goes last.
 pub struct SeriesListQuery {
-    /// Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
-    #[serde(default)]
-    #[schemars(example = &"rarity")]
-    pub q: String,
     /// Zero-based page number (default: 0)
     #[serde(default, deserialize_with = "crate::de_plain")]
     #[schemars(extend("examples" = [0, 1, 2]))]
@@ -21,6 +18,10 @@ pub struct SeriesListQuery {
     )]
     #[schemars(extend("examples" = [100, 1000]))]
     pub per_page: PageSize,
+    /// Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
+    #[serde(default)]
+    #[schemars(example = &"rarity")]
+    pub q: String,
 }
 
 impl SeriesListQuery {

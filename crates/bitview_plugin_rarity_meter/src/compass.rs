@@ -1,4 +1,4 @@
-use bitview_compute::{FenwickTree, prepare_computed, write_locked};
+use bitview_compute::{FenwickTree, Retained, prepare_days, write_locked};
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -6,12 +6,12 @@ use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{Day1, Days, Flag, Float, Mood};
 use bitview_traversable::Traversable;
 use bitview_vecs::CostBasisByDollar;
-use brk_error::{OptionData, Result};
+use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, Database, ImportableVec, PcoVec, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, Rw, StorageMode, VecIndex, WritableVec,
+    ReadableVec, Rw, StorageMode, WritableVec,
 };
 
 /// Days before the index and the extremes start: with fewer behind it, a place outside a cloud
@@ -23,7 +23,7 @@ const HALF_LIFE: f64 = 1461.0;
 /// Log distances outside a cloud, ranked by bucket.
 const BUCKETS: usize = 4096;
 const WIDTH: f64 = 0.002;
-/// An extreme day's place is in this outer share of the earlier days' places, either way.
+/// An extreme day's place has under this share of the earlier places' weight below it, or above it.
 const EXTREME: f64 = 0.01;
 
 fn weight(day: usize) -> f64 {
@@ -83,10 +83,11 @@ pub struct CompassSeries<M: StorageMode = Rw> {
         lead = "Compass mood: 0 Optimism to 8 Fear, by the price above, inside or below each cloud."
     )]
     mood: M::Stored<PcoVec<Day1, Mood>>,
-    /// 1 when the price is further from a cloud than on 99 in 100 earlier days, weighted as the
-    /// positions are. Null for the first year.
+    /// 1 when the day's position against either cloud is in the outer 1% of the earlier days'
+    /// positions, either way: those below it, or those above it, hold under 1% of all their
+    /// weight, days weighted as the positions weigh them. Null for the first year.
     #[traversable(
-        lead = "Compass extreme: 1 when the price is further from a cloud than on 99 in 100 earlier days."
+        lead = "Compass extreme: 1 when under 1% of the earlier days, by weight, sat lower than the day, or higher, against either cloud."
     )]
     extreme: M::Stored<PcoVec<Day1, Flag>>,
     /// Days into the mood's current run so far, the day itself included; never the run's final
@@ -97,7 +98,7 @@ pub struct CompassSeries<M: StorageMode = Rw> {
     #[traversable(skip)]
     lines: [[ReadableBoxedVec<Day1, Option<Dollars>>; 9]; 2],
     /// The closed days folded so far, kept between updates.
-    folded: M::WriteOnly<Option<Folded>>,
+    folded: M::WriteOnly<Retained<Folded>>,
 }
 
 impl Compass {
@@ -127,24 +128,11 @@ impl Compass {
         })
     }
 
-    /// From the day before block `from`'s on: the first block a rewrite replaces can fall on a
-    /// later day than the one it removed.
+    /// Writes the days from the one before block `from`'s on.
     pub(crate) fn compute(&mut self, from: Height, exit: &Exit) -> Result<()> {
-        let Some(last) = self.day_of_height.len().checked_sub(1) else {
-            return Ok(());
-        };
-        let from_day = self
-            .day_of_height
-            .collect_one(
-                from.decremented()
-                    .unwrap_or(Height::ZERO)
-                    .min(Height::from(last)),
-            )
-            .data()?
-            .to_usize();
         let version = Version::ONE + self.close.version() + self.day_of_height.version();
         for series in [&mut self.mobile, &mut self.awake] {
-            series.compute(from_day, &self.close, version, exit)?;
+            series.compute(from, &self.day_of_height, &self.close, version, exit)?;
         }
         Ok(())
     }
@@ -188,10 +176,10 @@ impl CompassSeries {
         })
     }
 
-    /// From `from_day` on, the last day written at the latest: it was written open.
     fn compute(
         &mut self,
-        from_day: usize,
+        from: Height,
+        day_of_height: &ReadableBoxedVec<Height, Day1>,
         close: &ReadableBoxedVec<Day1, Option<Dollars>>,
         version: Version,
         exit: &Exit,
@@ -212,26 +200,18 @@ impl CompassSeries {
                 .iter()
                 .map(AnyVec::version)
                 .sum::<Version>();
-        let from_day = from_day
-            .min(end - 1)
-            .min(self.index.len().saturating_sub(1));
-        let start_day = prepare_computed(self.outputs(), version, from_day, exit)?;
+        let start_day = prepare_days(self.outputs(), version, day_of_height, from, end, exit)?;
         // Continued from the open day it stopped at, else rebuilt from the first day (restart, a
         // rewrite into an earlier day, new version).
-        let mut folded = self
-            .folded
-            .take()
-            .filter(|kept| kept.version == version && kept.day <= start_day)
-            .unwrap_or_else(|| Folded::new(version));
-        let from = folded.day;
-        let closes = close.collect_range_at(from, end);
+        let (first, mut folded) = self.folded.resume(start_day, version, Folded::new);
+        let closes = close.collect_range_at(first, end);
         let lines = self
             .lines
             .as_flattened()
             .iter()
-            .map(|line| line.collect_range_at(from, end))
+            .map(|line| line.collect_range_at(first, end))
             .collect::<Vec<_>>();
-        for (at, day) in (from..end).enumerate() {
+        for (at, day) in (first..end).enumerate() {
             let inputs = Inputs::of(closes[at], |k| lines[k][at]);
             let today = folded.read(day, inputs);
             // A day's extreme scans every earlier day: only for the days written.
@@ -239,15 +219,14 @@ impl CompassSeries {
                 self.push(today.as_ref().map(|today| (today, folded.extreme(today))));
             }
             // The last day may have more blocks to come: written, not folded.
-            if day + 1 < end {
-                if let Some(today) = &today {
-                    folded.fold(today);
-                }
-                folded.day = day + 1;
+            if day + 1 < end
+                && let Some(today) = &today
+            {
+                folded.fold(today);
             }
         }
         write_locked(self.outputs(), exit)?;
-        self.folded = Some(folded);
+        self.folded.keep(end - 1, version, folded);
         Ok(())
     }
 
@@ -348,11 +327,9 @@ struct Day {
     run_start: usize,
 }
 
-/// What the Compass keeps of the closed days before `day`.
+/// What the Compass keeps of the closed days before the next one it reads.
 #[derive(Clone)]
 struct Folded {
-    version: Version,
-    day: usize,
     /// The first day with a mood.
     first: Option<usize>,
     last: Option<Inputs>,
@@ -367,10 +344,8 @@ struct Folded {
 }
 
 impl Folded {
-    fn new(version: Version) -> Self {
+    fn new() -> Self {
         Self {
-            version,
-            day: 0,
             first: None,
             last: None,
             ranks: std::array::from_fn(|_| std::array::from_fn(|_| FenwickTree::new(BUCKETS))),

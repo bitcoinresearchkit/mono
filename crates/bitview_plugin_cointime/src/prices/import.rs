@@ -1,6 +1,6 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Date, Float64, PriceRatio};
+use bitview_primitives::{Float64, PriceRatio, genesis_day};
 use bitview_vecs::{
     LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price, PriceWithMvrv, PriceWithRatio,
     import_cached,
@@ -38,7 +38,7 @@ impl Vecs {
         let average_cap = PcoVec::import(db, "average_cap", version)?;
         let timestamps = &mappings.timestamp.monotonic;
         // The market's age from the genesis block's day, as RHODL weighs it.
-        let genesis = Timestamp::from(Date::from(brk_types::chain().genesis_time()));
+        let genesis = genesis_day().to_timestamp();
         let transferred_cap = LazyIndexedVec::new(
             "transferred_cap",
             version,
@@ -168,7 +168,8 @@ fn per_coin(
     Price::from_height_source(name, version, &source, mappings)
 }
 
-/// Realized capitalization less another, in USD.
+/// Realized capitalization less another, in USD; undefined (NaN) where the difference is negative,
+/// as a price below zero is none.
 fn realized_less<C: ReadableCloneableVec<Height, Dollars>>(
     name: &str,
     version: Version,
@@ -176,6 +177,11 @@ fn realized_less<C: ReadableCloneableVec<Height, Dollars>>(
     cap: &C,
 ) -> impl ReadableCloneableVec<Height, Dollars> + use<C> {
     LazyIndexedVec::new(name, version, realized_cap, cap, |_, realized: Cents, cap: Dollars| {
-        Dollars::from(realized) - cap
+        let difference = Dollars::from(realized) - cap;
+        if difference < Dollars::ZERO {
+            Dollars::NAN
+        } else {
+            difference
+        }
     })
 }

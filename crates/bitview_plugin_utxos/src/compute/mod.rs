@@ -44,8 +44,7 @@ impl ComputePlugin for Vecs {
                         exit,
                     )?;
                 }
-                vecs.amount_gini
-                    .compute(&vecs.cohorts.amounts, mappings, from, exit)
+                vecs.amount_gini.compute(&vecs.cohorts.amounts, from, exit)
             },
         )
     }

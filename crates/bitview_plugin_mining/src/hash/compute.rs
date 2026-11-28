@@ -53,7 +53,14 @@ impl Vecs {
             (&mut sma._2m.height, lookback.start_vec(60), two_months),
             (&mut sma._1y.height, lookback.start_vec(365), year),
         ] {
-            sma.compute_rolling_average(starting_height, window, hash_rate, retained, exit)?;
+            sma.compute_rolling_average(
+                starting_height,
+                window,
+                hash_rate,
+                Height::ZERO,
+                retained,
+                exit,
+            )?;
         }
 
         self.hashrate.ath.height.compute_all_time_high(

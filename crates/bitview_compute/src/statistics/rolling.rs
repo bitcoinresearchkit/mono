@@ -32,13 +32,15 @@ pub trait ComputeRollingStats {
     /// undefined value counts as zero. Every 1,024th row rebuilds its window's f64 sum from the
     /// values and the rows after continue from it, so a row's value depends on its position
     /// alone: a resumed run matches an uninterrupted one bit for bit, and rounding never builds
-    /// up past one stride. A window starting after its row is empty: NaN. The `retained` window
-    /// continues the previous update when current.
+    /// up past one stride. A window starting after its row is empty: NaN, and so is one starting
+    /// before `earliest_start`, which reaches rows the caller has no values for. The `retained`
+    /// window continues the previous update when current.
     fn compute_rolling_average<A>(
         &mut self,
         max_from: Self::I,
         window_starts: &impl ReadableVec<Self::I, Self::I>,
         values: &impl ReadableVec<Self::I, A>,
+        earliest_start: Self::I,
         retained: &mut Retained<AverageWindow>,
         exit: &Exit,
     ) -> Result<()>
@@ -250,6 +252,7 @@ where
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
+        earliest_start: V::I,
         retained: &mut Retained<AverageWindow>,
         exit: &Exit,
     ) -> Result<()>
@@ -278,7 +281,8 @@ where
                 for (index, (start, value)) in (from..end).zip(starts.into_iter().zip(entering)) {
                     let average = window.push(index, f64::from(value), start.to_usize());
                     if index >= skip {
-                        this.push(V::T::from(average));
+                        let defined = start >= earliest_start;
+                        this.push(V::T::from(if defined { average } else { f64::NAN }));
                     }
                 }
                 retained.keep(end, version, window);

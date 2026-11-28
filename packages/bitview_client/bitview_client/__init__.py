@@ -3711,10 +3711,12 @@ class PowerLaw(_Node):
 
 
 class PiCycle(_Node):
-    sma_111d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_111d')
-    sma_350d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_350d')
-    line: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_line')
-    top: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*')
+    sma_111d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_111d')
+    sma_111d_ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_111d_ratio')
+    sma_350d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_350d')
+    sma_350d_ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_350d_ratio')
+    line: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'pi_cycle_top_line')
+    top: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'pi_cycle_top')
 
 
 class MarketPriceWithRatio(_Node):
@@ -3826,7 +3828,7 @@ class Market(_Node):
     returns: ByLookbackPeriod = _at(ByLookbackPeriod, '*_return')
     range: MarketRange = _at(MarketRange, '*')
     sma: Ema[MarketPriceWithRatio] = _at((Ema, MarketPriceWithRatio), '*_sma')
-    pi_cycle: PiCycle = _at(PiCycle, 'pi_cycle_top')
+    pi_cycle: PiCycle = _at(PiCycle, '*_sma')
     ema: Ema[PriceWithRatio] = _at((Ema, PriceWithRatio), '*_ema')
     power_law: PowerLaw = _at(PowerLaw, 'power_law')
 
@@ -6462,16 +6464,16 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')
 
-    def list_series(self, *, q: Optional[str] = None, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
+    def list_series(self, *, page: Optional[int] = None, per_page: Optional[int] = None, q: Optional[str] = None) -> PaginatedSeries:
         """Series list.
 
         Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most 1024 UTF-8 bytes).
 
         Endpoint: `GET /api/series/list`"""
         params: List[Tuple[str, Any]] = []
-        if q is not None: params.append(('q', q))
         if page is not None: params.append(('page', page))
         if per_page is not None: params.append(('per_page', per_page))
+        if q is not None: params.append(('q', q))
         query = urlencode(params)
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)
