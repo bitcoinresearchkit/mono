@@ -1328,35 +1328,11 @@
       }, { capture: true });
 
       const PER_DECADE = 200;
-      const AMOUNTS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10000];
-      const OFFSETS = [-400, -340, -305, -260, -200, -165, -140, -120, -105, -60, 0, 35, 60, 95, 140, 200, 260, 340, 400];
       const MAJOR = new Set([1, 10, 100, 1000, 10000]);
-      const BELOW = 12, ABOVE = 11;
       const ALPHA = 2 / 7, WINDOW = 12;
 
       const binOf = (/** @type {number} */ amount, /** @type {number} */ price) => Math.log10((amount / price) * 1e8) * PER_DECADE;
       const priceOf = (/** @type {number} */ bin) => 10 ** (10 - bin / PER_DECADE);
-
-      function scorer(/** @type {number[]} */ h, /** @type {number} */ prev, reach = { below: BELOW, above: ABOVE }) {
-        const c0 = Math.round(prev) - reach.below, c1 = Math.round(prev) + reach.above;
-        const peaks = OFFSETS.map((o) => {
-          let peak = 0;
-          for (let c = c0; c <= c1; c++) peak = Math.max(peak, h[c + o] ?? 0);
-          return peak;
-        });
-        const whole = (/** @type {number} */ c) => {
-          let total = 0;
-          for (let k = 0; k < OFFSETS.length; k++) if (peaks[k]) total += (h[c + OFFSETS[k]] ?? 0) / peaks[k];
-          return total;
-        };
-        const at = (/** @type {number} */ c) => {
-          const b = Math.floor(c), u = c - b;
-          return whole(b) * (1 - u) + whole(b + 1) * u;
-        };
-        let best = 0;
-        for (let c = c0; c <= c1; c++) best = Math.max(best, whole(c));
-        return { at, whole, best, c0, c1 };
-      }
 
       /** One formatter: a number's toLocaleString makes one per call. */
       const groupedFormat = new Intl.NumberFormat("en-US");
@@ -1399,7 +1375,8 @@
       /** @type {{ h: number, p: number, t: number }[]} */
       let points = [];
       /** @typedef {{ coinbase: number, fan_out: number, op_return: number, taproot: number, dust: number, round_btc: number, payments: number }} Outputs */
-      /** @typedef {{ height: number, hash: string, mempool: boolean, price: number, bin: number, first_bin: number, scores: number[], histogram: number[], outputs: Outputs }} Search */
+      /** @typedef {{ height: number, hash: string, mempool: boolean, price: number, bin: number, first_bin: number, scores: number[], histogram: number[], outputs: Outputs, fit: Fit, stencil: { dollars: number, offset: number }[] }} Search */
+      /** @typedef {{ first_bin: number, scores: number[] }} Fit */
       /** @typedef {{ height: number, first_bucket: number, counts: number[] }} Payments */
       /** @type {Map<number, Payments>} */
       let payments = new Map();
@@ -1556,9 +1533,9 @@
           liftAt(j, binOf(100, pt.p));
         });
         if (liveSearch) {
-          const j = blocks, { first_bin, scores, histogram } = liveSearch;
+          const j = blocks, { first_bin, scores, histogram, stencil } = liveSearch;
           for (let c = first_bin; c < first_bin + scores.length; c++) {
-            const v = OFFSETS.reduce((total, o) => total + (histogram[c + o] ?? 0), 0) / PER_BIN;
+            const v = stencil.reduce((total, { offset }) => total + (histogram[c + offset] ?? 0), 0) / PER_BIN;
             for (let b = c * PER_BIN - PER_BIN / 2; b < c * PER_BIN + PER_BIN / 2; b++) {
               const r = Math.floor((b - top) / per);
               if (r < 0 || r >= rows) continue;
@@ -1669,11 +1646,16 @@
       chart.addEventListener("pointerup", (e) => e.pointerType === "touch" && point(null));
 
       const plate = $("plate"), spectrum = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("spectrum")));
-      const REACH = 120;
       const SPAN = 470;
       let shift = 0;
-      /** The oracle's own normalization holds only inside its window: the fit is normalized over everywhere within reach. */
-      let wide = scorer([], 0), own = { c0: 0, c1: 0 }, most = 0;
+      /** The oracle's own scores are normalized only inside its window; the served fit, over its whole reach. */
+      let fit = /** @type {Fit} */ ({ first_bin: 0, scores: [] }), own = { c0: 0, c1: 0 }, most = 0;
+      const fitEnd = () => fit.first_bin + fit.scores.length - 1;
+      /** The fit at `c`, between its bins. */
+      const fitAt = (/** @type {number} */ c) => {
+        const b = Math.floor(c), u = c - b, at = (/** @type {number} */ i) => fit.scores[i - fit.first_bin] ?? 0;
+        return at(b) * (1 - u) + at(b + 1) * u;
+      };
       let picked = /** @type {number | null} */ (null);
       /** @type {Map<number, Search>} */
       const searchAt = new Map();
@@ -1690,9 +1672,8 @@
         shownSearch = s;
         const center = s.bin;
         own = { c0: s.first_bin, c1: s.first_bin + s.scores.length - 1 };
-        wide = scorer(s.histogram, center, { below: REACH, above: REACH });
-        most = 0;
-        for (let c = center - REACH; c <= center + REACH; c += 0.5) most = Math.max(most, wide.at(c));
+        fit = s.fit;
+        most = Math.max(0, ...fit.scores);
         const mempool = s.mempool;
         $("newest").textContent = mempool ? "the mempool" : `block ${grouped(s.height)}`;
         $("oldest").textContent = `block ${grouped(s.height - 11)}`;
@@ -1841,24 +1822,25 @@
           return `<rect${cls} x="${x(b - 0.5).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${bw.toFixed(2)}" height="${bh.toFixed(1)}"/>`;
         };
         // What stays put is drawn once per block and size; a drag or glide frame draws only what moves.
-        const drawnFor = [shownSearch, w, h, wide, most, own];
+        const drawnFor = [shownSearch, w, h, most, own];
         const redraw = !plateStill || plateStill.some((v, i) => v !== drawnFor[i]);
         let teeth = "";
-        OFFSETS.forEach((o, k) => {
-          const at = here + o, tx = x(at).toFixed(1), major = MAJOR.has(AMOUNTS[k]);
+        const { stencil } = shownSearch;
+        stencil.forEach(({ dollars, offset }) => {
+          const at = here + offset, tx = x(at).toFixed(1), major = MAJOR.has(dollars);
           teeth += `<line class="tooth${major ? " major" : ""}" x1="${tx}" x2="${tx}" y1="${top - 6}" y2="${base}"/>${bar(Math.round(at), ' class="hit"')}`;
         });
         /** @type {[number, number][]} */
         const taken = [];
-        for (const k of AMOUNTS.map((_, k) => k).sort((a, b) => +MAJOR.has(AMOUNTS[b]) - +MAJOR.has(AMOUNTS[a]))) {
-          const major = MAJOR.has(AMOUNTS[k]), text = major ? dollars(AMOUNTS[k]) : dollars(AMOUNTS[k]).slice(1), cx = x(here + OFFSETS[k]);
+        for (const { dollars: amount, offset } of stencil.toSorted((a, b) => +MAJOR.has(b.dollars) - +MAJOR.has(a.dollars))) {
+          const major = MAJOR.has(amount), text = major ? dollars(amount) : dollars(amount).slice(1), cx = x(here + offset);
           const half = (text.length * (major ? 11 : 10) * 0.6) / 2 + 3;
           if (cx - half < 0 || cx + half > w || taken.some(([a, b]) => cx + half > a && cx - half < b)) continue;
           taken.push([cx - half, cx + half]);
           teeth += `<text class="tooth-label${major ? "" : " minor"}" x="${cx.toFixed(1)}" y="${top - 12}" text-anchor="middle">${text}</text>`;
         }
         // The fit's echoes at double and half: $50 payments pass for $100 ones.
-        const s0 = h - strip + 28, s1 = h - 22, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
+        const s0 = h - strip + 28, s1 = h - 22, fx = (/** @type {number} */ c) => 8 + ((c - fit.first_bin) / (fitEnd() - fit.first_bin)) * (w - 16);
         if (redraw) {
           let bars = "";
           for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
@@ -1868,25 +1850,25 @@
             rule += `<line class="rule" x1="${tx}" x2="${tx}" y1="${base}" y2="${base + 5}"/><text class="axis-text" x="${tx}" y="${base + 17}" text-anchor="middle">${sats >= 1e6 ? `${sats / 1e6}M` : sats >= 1e3 ? `${sats / 1e3}k` : sats}</text>`;
           }
           const pts = [];
-          for (let c = center - REACH; c <= center + REACH; c += 0.5) pts.push(`${fx(c).toFixed(1)},${(s1 - (wide.at(c) / most) * (s1 - s0)).toFixed(1)}`);
+          fit.scores.forEach((score, i) => pts.push(`${fx(fit.first_bin + i).toFixed(1)},${(s1 - (score / most) * (s1 - s0)).toFixed(1)}`));
           // Ticks under the strip say what the price would be there against the answer, never in dollars: a dollar value
           // beside "fit" or "price" reads as the price.
           const marks = /** @type {[number, string][]} */ ([[-60, "double"], [0, "the price"], [60, "half"]]).map(([d, words]) => `<line class="rule" x1="${fx(center + d)}" x2="${fx(center + d)}" y1="${s1}" y2="${s1 + 4}"/><text class="axis-text" x="${fx(center + d)}" y="${h - 6}" text-anchor="middle">${words}</text>`).join("");
-          const fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">how well it fits</text><line class="rule" x1="0" x2="${w}" y1="${s1 + 0.5}" y2="${s1 + 0.5}"/>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/>`;
+          const fitDrawn = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">how well it fits</text><line class="rule" x1="0" x2="${w}" y1="${s1 + 0.5}" y2="${s1 + 0.5}"/>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(fit.first_bin)},${s1} ${pts.join(" ")} ${fx(fitEnd())},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/>`;
           spectrum.setAttribute("viewBox", `0 0 ${w} ${h}`);
-          spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fit}<g id="moving"></g>`;
+          spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fitDrawn}<g id="moving"></g>`;
           plateStill = drawnFor;
         }
         /** @type {SVGGElement} */ (spectrum.querySelector("#moving")).innerHTML = `<line class="here" x1="${fx(here)}" x2="${fx(here)}" y1="${s0 - 2}" y2="${s1}"/>${teeth}`;
-        const price = priceOf(here), fitted = Math.abs(shift) < 0.5, score = wide.at(here) / most;
+        const price = priceOf(here), fitted = Math.abs(shift) < 0.5, score = fitAt(here) / most;
         $("tried").textContent = `$${grouped(price)}`;
         $("meter").style.width = `${Math.round(score * 100)}%`;
         $("pct").textContent = `${Math.round(score * 100)}%`;
         $("readout").toggleAttribute("data-locked", fitted);
         plate.toggleAttribute("data-locked", fitted);
         plate.setAttribute("aria-valuenow", String(Math.round(price)));
-        plate.setAttribute("aria-valuemin", String(Math.round(priceOf(center + REACH))));
-        plate.setAttribute("aria-valuemax", String(Math.round(priceOf(center - REACH))));
+        plate.setAttribute("aria-valuemin", String(Math.round(priceOf(fitEnd()))));
+        plate.setAttribute("aria-valuemax", String(Math.round(priceOf(fit.first_bin))));
         plate.setAttribute("aria-valuetext", `$${grouped(price)}, fit ${Math.round(score * 100)}%${fitted ? ": the price" : ""}`);
         showSums(price);
       }
@@ -1910,7 +1892,11 @@
         };
         gliding = requestAnimationFrame(step);
       }
-      const clampShift = (/** @type {number} */ s) => Math.max(-REACH, Math.min(REACH, s));
+      /** A shift that keeps the fingerprint within the fit's reach. */
+      const clampShift = (/** @type {number} */ s) => {
+        const center = shownSearch?.bin ?? 0;
+        return Math.max(fit.first_bin, Math.min(fitEnd(), center + s)) - center;
+      };
 
       let grab = { x: 0, shift: 0 };
       across(plate, {

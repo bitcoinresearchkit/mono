@@ -1,10 +1,11 @@
-use brk_oracle::{HistogramEma, Tally};
+use brk_oracle::{HistogramEma, ROUND_DOLLARS, STENCIL_OFFSETS, Tally};
 use brk_types::{BlockHash, Dollars, Height};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
-/// `scores`) and what it found (`bin`, `price`).
+/// `scores`), what it found (`bin`, `price`) and how well its stencil fits around that (`fit`,
+/// `stencil`).
 ///
 /// Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
 /// `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
@@ -40,6 +41,41 @@ pub struct OracleBlock {
     pub histogram: HistogramEma,
     /// The block's own outputs (live, the mempool's) as the oracle's filter judged them.
     pub outputs: OracleOutputs,
+    /// How well the stencil fits around the answer: every bin within 120 of `bin` (rounded),
+    /// scored as `scores` scores a candidate, with each amount's peak taken over this wider
+    /// window. It peaks at the price and echoes where other amounts pass for $100, as at double
+    /// and half.
+    pub fit: OracleFit,
+    /// The stencil it scores with: each round-dollar amount and where it lands from $100's bin.
+    pub stencil: [OracleAmount; STENCIL_OFFSETS.len()],
+}
+
+/// Scores over a run of bins.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct OracleFit {
+    /// The first bin scored.
+    pub first_bin: u16,
+    /// Each bin's score, from `first_bin` on, unitless.
+    pub scores: Vec<f64>,
+}
+
+/// One of the stencil's round-dollar amounts.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct OracleAmount {
+    /// The amount, in dollars.
+    pub dollars: u16,
+    /// Its bin minus $100's: `round(log10(dollars / 100) * 200)`.
+    pub offset: i16,
+}
+
+impl OracleAmount {
+    /// The stencil's amounts, smallest first.
+    pub fn stencil() -> [Self; STENCIL_OFFSETS.len()] {
+        std::array::from_fn(|i| Self {
+            dollars: ROUND_DOLLARS[i] as u16,
+            offset: STENCIL_OFFSETS[i] as i16,
+        })
+    }
 }
 
 /// A block's outputs as the oracle's filter judged them: each skipped one under the first rule

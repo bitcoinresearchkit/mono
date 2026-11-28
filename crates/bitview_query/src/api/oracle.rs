@@ -2,9 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use bitview_plugin_price::{block_payments, block_tally, feed_blocks_with, warm_oracle};
 use bitview_primitives::Lengths;
-use bitview_types::{OracleBlock, OracleBlockPayments, OraclePayments, PricePoint};
+use bitview_types::{
+    OracleAmount, OracleBlock, OracleBlockPayments, OracleFit, OraclePayments, PricePoint,
+};
 use brk_oracle::{
-    Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, Search, Tally, bin_to_cents, dollars_bin_offset,
+    Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, Tally, bin_to_cents, dollars_bin_offset,
     one_dollar_bin,
 };
 use brk_types::{BlockHash, Height, Timestamp};
@@ -71,12 +73,9 @@ impl Query {
         // (The window's histogram doesn't depend on the seed: the answers do, read as stored.)
         let prev = self.seed_bin_at(height - 1)?;
         let oracle = warm_oracle(self.indexer(), prev, height + 1, Some(&safe))?;
-        let search = oracle
-            .search(prev)
-            .ok_or_else(|| Error::NotFound(format!("no oracle reading at height {height}")))?;
         let bin = self.seed_bin_at(height)?;
         let tally = block_tally(self.indexer(), height, Some(&safe))?;
-        Ok(reading(height, block.hash, search, bin, &oracle, tally, false))
+        reading(height, block.hash, prev, bin, &oracle, tally, false)
     }
 
     /// The payments chunk from `start` (a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
@@ -229,19 +228,16 @@ impl Query {
                 format!("the oracle's blocks: after height {START_HEIGHT_FAST}").into(),
             ));
         }
-        let search = oracle
-            .search(prev)
-            .ok_or_else(|| Error::NotFound("no oracle reading at the tip".to_owned()))?;
         let hash = live.pin.tip();
-        Ok(reading(
+        reading(
             height,
             hash,
-            search,
+            prev,
             oracle.ref_bin(),
             &oracle,
             tally,
             live.mempool.is_some(),
-        ))
+        )
     }
 
     /// The price now and when it came to be: the mempool publication blended into it, or
@@ -362,18 +358,25 @@ impl Query {
     }
 }
 
-/// A block's reading, for the wire: its search, the histogram `oracle` scored and the block's
+/// How far the fit reaches from the answer, in bins: a factor of about 4 (10^(120/200)) either way.
+const FIT_REACH: usize = 120;
+
+/// A block's reading, for the wire: its search from `prev` (the block before's answer), the
+/// histogram `oracle` scored, how well the stencil fits around `bin` (the answer) and the block's
 /// outputs as the filter judged them.
 fn reading(
     height: usize,
     hash: BlockHash,
-    search: Search,
+    prev: f64,
     bin: f64,
     oracle: &Oracle,
     tally: Tally,
     mempool: bool,
-) -> OracleBlock {
-    OracleBlock {
+) -> Result<OracleBlock> {
+    let missing = || Error::NotFound(format!("no oracle reading at height {height}"));
+    let search = oracle.search(prev).ok_or_else(missing)?;
+    let fit = oracle.fit(bin, FIT_REACH).ok_or_else(missing)?;
+    Ok(OracleBlock {
         height: Height::from(height),
         hash,
         mempool,
@@ -383,7 +386,12 @@ fn reading(
         scores: search.scores,
         histogram: oracle.ema().clone(),
         outputs: tally.into(),
-    }
+        fit: OracleFit {
+            first_bin: fit.first_bin as u16,
+            scores: fit.scores,
+        },
+        stencil: OracleAmount::stencil(),
+    })
 }
 
 /// The live oracle and what its searches start from.

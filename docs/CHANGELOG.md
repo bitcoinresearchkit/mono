@@ -8,6 +8,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- An oracle block's reading (`/api/oracle/blocks/{height}`, `/api/oracle/live`) also gives how well its stencil fits
+  around the answer (`fit`: every bin within 120 of it, scored as its candidates are) and the stencil itself
+  (`stencil`: the 19 round-dollar amounts and their offsets in bins). The oracle page draws the fit and the
+  fingerprint from them instead of keeping its own copy of the stencil. The other fields are unchanged.
 - Block fees, rewards, fee rates, sizes and weights over all history answer in 2 to 9 ms of server time instead of
   18 to 32 ms, the same bytes: blocks are grouped into time buckets as runs rather than by sorting every block, and
   fees, rewards, sizes and weights are read from their running totals.
