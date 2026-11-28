@@ -9,6 +9,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 ## Unreleased
 
 - The chart engine's two development pages (`/_engine/`) are no longer served.
+- A new series, `spent_txout_height` on `txin_index`: the height of the block holding the output each input spends
+  (null for a coinbase input), a lazy view of `spent_txout_index` through the block boundaries, no storage. The
+  explorer reads it over a mined transaction's inputs, then those blocks' prices and times in one read of the heights
+  they span, so every coin's age, price and profit or loss is shown, not the first 60. A waiting transaction still asks
+  each spent transaction's status, for its first 60.
 - An oracle block's reading (`/api/oracle/blocks/{height}`, `/api/oracle/live`) also gives how well its stencil fits
   around the answer (`fit`: every bin within 120 of it, scored as its candidates are) and the stencil itself
   (`stencil`: the 19 round-dollar amounts and their offsets in bins). The oracle page draws the fit and the

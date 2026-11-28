@@ -5136,6 +5136,7 @@ class Inputs(_Node):
     spent_within: SpentWithin = _at(SpentWithin, 'spent_utxo_*')
     same_block: Flow[Count] = _at(Flow, 'same_block_spent_utxo_*')
     coinbase_witness: CumulativeFlow = _at(CumulativeFlow, 'coinbase_witness_block_*')
+    spent_txout_height: SeriesPattern22[Height] = _at(SeriesPattern22, 'spent_txout_height')
 
 
 class CoinbaseLocktime(_Node):

@@ -1,5 +1,6 @@
 use bitview_plugin::ImportContext;
-use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::{HeightOfVec, Vecs as MappingsVecs};
 use bitview_primitives::Count;
 use bitview_vecs::{
     LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative, shapes::Windows,
@@ -19,6 +20,7 @@ pub(crate) fn without_coinbase(height: Height, total: Count) -> Count {
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
+        indexer: &Indexer,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
@@ -58,6 +60,11 @@ impl Vecs {
             per_second,
             types,
             counts,
+            spent_txout_height: HeightOfVec::new(
+                "spent_txout_height",
+                indexer.vecs().inputs.txout_index.view(),
+                &mappings.output_heights,
+            ),
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

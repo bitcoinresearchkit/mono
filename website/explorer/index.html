@@ -1526,6 +1526,17 @@
         return memo.get(key);
       };
       const priceAt = (h) => once(`price ${h}`, async () => (await series("price", "height", h, h + 1))[0]);
+      // The values of the series `ids` at each of `heights`: one read each of the heights they span, or past a read's
+      // cap, one per run of them that fits one.
+      const atHeights = async (ids, heights) => {
+        const sorted = [...new Set(heights)].sort((a, b) => a - b), runs = [];
+        for (const h of sorted) if (!runs.length || h - runs.at(-1)[0] >= SPAN) runs.push([h, h]); else runs.at(-1)[1] = h;
+        const read = await Promise.all(runs.map(([from, to]) => Promise.all(ids.map((id) => series(id, "height", from, to + 1)))));
+        return (h) => {
+          const k = runs.findLastIndex(([from]) => from <= h);
+          return read[k].map((values) => values[h - runs[k][0]]);
+        };
+      };
       // A mined block's never change (a reorg's replacement has another hash).
       const SPAN = 40000; // the server caps a read at 320,000 bytes, 8 a number
       const blockTxs = new Map();
@@ -2444,6 +2455,7 @@
       ];
       const ageIndex = (s) => AGES.findIndex(([, upTo]) => s < upTo);
       const ageColor = (s) => (s === null ? "var(--faint)" : AGES[ageIndex(s)][2]);
+      // A waiting transaction's inputs have no index yet: each spent transaction's status is asked, for its first 60.
       const BIRTHS = 60;
 
       async function readTx(tx) {
@@ -2454,6 +2466,20 @@
           const b = await once(`status ${v.txid}`, () => get(`/tx/${v.txid}/status`));
           return b.confirmed ? { height: b.block_height, time: b.block_time, price: await priceAt(b.block_height) } : null;
         };
+        // A mined transaction's coins: the blocks they were born in, read over its inputs' indexes, then those blocks'
+        // prices and times in one read of the heights they span.
+        const minedBirths = async () => {
+          const [first] = await series("first_txin_index", "tx_index", tx.index, tx.index + 1);
+          const reads = [];
+          for (let at = first; at < first + tx.vin.length; at += SPAN) reads.push(series("spent_txout_height", "txin_index", at, Math.min(at + SPAN, first + tx.vin.length)));
+          const heights = (await Promise.all(reads)).flat();
+          const at = await atHeights(["price", "timestamp"], heights);
+          return heights.map((h) => {
+            const [price, time] = at(h);
+            return { height: h, time, price };
+          });
+        };
+        const coinbase = tx.vin[0].is_coinbase;
         // One tip for the confirmations and their blocks: a new block may come meanwhile.
         const tipRead = ready.then(() => (confirmed ? Math.max(state.tip, height) : state.tip));
         const [outspends, spendPrice, cpfp, versions, seen, tip, blocks, births] = await Promise.all([
@@ -2464,7 +2490,7 @@
           confirmed ? 0 : get(`/v1/transaction-times?txId[]=${txid}`).then(([s]) => s, () => 0),
           tipRead,
           confirmed ? tipRead.then((tip) => get(`/v1/blocks/${Math.min(tip, height + SETTLE - 1)}`)) : readNext().then(() => null, () => null),
-          Promise.all(tx.vin.slice(0, BIRTHS).map((v) => (v.is_coinbase ? null : birthOf(v)))),
+          coinbase ? null : confirmed ? minedBirths() : Promise.all(tx.vin.slice(0, BIRTHS).map(birthOf)),
         ]);
         return txFacts(tx, { outspends, spendPrice, cpfp, versions, seen, tip, blocks, births });
       }
@@ -2476,7 +2502,7 @@
         const inputs = tx.vin.map((v, i) => {
           if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
           const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
-          if (!births || i >= BIRTHS) return base;
+          if (!births || i >= births.length) return base;
           const b = births[i];
           if (!b) return { ...base, age: 0, pnl: 0, unconfirmed: true };
           return { ...base, height: b.height, age: time - b.time, price: b.price, pnl: (v.prevout.value / 1e8) * (spendPrice - b.price) };
