@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31770 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31776 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -132,6 +132,7 @@
 - `pools.concentration` (5): `top_2_pools_block_count`, `top_3_pools_block_count`, `top_4_pools_block_count`, `top_5_pools_block_count`, `top_6_pools_block_count`
 - `pools.concentration_grouped` (5): `top_2_pools_antpool_group_as_one_block_count`, `top_3_pools_antpool_group_as_one_block_count`, `top_4_pools_antpool_group_as_one_block_count`, `top_5_pools_antpool_group_as_one_block_count`, `top_6_pools_antpool_group_as_one_block_count`
 - `pools.groups` (5): `pool_antpool_group_block_count_cumulative`, `pool_antpool_group_block_count_sum_24h`, `pool_antpool_group_block_count_sum_1w`, `pool_antpool_group_block_count_sum_1m`, `pool_antpool_group_block_count_sum_1y`
+- `pools.stratum_v2` (6): `stratum_v2_tagged_block_count`, `stratum_v2_tagged_block_count_cumulative`, `stratum_v2_tagged_block_count_sum_24h`, `stratum_v2_tagged_block_count_sum_1w`, `stratum_v2_tagged_block_count_sum_1m`
 
 ### utxo_set
 

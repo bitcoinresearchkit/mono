@@ -1578,6 +1578,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...entries(t.pools.concentration).map(([key, node]) => chart(words(key), numberOf(`blocks mined by the day's ${keyWords(key)} pools combined`), [series(node, "Pools counted separately", { color: "orange" }), series(t.pools.concentrationGrouped[key], grouped, { color: "sky" })])),
       ]),
       ...groups.map(([, group, name]) => section(name, flow(group.blockCount, "Blocks mined", numberOf(`blocks mined: ${name}`)))),
+      ((tagged) => section("Stratum V2", [
+        ...flow(tagged, "Tagged blocks", numberOf("blocks their pool tagged as mined over Stratum V2")),
+        chart("Tagged blocks, share", "Share of blocks their pool tagged as mined over Stratum V2", [
+          { formula: `100 * ${tagged.sum._1m.name} / ${t.blocks.count.sum._1m.name}`, label: "Share", format: "percent", color: "orange" },
+        ], { window: "_1m" }),
+      ]))(t.pools.stratumV2.taggedBlockCount),
       ...major.map(pool),
       section("Other pools", others.map(pool)),
     ];

@@ -133,12 +133,12 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Profit bands (588): https://bitview.space/studio/presets/holders/profit-bands/index.html.md
   - Awake coins (232): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
   - Mobile coins (232): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
-- Mining (675): https://bitview.space/studio/presets/mining/index.html.md
+- Mining (677): https://bitview.space/studio/presets/mining/index.html.md
   - Hashing (11): https://bitview.space/studio/presets/mining/hashing/index.html.md
   - Difficulty (6): https://bitview.space/studio/presets/mining/difficulty/index.html.md
   - Halvings (3): https://bitview.space/studio/presets/mining/halvings/index.html.md
   - Rewards (7): https://bitview.space/studio/presets/mining/rewards/index.html.md
-  - Pools (648): https://bitview.space/studio/presets/mining/pools/index.html.md
+  - Pools (650): https://bitview.space/studio/presets/mining/pools/index.html.md
 - Fees (43): https://bitview.space/studio/presets/fees/index.html.md
   - By fee rate (20): https://bitview.space/studio/presets/fees/by-fee-rate/index.html.md
   - Block space by effective fee rate (16): https://bitview.space/studio/presets/fees/block-space-by-effective-fee-rate/index.html.md

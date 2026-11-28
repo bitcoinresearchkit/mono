@@ -4,10 +4,10 @@ use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::{Index40, TxOutIndex};
+use bitview_primitives::{Count, Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Height;
+use brk_types::{CoinbaseTag, Height};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, TypedVec, VecIndex, Version, WritableVec};
 
@@ -47,8 +47,22 @@ impl ComputePlugin for Vecs {
             from,
             exit,
         )?;
-        crate::antpool_group::compute(&mut self.antpool_group, &self.block_pool, from, exit)
+        crate::antpool_group::compute(&mut self.antpool_group, &self.block_pool, from, exit)?;
+        self.stratum_v2_tagged.compute_cumulative_transformed(
+            from,
+            &indexer.vecs().blocks.coinbase_tag,
+            |tag| Count::from(tagged_stratum_v2(&tag)),
+            exit,
+        )
     }
+}
+
+/// The coinbase tag holds `Sv2/` in any letter case: the pool's own word that it mined the block over
+/// Stratum V2 (sv2blocks.com's rule, without its hand overrides).
+fn tagged_stratum_v2(tag: &CoinbaseTag) -> bool {
+    tag.as_bytes()
+        .windows(4)
+        .any(|bytes| bytes.eq_ignore_ascii_case(b"sv2/"))
 }
 
 /// A chain-wide running total, read back as each block's value.
