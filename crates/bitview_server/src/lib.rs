@@ -172,7 +172,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         #[cfg(feature = "full-api")]
         mempool_block_diff_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "full-api")]
-        broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
+        broadcast_requests: Arc::new(Semaphore::new(api::broadcast::CAPACITY)),
         chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         #[cfg(feature = "full-api")]
         node: query

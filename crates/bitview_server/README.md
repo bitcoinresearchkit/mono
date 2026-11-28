@@ -133,8 +133,10 @@ which a CDN's cache key leaves out; the error layer keeps a cache policy its han
 
 `POST /api/tx` is an action: every response is `no-store`, with no validator.
 It accepts at most 800,000 bytes of hexadecimal text including surrounding
-whitespace (the largest standard transaction; the node takes no larger one), and admits at most four buffered/pending submissions, each sent on
-its own connection to the node; excess admission returns 503. Submission is not automatically replayed after a lost
+whitespace (the largest standard transaction; the node takes no larger one), and
+admits at most four pending submissions, each admitted once its body has arrived
+and sent on its own connection to the node; excess admission returns 503.
+Submission is not automatically replayed after a lost
 response. A timeout or cancellation after dispatch can leave the outcome unknown
 and cannot undo a transaction already received by the node.
 
