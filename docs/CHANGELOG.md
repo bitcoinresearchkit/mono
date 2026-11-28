@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Ledger no longer opens blank, or on its title page instead of the day asked, when its first reads fail or never
+  answer: it says so, with Try again, and asks again by itself after 30 s.
 - Ledger's live day keeps updating when a request never answers: the request gives up after 30 s and the next check,
   every 30 s, asks again. One stalled request used to stop the updates until a reload.
 - A simple moving average of the price (`price_sma_*`, its `_ratio`, `mayer_multiple`, the Pi cycle top) is null until
