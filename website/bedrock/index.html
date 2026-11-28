@@ -7,13 +7,13 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#58bbc4" />
     <title>Bedrock · Bitview</title>
-    <meta name="description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." />
+    <meta name="description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank today's share, and turn the rarest ranks back into prices." />
     <link rel="canonical" href="https://bitview.space/bedrock/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/bedrock/" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bedrock · Bitview" />
-    <meta property="og:description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." />
+    <meta property="og:description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank today's share, and turn the rarest ranks back into prices." />
     <meta property="og:image" content="https://bitview.space/assets/cards/bedrock.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -823,7 +823,7 @@
           <p class="lead">Every coin has a price: Bitcoin's price when it last moved.</p>
           <p class="lead">When today's price is above it, the coin is in profit. Below it, at a loss.</p>
           <p class="lead">Lower the price, and fewer of the coins in play are in profit.</p>
-          <p class="lead">Bedrock finds the price where they'd be so few that it has only happened on about 5 days in 100. Then 2 in 100, then 1, down to 1 in 1,000. Those five prices are its floors.</p>
+          <p class="lead">Bedrock finds the price where they'd be so few that it has only happened in about 5 blocks in 100. Then 2 in 100, then 1, down to 1 in 1,000. Those five prices are its floors.</p>
           <p class="body">It takes four steps. Here is each one, with today's numbers.</p>
         </div>
       </section>
@@ -869,16 +869,16 @@
       <section class="part" data-ground="sand" id="rank-part">
         <div class="shell">
           <p class="kicker">Step 3 of 4 · Rank</p>
-          <h2>Rank today's share against every earlier day.</h2>
-          <p class="body">Here is every earlier day since 2009, sorted by its share of <span data-mode>awake</span> coins in profit: days with nearly every coin in profit at the top, days with almost none at the bottom. The longer a bar, the more days had that share.</p>
-          <p class="big"><output id="rank-share">–</output><span>of earlier days had<br />a lower share</span></p>
+          <h2>Rank today's share against every earlier block.</h2>
+          <p class="body">Here is every earlier block since 2009, sorted by its day's closing share of <span data-mode>awake</span> coins in profit: blocks with nearly every coin in profit at the top, blocks with almost none at the bottom. The longer a bar, the more blocks it holds.</p>
+          <p class="big"><output id="rank-share">–</output><span>of earlier blocks had<br />a lower share</span></p>
         </div>
-        <figure class="plate slice" id="rank" role="img" data-label="Every earlier day piled up by its share of {coins} in profit, the rare low shares coloured as rock, a line at today's share">
+        <figure class="plate slice" id="rank" role="img" data-label="Every earlier block piled up by its day's closing share of {coins} in profit, the rare low shares coloured as rock, a line at today's share">
           <canvas aria-hidden="true"></canvas>
           <div class="level" id="rank-level"><span class="chip" id="rank-today"></span></div>
         </figure>
         <div class="shell">
-          <p class="body">Five marks show the rare low shares: the ones that only about 5%, 2%, 1%, 0.5% and 0.1% of earlier days fell under. Everything below the first mark is the <span class="r">rock</span>.</p>
+          <p class="body">Five marks show the rare low shares: the ones that only about 5%, 2%, 1%, 0.5% and 0.1% of earlier blocks fell under. Everything below the first mark is the <span class="r">rock</span>.</p>
         </div>
       </section>
 
@@ -909,8 +909,8 @@
         <div class="shell">
           <p class="kicker">Every day</p>
           <h2>Done again each day, the floors draw the <span class="r">rock</span>.</h2>
-          <p class="body">Coins move and each day adds one more to rank against, so the five floors are worked out again every day. Day after day, they make the rock in the landscape at the top of this page. Each day is ranked only against the days before it, never with hindsight.</p>
-          <p class="body">The ranking uses every day since 2009, but this page's counts start in 2015. Before that the history to rank against is short and prices come from exchange records, so the charts mark those years "Calibrating": drag one back to see them.</p>
+          <p class="body">Coins move and each day adds about 144 more blocks to rank against, so the five floors are worked out again every day. Day after day, they make the rock in the landscape at the top of this page. Each day is ranked only against the blocks before it, never with hindsight.</p>
+          <p class="body">The ranking uses every block since 2009, but this page's counts start in 2015. Before that the history to rank against is short and prices come from exchange records, so the charts mark those years "Calibrating": drag one back to see them.</p>
           <p class="body" id="today-said"></p>
           <p class="body" id="visits-said">Since 2015 the price has been under the first floor in a handful of visits.</p>
           <div class="visits" id="visits-list" role="group" aria-label="Each time the price went into the rock"></div>
@@ -938,7 +938,7 @@
             <li><b>The record is short.</b> A few visits to the rock can't prove a rule.</li>
             <li><b>A floor isn't a wall.</b> It marks where profit would be that rare, not where the price must stop. <span id="deepest-said"></span></li>
             <li><b>The floors move.</b> They are worked out again each day, so today's floors aren't next month's.</li>
-            <li><b>A rank isn't a chance.</b> "<span id="rank-quote">Only 1% of earlier days had fewer in profit</span>" describes the past. It doesn't say there's a <span id="rank-chance">1%</span> chance of going lower.</li>
+            <li><b>A rank isn't a chance.</b> "<span id="rank-quote">Only 1% of earlier blocks had fewer in profit</span>" describes the past. It doesn't say there's a <span id="rank-chance">1%</span> chance of going lower.</li>
             <li><b>The last move isn't always a sale.</b> A coin moved between its owner's own wallets takes a new price here.</li>
             <li><b>The weights are estimates.</b> Nobody knows which coins will move. An age's weight is a judgement from how coins of that age behaved before.</li>
           </ul>
@@ -1049,21 +1049,15 @@
         return /** @type {Days} */ ({ first, from, last, open, high, low, close: shut, edges, floors: edges.slice(-FLOORS.length) });
       });
 
-      /** @typedef {{ today: number, edges: number[], loss: Float64Array, below: (share: number) => number }} Shares */
+      /** @typedef {{ today: number, rank: number, edges: number[], loss: Float64Array, blocks: Float64Array }} Shares (`rank`: the part of earlier blocks with a lower share; `blocks`: the count of blocks up to each day's close) */
       /** Floors as the server ranks them; levels as the parts they are of the coins over the first floor. */
       const readShares = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => kept(`shares ${mode}`, async () => {
-        const [d, loss, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), ...FLOORS.map(([k]) => latest(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
+        const [d, loss, rank, blocks, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), latest(`bedrock_${mode}_supply_in_profit_share_rank`), series("block_count_cumulative"), ...FLOORS.map(([k]) => latest(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
         const profit = (/** @type {number} */ lossShare) => 1 - lossShare / 100;
-        // The thresholds are their latest; the loss at the landscape's last day, its own last when it's a day short.
+        // The thresholds and the rank are their latest; the loss at the landscape's last day, its own last when it's a day short.
         const floors = thresholds.map(profit), top = floors[0], today = profit(loss[Math.min(d.last, loss.length - 1)]);
-        if (!(today >= 0) || !floors.every((floor) => floor >= 0)) throw new Error(`the ${mode} coins in profit today couldn't be read`);
-        const earlier = Float64Array.from(loss.subarray(0, Math.min(d.last, loss.length)), (v) => 1 - v / 100).filter((v) => v >= 0).sort();
-        const below = (/** @type {number} */ share) => {
-          let lo = 0, hi = earlier.length;
-          while (lo < hi) { const mid = (lo + hi) >> 1; earlier[mid] < share ? (lo = mid + 1) : (hi = mid); }
-          return lo / earlier.length;
-        };
-        return /** @type {Shares} */ ({ today, edges: [1, ...LEVELS.map(([, part]) => top + (1 - top) * part), ...floors], loss, below });
+        if (!(today >= 0) || !(rank >= 0) || !floors.every((floor) => floor >= 0)) throw new Error(`the ${mode} coins in profit today couldn't be read`);
+        return /** @type {Shares} */ ({ today, rank, edges: [1, ...LEVELS.map(([, part]) => top + (1 - top) * part), ...floors], loss, blocks });
       });
       const readPriceAt = (/** @type {Mode} */ mode) => kept(`price at ${mode}`, async () => {
         const urpd = await json(`/api/urpd/all?weight=${WEIGHTS[mode]}&agg=log1000`);
@@ -1088,7 +1082,7 @@
         return k;
       };
       const rarity = (/** @type {number} */ part) => `${part < 0.001 ? (100 * part).toFixed(2) : part < 0.1 ? (100 * part).toFixed(1) : Math.round(100 * part)}%`;
-      const rare = (/** @type {number} */ part, coins = "") => `${part ? `Only ${rarity(part)} of earlier days` : "No earlier day"} had fewer ${coins}in profit`;
+      const rare = (/** @type {number} */ part, coins = "") => `${part ? `Only ${rarity(part)} of earlier blocks` : "No earlier block"} had fewer ${coins}in profit`;
       const ground = (/** @type {number} */ layer) => (layer === 0 ? "At an all-time high" : layer > ROCK ? `In the rock, ${layer - ROCK} of ${FLOORS.length} floors deep` : `In the ${zoneOf(layer)}`);
 
       const FONT = "500 12px Inter, -apple-system, system-ui, sans-serif";
@@ -1265,12 +1259,16 @@
       }
 
       function rank(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {AbortSignal} */ signal) {
+        // Each day's blocks, at its close's share: the pile the rank counts, a day at a time.
         const bins = new Float64Array(50), end = Math.min(d.last, past.loss.length);
-        for (let day = 0; day < end; day++) {
-          const profit = 100 - past.loss[day];
-          if (profit >= 0) bins[Math.min(bins.length - 1, Math.floor((profit / 100) * bins.length))]++;
+        for (let day = 0, before = 0; day < end; day++) {
+          const total = past.blocks[day];
+          if (!(total >= 0)) continue;
+          const profit = 100 - past.loss[day], count = total - before;
+          before = total;
+          if (profit >= 0) bins[Math.min(bins.length - 1, Math.floor((profit / 100) * bins.length))] += count;
         }
-        ($("rank-share").textContent = rarity(past.below(past.today))), ($("rank-today").textContent = `Today · ${$("rank-share").textContent} of days below`);
+        ($("rank-share").textContent = rarity(past.rank)), ($("rank-today").textContent = `Today · ${$("rank-share").textContent} of blocks below`);
         // Scaled by the second-fullest: the top one, the years every coin was in profit, runs off the edge.
         const most = [...bins].sort((a, b) => b - a)[1] || 1, floors = past.edges.slice(-FLOORS.length);
         slice("rank", signal, (g, w, h, y) => {
@@ -1279,7 +1277,7 @@
           g.fillStyle = OVER.ink;
           bins.forEach((n, k) => n && g.fillRect(0, h - (k + 1) * bar + 0.5, Math.max(1.5, (n / most) * w * 0.7), Math.max(1, bar - 1)));
           (g.font = FONT.replace("500", "700")), (g.textAlign = "right"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = OVER.outline);
-          for (const [text, at, baseline] of /** @type {const} */ ([["100% in profit", 8, "top"], ["50%", y(0.5), "middle"], ["5% of days are below this mark", y(floors[0]) - 5, "bottom"], ["0%", h - 8, "bottom"]])) (g.textBaseline = baseline), g.strokeText(text, w - 12, at), g.fillText(text, w - 12, at);
+          for (const [text, at, baseline] of /** @type {const} */ ([["100% in profit", 8, "top"], ["50%", y(0.5), "middle"], ["5% of blocks are below this mark", y(floors[0]) - 5, "bottom"], ["0%", h - 8, "bottom"]])) (g.textBaseline = baseline), g.strokeText(text, w - 12, at), g.fillText(text, w - 12, at);
           $("rank-level").style.transform = `translateY(${y(past.today)}px)`;
         });
       }
@@ -1331,7 +1329,7 @@
           while (layer < shares.length && share < shares[layer]) layer++;
           const deep = layer - ROCK;
           saidOut.innerHTML = layer === 0 ? `Every ${mode} coin is in profit.`
-            : deep > 0 ? `${named(layer)} ${deep < FLOORS.length ? `${deep} of ${FLOORS.length} floors deep` : `Under all ${deep} floors`}, below ${usd(d.floors[deep - 1][d.last])}. ${rare(past.below(share))}.`
+            : deep > 0 ? `${named(layer)} ${deep < FLOORS.length ? `${deep} of ${FLOORS.length} floors deep` : `Under all ${deep} floors`}, below ${usd(d.floors[deep - 1][d.last])}. At most ${FLOORS[deep - 1][1]} of earlier blocks had as few in profit.`
             : layer > SAND ? `${named(layer)} Fewer and fewer ${mode} coins are in profit.`
             : `${named(layer)} Most ${mode} coins are still in profit.`;
         }
@@ -1358,7 +1356,7 @@
         const list = $("visits-list");
         const { chart, tell } = landscapeChart($("visits-chart"), d, $("visits-read"), signal);
         const since = d.last - d.from + 1, under = runs.reduce((sum, run) => sum + run.days, 0), deep = layerOf(d.edges, d.last, d.close[d.last]) - ROCK;
-        $("today-said").textContent = deep > 0 ? `Today the price is in the rock, ${deep} of ${FLOORS.length} floors deep. ${rare(past.below(past.today), `${mode} coins `)}.` : "Today the price is above every floor.";
+        $("today-said").textContent = deep > 0 ? `Today the price is in the rock, ${deep} of ${FLOORS.length} floors deep. ${rare(past.rank, `${mode} coins `)}.` : "Today the price is above every floor.";
         const through = runs.find((run) => run.deepest === FLOORS.length);
         $("deepest-said").textContent = through ? `In ${dateOf(through.low).getUTCFullYear()} the price went under all ${FLOORS.length}.` : "";
         $("visits-said").textContent = `Since 2015 the price has been under the first floor in ${runs.length} ${runs.length === 1 ? "visit" : "visits"}: dips less than six months apart count as one. Tap a visit to see it on the chart.`;
@@ -1399,7 +1397,8 @@
           $(`${id}-lights`).style.setProperty("--lit", `${share}%`);
         }
         $("first-loss").textContent = `${Math.round(100 * (1 - past.edges[ROCK]))}%`;
-        const part = Math.min(past.below(past.today), past.below(past.edges[ROCK]));
+        // Not rare today: the first floor's part, as any block under it would be.
+        const part = Math.min(past.rank, parseFloat(FLOORS[0][1]) / 100);
         ($("rank-quote").textContent = rare(part)), ($("rank-chance").textContent = rarity(part));
       }
 
