@@ -23,7 +23,7 @@ const HALF_LIFE: f64 = 1461.0;
 /// Log distances outside a cloud, ranked by bucket.
 const BUCKETS: usize = 4096;
 const WIDTH: f64 = 0.002;
-/// An extreme day's place is in this outer share of the earlier days' places, either way.
+/// An extreme day's place has under this share of the earlier places' weight below it, or above it.
 const EXTREME: f64 = 0.01;
 
 fn weight(day: usize) -> f64 {
@@ -83,10 +83,11 @@ pub struct CompassSeries<M: StorageMode = Rw> {
         lead = "Compass mood: 0 Optimism to 8 Fear, by the price above, inside or below each cloud."
     )]
     mood: M::Stored<PcoVec<Day1, Mood>>,
-    /// 1 when the price is further from a cloud than on 99 in 100 earlier days, weighted as the
-    /// positions are. Null for the first year.
+    /// 1 when the day's position against either cloud is in the outer 1% of the earlier days'
+    /// positions, either way: those below it, or those above it, hold under 1% of all their
+    /// weight, days weighted as the positions weigh them. Null for the first year.
     #[traversable(
-        lead = "Compass extreme: 1 when the price is further from a cloud than on 99 in 100 earlier days."
+        lead = "Compass extreme: 1 when under 1% of the earlier days, by weight, sat lower than the day, or higher, against either cloud."
     )]
     extreme: M::Stored<PcoVec<Day1, Flag>>,
     /// Days into the mood's current run so far, the day itself included; never the run's final
