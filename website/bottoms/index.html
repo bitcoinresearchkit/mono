@@ -675,15 +675,19 @@
         color: var(--ink);
         font-weight: 600;
 
-        /* (A finger's 44px, unseen, up and down.) */
-        button {
-          padding-block: 14px;
-          margin: -14px 0 -14px 8px;
-          text-decoration: underline;
-          border: 0;
-          background: none;
-          cursor: pointer;
+        .again {
+          margin-left: 8px;
         }
+      }
+
+      /* A way to try again, said as a link: a finger's 44px, unseen, up and down. */
+      .again {
+        padding-block: 14px;
+        margin-block: -14px;
+        border: 0;
+        background: none;
+        text-decoration: underline;
+        cursor: pointer;
       }
 
       /* ── A part: one idea, said large, and what shows it ── */
@@ -713,6 +717,11 @@
           font-size: 14.5px;
           line-height: 1.45;
         }
+      }
+
+      #checked .again {
+        padding-inline: 0;
+        color: var(--ink);
       }
 
       /* The board itself, edge to edge on black: dark inside, so the page's tokens take their night values. */
@@ -1910,19 +1919,34 @@
         /** @type {any} */ (window).bitviewLaunch?.ready();
         const failed = $("failed");
         failed.textContent = `Bitview's data didn't load (${why}).${board?.live === false ? ` The ranking shown is that of ${dated(board.day)}.` : ""} Try again in a minute.`;
-        const again = failed.appendChild(el("button", "", "Try again"));
+        const again = failed.appendChild(el("button", "again", "Try again"));
         (/** @type {HTMLButtonElement} */ (again).type = "button"), again.addEventListener("click", () => location.reload());
         failed.hidden = false;
       };
-      /** The note under the ranking's head: how today's ranking compares with the one shown first (or that none was), and what each layer the worker couldn't read leaves out. */
+      /** The note under the ranking's head: how today's ranking compares with the one shown first (or that none was), and what each layer the worker couldn't read leaves out, with a way to try it again. */
       let against = "";
-      const missed = /** @type {Map<string, string>} */ (new Map());
+      /** By layer: what going without it means and why, and whether it's being read again. */
+      const missed = /** @type {Map<string, { said: string, trying: boolean }>} */ (new Map());
       const checked = () => {
-        $("checked").textContent = [against, ...missed.values()].filter(Boolean).join(" ");
+        // (The closest lines are left out only while one of the first three isn't drawn: those of an earlier ranking can
+        // land, or fail, after.)
+        if (ranked.slice(0, 3).every((r) => lines.has(r.row.id))) missed.delete("lines");
+        // (A button with focus keeps it as the note is made again.)
+        const focused = /** @type {HTMLElement} */ (document.activeElement).dataset.layer;
+        $("checked").replaceChildren(against, ...[...missed].flatMap(([layer, { said, trying }]) => {
+          const again = /** @type {HTMLButtonElement} */ (el("button", "again", trying ? "Trying again…" : "Try again"));
+          (again.type = "button"), (again.dataset.layer = layer), again.setAttribute("aria-disabled", String(trying));
+          return [` ${said} `, again];
+        }));
+        if (focused) /** @type {HTMLElement | null} */ ($("checked").querySelector(`[data-layer="${focused}"]`))?.focus({ preventScroll: true });
         // (Drawn whole: the candles, the worker's last, are in and nothing is left out.)
         if (candles && !missed.size) document.documentElement.removeAttribute("data-drawing");
       };
       const WITHOUT = { lines: "Some of the three closest lines couldn't be read, so they aren't drawn", crowd: "Some grey lines couldn't be read, so today's ceilings weren't checked", ceilings: "Today's ceilings couldn't be applied, so the ranking keeps the earlier ones", candles: "The price's candles couldn't be read, so it stays a line" };
+      $("checked").addEventListener("click", (event) => {
+        const layer = /** @type {HTMLElement} */ (event.target).dataset.layer, left = layer && missed.get(layer);
+        if (left && !left.trying) (left.trying = true), checked(), worker.postMessage({ again: layer });
+      });
       const broke = (/** @type {ErrorEvent} */ event) => fail(event.message || "its worker couldn't start");
       const took = (/** @type {MessageEvent} */ { data }) => {
         if (data.type === "price") {
@@ -1936,22 +1960,22 @@
         } else if (data.type === "ranked") {
           // (Today's ranking replaces the stored one, and says so only when it reads differently: each of today's, as the ceilings can make a second.)
           if (!data.live) stored = data;
-          else if (stored) (against = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : ""), checked();
-          (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
+          else if (stored) against = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
+          (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), checked(), miss();
         }
         else if (data.type === "settled") (settled = true), marked();
         else if (data.type === "lines") {
           for (const l of data.lines) lines.set(l.id, l.line);
           if (data.lines.some((l) => l.id === unread)) unread = null;
-          // (The first three all read after all: their note goes.)
-          if (ranked.slice(0, 3).every((r) => lines.has(r.row.id)) && missed.delete("lines")) checked();
-          marked(), miss();
+          checked(), marked(), miss();
         }
         else if (data.type === "unread") (unread = data.id), marked();
         else if (data.type === "candles") (candles = data), heroChart?.drawn(), checked();
         else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();
         else if (data.type === "unstored") (against = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`), checked();
-        else if (data.type === "missed") missed.set(data.layer, `${WITHOUT[/** @type {keyof typeof WITHOUT} */ (data.layer)]} (${data.why}).`), checked(), miss();
+        else if (data.type === "missed") missed.set(data.layer, { said: `${WITHOUT[/** @type {keyof typeof WITHOUT} */ (data.layer)]} (${data.why}).`, trying: false }), checked(), miss();
+        // (The closest lines' note goes by what's drawn, in `checked`.)
+        else if (data.type === "got") data.layer !== "lines" && missed.delete(data.layer) && (checked(), miss());
         else fail(data.why);
       };
       (worker.onerror = broke), (worker.onmessage = took);
