@@ -2734,7 +2734,6 @@
         return out;
       }
 
-      const STATE = { waiting: "Waiting", confirmed: "Confirmed", settled: "Settled", replaced: "Replaced" };
       function answerOf(k) {
         const W = k.state === "waiting";
         const money = (u, sats) => (u !== null ? cost(u) : `${btc(sats)}\u00a0BTC`);
@@ -2751,7 +2750,7 @@
                   `<span class="vc">value created ${usd(k.created)}</span><span class="vd">value destroyed ${usd(k.destroyed)}${k.pricedAll ? "" : `, of its first ${BIRTHS} coins`}</span>`,
                 ));
         return `<div class="lead">
-            <p class="lead-kicker"><span class="chip">${STATE[k.state]}${k.state === "confirmed" ? `, ${k.conf} of ${SETTLE}` : ""}</span>${copyPill(k.txid)}</p>
+            <p class="lead-kicker">${W ? `<span class="chip">Waiting</span>` : ""}${copyPill(k.txid)}</p>
             <h2 class="lead-title">${k.title}</h2>
             <p class="lead-lede">${k.lede}</p>
             ${state.alike.has(k.txid) ? alikeNote(state.alike.get(k.txid), "the address you came from") : ""}
