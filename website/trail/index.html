@@ -76,8 +76,9 @@
         --hint: light-dark(rgb(15 38 34 / 0.7), rgb(253 245 223 / 0.5));
         --hint-over: light-dark(#0f2622, rgb(253 245 223 / 0.67));
         --label: light-dark(#4b5f57, rgb(155 171 161 / 0.75));
-        --edge: light-dark(rgb(15 38 34 / 0.2), rgb(235 243 221 / 0.13));
+        --edge: light-dark(rgb(15 38 34 / 0.52), rgb(253 245 223 / 0.37));
         --warm-accent: light-dark(rgb(110 78 20), rgb(245 229 190));
+        --accent-edge: color-mix(in srgb, var(--warm-accent) 70%, transparent);
         --interaction-orange: #ffa000;
         --orange-ink: light-dark(#955600, #ffa000);
         --profit: light-dark(#11653a, #7fe594);
@@ -391,6 +392,12 @@
           background: var(--swatch);
         }
 
+        &#price-key i {
+          width: 18px;
+          height: 2px;
+          border-radius: 0;
+        }
+
         .ramp {
           width: 112px;
           height: 9px;
@@ -465,12 +472,12 @@
         }
 
         .selector:hover {
-          border-color: color-mix(in srgb, var(--warm-accent) 30%, transparent);
+          border-color: color-mix(in srgb, var(--warm-accent) 80%, transparent);
         }
       }
 
       .selector:focus-within {
-        border-color: color-mix(in srgb, var(--warm-accent) 58%, transparent);
+        border-color: var(--warm-accent);
       }
 
       @media (pointer: coarse) {
@@ -494,7 +501,8 @@
       .today {
         position: relative;
         padding: 4px 9px;
-        border: 1px solid color-mix(in srgb, var(--warm-accent) 58%, transparent);
+        /* The page's one action button rests on the accent, apart from the selects' ink. */
+        border: 1px solid var(--accent-edge);
         border-radius: 9px;
         background: transparent;
         color: var(--foreground);
@@ -583,7 +591,7 @@
       }
 
       .dimension-option input:focus-visible + .dimension-option-content {
-        outline: 1px solid color-mix(in srgb, var(--warm-accent) 70%, transparent);
+        outline: 1px solid var(--accent-edge);
         outline-offset: 4px;
       }
 
@@ -684,6 +692,7 @@
           <div id="key" class="key">
             <span id="terrain-key" class="key-item"></span>
             <span id="split-legend" class="key-item" hidden></span>
+            <span id="price-key" class="key-item"><i></i>Price</span>
           </div>
         </div>
 
@@ -1048,6 +1057,7 @@
         const corner = byId("corner");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
+        byId("price-key").style.setProperty("--swatch", PRICE_RED);
         const darkScheme = matchMedia("(prefers-color-scheme: dark)");
         const tokenProbe = document.createElement("i");
         // Each token is read through an empty element, its style asked afresh: Safari on iOS answered a hidden one's kept style with an earlier token's colour.
@@ -3795,6 +3805,7 @@
         }
 
         function drawPlotAxes(layout, start, end, selectedRow) {
+          const flat = state.dimension === "2d";
           const axes = plotAxisGeometry(layout);
           const datePill = datePillModel(
             layout,
@@ -3839,56 +3850,25 @@
           );
           const pastMin = projectAtTimeAxis(layout, start, start, end);
           const nowMin = projectAtTimeAxis(layout, axisEnd, start, end);
-          const drawFloorLabel = (
-            text,
-            x,
-            y,
-            baseline,
-            down,
-          ) => {
+          // A halo, since terrain hanging below the floor (change, ages) passes under the axis labels.
+          const drawAxisLabel = (text, x, y, align, axis, down) => {
             context.save();
             context.translate(x, y);
-            context.transform(
-              baseline.x,
-              baseline.y,
-              down.x,
-              down.y,
-              0,
-              0,
-            );
-            context.textAlign = "center";
-            context.fillText(text, 0, 0);
-            context.restore();
-          };
-          const drawDateLabel = (text, x, y) => {
-            if (state.dimension !== "2d") {
-              drawFloorLabel(text, x, y, timeAxis, timeOut);
-              return;
-            }
-            context.save();
-            context.textAlign = "right";
-            context.fillText(text, x, y);
-            context.restore();
-          };
-          const drawValueLabel = (text, x, y) => {
-            context.save();
-            context.translate(x, y);
-            context.transform(
-              valueLabelAxis.x,
-              valueLabelAxis.y,
-              valueLabelDown.x,
-              valueLabelDown.y,
-              0,
-              0,
-            );
-            context.textAlign = "left";
+            if (axis) context.transform(axis.x, axis.y, down.x, down.y, 0, 0);
+            context.textAlign = align;
             context.strokeStyle = scene.labelHalo;
-            context.lineWidth = 3;
+            context.lineWidth = ui(3);
             context.lineJoin = "round";
             context.strokeText(text, 0, 0);
             context.fillText(text, 0, 0);
             context.restore();
           };
+          const drawDateLabel = (text, x, y) =>
+            flat
+              ? drawAxisLabel(text, x, y, "right")
+              : drawAxisLabel(text, x, y, "center", timeAxis, timeOut);
+          const drawValueLabel = (text, x, y) =>
+            drawAxisLabel(text, x, y, "left", valueLabelAxis, valueLabelDown);
           const selectedProfile = getProfile(axisEnd);
 
           context.save();
@@ -3937,7 +3917,7 @@
             const half = maxTextWidth(context, [formatAxisValue(valueFoot.value)]) / 2;
             pricePills.push({ point: offsetPoint(atPrice(axisMaxCoordinate), priceAxis, ui(AXIS_LABEL_OFFSET) + half), half });
           }
-          if (state.dimension === "2d") {
+          if (flat) {
             const pill = pillSpan(datePill.text, datePill.anchor);
             pricePills.push({ ...pill, point: { x: datePill.anchor.x - pill.half, y: datePill.anchor.y } });
           } else {
@@ -3968,10 +3948,11 @@
             context.stroke();
             const label = formatAxisPrice(price);
             if (covered(point, maxTextWidth(context, [label]) / 2, pricePills, priceAxis)) continue;
-            drawFloorLabel(
+            drawAxisLabel(
               label,
               point.x + priceOut.x * floorLabelOffset,
               point.y + priceOut.y * floorLabelOffset,
+              "center",
               priceAxis,
               priceOut,
             );
@@ -4000,9 +3981,8 @@
           const yearSpan =
             Math.hypot(nowMin.x - pastMin.x, nowMin.y - pastMin.y) /
             Math.max(1, (state.dateTimes[axisEnd] - state.dateTimes[start]) / (365.25 * DAY_MS));
-          const yearRoom = state.dimension === "2d" ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
+          const yearRoom = flat ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
           const yearStep = [1, 2, 4].find((step) => yearSpan * step >= yearRoom) ?? 4;
-          const flat = state.dimension === "2d";
           const datePills = [pillSpan(datePill.text, datePill.anchor, !flat)];
           const yearAxis = flat ? { x: 0, y: 1 } : timeAxis;
           for (
@@ -4092,7 +4072,7 @@
             );
             // Heights are compressed, so a tall ridge isn't read as proportionally more.
             context.fillStyle = scene.note;
-            if (state.dimension === "2d") {
+            if (flat) {
               context.textAlign = "center";
               context.fillText("ONE ROW A DAY · HEIGHT ON THE RIGHT, COMPRESSED", layout.left + layout.width / 2, layout.top - ui(UI_FONT_SIZE * 2) - 6);
             } else {
