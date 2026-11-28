@@ -5,7 +5,8 @@ use std::{
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{
-    Inputs, WRITE_INTERVAL, collect_cohort_weights, prepare_computed, write_locked,
+    Inputs, WRITE_INTERVAL, collect_cohort_weights, day_closes, prepare_computed, prepare_days,
+    write_locked,
 };
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::{Day1, Ratio};
@@ -133,7 +134,7 @@ impl ComputePlugin for Vecs {
                 })
                 .collect::<Vec<_>>()
         };
-        self.write_ranks(ranked_from, &ranks, rank_version, context.exit())?;
+        self.write_ranks(observed, end, &ranks, rank_version, context.exit())?;
         let mut last_progress = Instant::now();
         let mut walk = mem::take(&mut self.walk);
         walk.map(
@@ -209,46 +210,30 @@ impl ComputePlugin for Vecs {
 }
 
 impl Vecs {
-    /// Each day's rank at its last block, from the day of block `from` on, `ranks` holding
-    /// blocks `from..`'s.
+    /// Each day's rank at its last block, once the blocks from `changed` on may have changed:
+    /// `ranks` end before block `end` and reach back to the block before `changed`.
     fn write_ranks(
         &mut self,
-        from: usize,
+        changed: usize,
+        end: usize,
         ranks: &[Modes<f64>],
         version: Version,
         exit: &Exit,
     ) -> Result<()> {
-        let Some(last) = (from + ranks.len()).checked_sub(1) else {
+        let Some(last) = end.checked_sub(1) else {
             return Ok(());
         };
-        let end = last + 1;
-        let day_of = |height: usize| {
-            self.day_of_height
-                .collect_one(Height::from(height))
-                .data()
-                .map(Day1::to_usize)
-        };
-        let (from_day, last_day) = (day_of(from)?, day_of(last)?);
-        // Earlier where the days before hold no blocks (January 2009).
-        let first_day = prepare_computed(rank_vecs(&mut self.modes), version, from_day, exit)?;
-        let start_of = |day: usize| {
-            self.first_height
-                .collect_one(Day1::from(day))
-                .map_or(end, usize::from)
-                .min(end)
-        };
-        // Each day's last block; a day without blocks has none.
-        let mut closes = Vec::with_capacity(last_day + 1 - first_day);
-        let mut start = start_of(first_day);
-        for day in first_day..=last_day {
-            let next = if day == last_day {
-                end
-            } else {
-                start_of(day + 1)
-            };
-            closes.push((next > start).then(|| next - 1));
-            start = next;
-        }
+        let last_day = self.day_of_height.collect_one_at(last).data()?.to_usize();
+        let first_day = prepare_days(
+            rank_vecs(&mut self.modes),
+            version,
+            &self.day_of_height,
+            Height::from(changed),
+            last_day + 1,
+            exit,
+        )?;
+        let closes = day_closes(&self.first_height, first_day..last_day + 1, end);
+        let from = end - ranks.len();
         debug_assert!(
             closes.iter().flatten().all(|&close| close >= from),
             "the ranks resume within the days they hold"
