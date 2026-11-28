@@ -15,7 +15,8 @@
 //   bun scripts/home.mjs [server]              writes FROM_APPS and Bottoms' stored ranking (by the server's data), then checks
 //   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, the stored ranking reads other
 //                                                than the code makes it of that server's data to its day, or a check fails
-//   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found), shot from this checkout's pages with bitview.space's data, or a given server's (a page reading what bitview.space doesn't serve yet); an API answer that fails, fails the run
+//   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found), shot from this checkout's pages with bitview.space's data (server serves only the series check); an API answer that fails, fails the run
+//   ... --pictures --data URL                    shot with that server's data instead (a page reading what bitview.space doesn't serve yet)
 //   bun scripts/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than website/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
@@ -33,8 +34,9 @@ const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.
 const check = flag("--check"), icons = flag("--icons"), pictures = flag("--pictures") && !icons;
 const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(SITE, "index.html");
 const onlyAt = args.indexOf("--only"), ONLY = onlyAt >= 0 ? args[onlyAt + 1] : null;
-const GIVEN = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page" && args[i - 1] !== "--only");
-const SERVER = GIVEN ?? "http://127.0.0.1:3110";
+const dataAt = args.indexOf("--data"), DATA = dataAt >= 0 ? args[dataAt + 1] : PROD;
+if (!/^https?:\/\//.test(DATA ?? "")) throw new Error(`--data ${DATA ?? ""}: not a server's address`);
+const SERVER = args.find((arg, i) => !arg.startsWith("--") && !["--page", "--only", "--data"].includes(args[i - 1])) ?? "http://127.0.0.1:3110";
 
 let html = readFileSync(PAGE, "utf8");
 /** What's wrong, all of it, said at the end. @type {string[]} */
@@ -543,11 +545,10 @@ if (problems.length) {
 console.log(`In step: ${apps.length} apps and ${dev.length} developers' pages, ${studioPaths.length} ways into Studio, ${ids.size} series.`);
 
 /** This checkout's website on a free port, the way bitviewd serves it (a folder's index.html; an app's own address with no
- * file, as /studio/presets/…, its nearest folder's page), and every other path (the API, /version) from prod, or the
- * server given. Pictures are this checkout's pages with the data readers see; the local node, SERVER's default, may be
- * behind or at another tip, and its numbers would be in every card. A worker's fetches are relative, so only an origin of
- * its own can send them elsewhere. An API answer that fails is said, the first of each page asking (it would be pictured
- * failing). */
+ * file, as /studio/presets/…, its nearest folder's page), and every other path (the API, /version) from DATA, prod unless
+ * --data says. Pictures are this checkout's pages with the data readers see; SERVER's own node may be behind or at another
+ * tip, and its numbers would be in every card. A worker's fetches are relative, so only an origin of its own can send them
+ * there. An API answer that fails is said, the first of each page asking (it would be pictured failing). */
 function serveSite() {
   /** The pages already said to be asking what fails. @type {Set<string>} */
   const failing = new Set();
@@ -560,10 +561,9 @@ function serveSite() {
       if (statSync(file).isDirectory()) file = join(file, "index.html");
       if (existsSync(file)) return new Response(Bun.file(file));
     }
-    const data = GIVEN ?? PROD;
-    const r = await fetch(data + pathname + search).catch((error) => new Response(error.message, { status: 502 }));
+    const r = await fetch(DATA + pathname + search).catch((error) => new Response(error.message, { status: 502 }));
     const by = req.headers.get("referer")?.replace(/^https?:\/\/[^/]+/, "") ?? "?";
-    if (!r.ok && pathname.startsWith("/api/") && !failing.has(by)) failing.add(by), problems.push(`${data} answers ${r.status} for ${pathname}${search}, asked by ${by}: its picture would show the page failing`);
+    if (!r.ok && pathname.startsWith("/api/") && !failing.has(by)) failing.add(by), problems.push(`${DATA} answers ${r.status} for ${pathname}${search}, asked by ${by}: its picture would show the page failing`);
     // (fetch hands the body decoded: its encoding and length go with it.)
     const headers = new Headers(r.headers);
     headers.delete("content-encoding"), headers.delete("content-length");
