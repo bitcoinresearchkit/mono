@@ -3050,6 +3050,8 @@
           )
           .join("")}${hits.length > 2 ? `<small>and ${plural(hits.length - 2, "more look-alike")}</small>` : ""}</div>`;
 
+      // An address's kind in people's words: one for every type of output that has an address.
+      const SCRIPTS = { p2pk65: "Public key", p2pk33: "Public key", p2pkh: "Legacy", p2sh: "Script hash", p2wpkh: "SegWit", p2wsh: "SegWit script", p2tr: "Taproot", p2a: "Anchor" };
       async function viewAddress(address) {
         const v = state.view;
         const [a, txs, listed] = await Promise.all([
@@ -3096,14 +3098,15 @@
         const rows = [
           ...(earlier > 0 ? [{ kind: "strip", n: earlier, say: `${plural(earlier, "earlier transaction")}`, sub: `${btc(c.funded_txo_sum)}\u00a0BTC received in all, ${btc(c.spent_txo_sum)}\u00a0BTC sent` }] : []),
           ...mined.map((tx, i) => moment(tx, net(tx), afters[i])),
-          { kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)}\u00a0BTC`, note: `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` },
+          // An empty address is said once, by the heading: "now" is marked only to hold something, or to part the waiting from the past.
+          ...(balance || waiting.length ? [{ kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)}\u00a0BTC`, note: balance ? `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` : "" }] : []),
           ...waiting.map((tx) => moment(tx, net(tx), 0)),
         ];
         const coins = utxos.map((u) => ({ ...u, age: u.status.confirmed ? nowS() - u.status.block_time : null })).sort((x, y) => (y.age ?? -1) - (x.age ?? -1));
         $("view").innerHTML = `
           <div class="focus address">
             <div class="lead">
-              <p class="lead-kicker">${a.address_type ? `<span class="chip">${esc(a.address_type)}</span>` : ""}${copyPill(address)}</p>
+              <p class="lead-kicker"><span class="chip">${SCRIPTS[a.address_type] ?? a.address_type}</span>${copyPill(address, "Copy")}</p>
               <p class="lead-addr">${esc(address)}</p>
               <h2 class="lead-title">${balance ? `Holds ${btc(balance)}\u00a0BTC` : "Holds nothing"}</h2>
               <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)}\u00a0BTC and sent ${btc(c.spent_txo_sum)}\u00a0BTC over ${plural(c.tx_count, "transaction")}.</p>
@@ -3112,7 +3115,7 @@
               <dl class="lead-figs">
                 ${held ? fig("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
                 ${held ? fig("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
-                ${listed ? fig("Coins held", int(coins.length), coins[0]?.age ? `the oldest for ${span(coins[0].age)}` : "") : fig("Coins held", "Many", "more than the server lists")}
+                ${!listed ? fig("Coins held", "Many", "more than the server lists") : coins.length ? fig("Coins held", int(coins.length), coins[0].age ? `the oldest for ${span(coins[0].age)}` : "") : ""}
                 ${fig("Transactions", int(c.tx_count), a.mempool_stats.tx_count ? `and ${int(a.mempool_stats.tx_count)} waiting` : "confirmed")}
               </dl>
             </div>
