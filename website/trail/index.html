@@ -267,13 +267,10 @@
         text-align: center;
         transform-origin: top center;
         scale: var(--ui);
-      }
-
-      .axis-ui {
         gap: 12px;
-        text-shadow:
-          0 0 2px var(--background),
-          0 0 2px var(--background);
+        /* A map label's halo: terrain hanging below the floor (change, ages) passes under the rails. */
+        -webkit-text-stroke: 4px var(--background);
+        paint-order: stroke fill;
       }
 
       @media (hover: hover) and (pointer: fine) {
