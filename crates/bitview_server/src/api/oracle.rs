@@ -102,8 +102,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         smoothed histogram of the payments of the block and the 11 before it, by amount on its \
                         log scale; the block's outputs as its filter judged them, each skipped one under the \
                         first rule that skips it), where it looked (every candidate bin in its window, 12 below \
-                        the block before's answer to 11 above, with its score) and what it found (the bin it \
-                        picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where \
+                        the block before's answer to 11 above, with its score), what it found (the bin it \
+                        picked and its price) and how well its stencil fits around that answer (every bin within \
+                        120 of it, with its score), with the stencil's 19 round-dollar amounts. Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where \
                         $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never \
                         changes.",
                         )

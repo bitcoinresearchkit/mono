@@ -4,7 +4,7 @@ use crate::{HistogramEma, NUM_BINS};
 
 /// Bin offsets for 19 round-USD amounts relative to the $100 reference (offset 0).
 /// Each offset = round(log10(amount / 100) * BINS_PER_DECADE).
-const STENCIL_OFFSETS: [i32; 19] = [
+pub const STENCIL_OFFSETS: [i32; 19] = [
     -400, // $1
     -340, // $2
     -305, // $3

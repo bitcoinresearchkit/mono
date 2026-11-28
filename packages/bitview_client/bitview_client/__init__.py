@@ -614,6 +614,28 @@ class OracleOutputs(TypedDict):
     round_btc: int
     payments: int
 
+class OracleFit(TypedDict):
+    """
+    Scores over a run of bins.
+
+    Attributes:
+        first_bin: The first bin scored.
+        scores: Each bin's score, from `first_bin` on, unitless.
+    """
+    first_bin: int
+    scores: List[float]
+
+class OracleAmount(TypedDict):
+    """
+    One of the stencil's round-dollar amounts.
+
+    Attributes:
+        dollars: The amount, in dollars.
+        offset: Its bin minus $100's: `round(log10(dollars / 100) * 200)`.
+    """
+    dollars: int
+    offset: int
+
 class LogLine(TypedDict):
     """
     One line of the server's log.
@@ -1263,7 +1285,8 @@ class OraclePayments(TypedDict):
 class OracleBlock(TypedDict):
     """
     The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
-    `scores`) and what it found (`bin`, `price`).
+    `scores`), what it found (`bin`, `price`) and how well its stencil fits around that (`fit`,
+    `stencil`).
     
     Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
     `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
@@ -1279,6 +1302,8 @@ class OracleBlock(TypedDict):
         scores: Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k), the histogram's count where that amount lands if $100 is at the candidate, over that amount's peak in the window, summed. The pick is the highest of the candidates with counts on at least two amounts; without one, or with all zero (no payments in the window), the oracle kept the block before's answer.
         histogram: The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks' before it (live, the mempool's as the next block's), each block's counts weighted `(2/7) * (5/7)^age`, the newest at age 0.
         outputs: The block's own outputs (live, the mempool's) as the oracle's filter judged them.
+        fit: How well the stencil fits around the answer: every bin within 120 of `bin` (rounded), scored as `scores` scores a candidate, with each amount's peak taken over this wider window. It peaks at the price and echoes where other amounts pass for $100, as at double and half.
+        stencil: The stencil it scores with: each round-dollar amount and where it lands from $100's bin.
     """
     height: Height
     hash: BlockHash
@@ -1289,6 +1314,8 @@ class OracleBlock(TypedDict):
     scores: List[float]
     histogram: List[float]
     outputs: OracleOutputs
+    fit: OracleFit
+    stencil: List[OracleAmount]
 
 class BlockTimestamp(TypedDict):
     """
@@ -7463,7 +7490,7 @@ class BitviewClient(BitviewClientBase):
     def get_oracle_block(self, height: Height) -> OracleBlock:
         """The oracle at a block.
 
-        How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
+        How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score), what it found (the bin it picked and its price) and how well its stencil fits around that answer (every bin within 120 of it, with its score), with the stencil's 19 round-dollar amounts. Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
 
         Endpoint: `GET /api/oracle/blocks/{height}`"""
         return self.get_json(f'/api/oracle/blocks/{_segment(height)}')

@@ -37,7 +37,7 @@ use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, dollars_bin_offset, one_dollar_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
 
-pub use stencil::ROUND_DOLLARS;
+pub use stencil::{ROUND_DOLLARS, STENCIL_OFFSETS};
 use stencil::Stencil;
 use window::EmaWindow;
 
@@ -138,13 +138,19 @@ impl Oracle {
     /// [`START_HEIGHT_FAST`] on; below it, the slow regime's shape profile has already learned
     /// from the pick it scored.
     pub fn search(&self, prev_bin: f64) -> Option<Search> {
+        self.scores_around(prev_bin, self.config.search_below, self.config.search_above)
+    }
+
+    /// How well the stencil fits with $100 at each bin within `reach` of `center`: each scored as
+    /// [`search`](Self::search) scores a candidate, with each amount's peak taken over this wider
+    /// window.
+    pub fn fit(&self, center: f64, reach: usize) -> Option<Search> {
+        self.scores_around(center, reach, reach)
+    }
+
+    fn scores_around(&self, center: f64, below: usize, above: usize) -> Option<Search> {
         self.stencil
-            .scores(
-                self.window.ema(),
-                prev_bin,
-                self.config.search_below,
-                self.config.search_above,
-            )
+            .scores(self.window.ema(), center, below, above)
             .map(|(first_bin, scores)| Search { first_bin, scores })
     }
 

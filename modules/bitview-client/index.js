@@ -1011,8 +1011,16 @@
  * @typedef {TypeIndex} OpReturnOutputIndex
  */
 /**
+ * One of the stencil's round-dollar amounts.
+ *
+ * @typedef {Object} OracleAmount
+ * @property {number} dollars - The amount, in dollars.
+ * @property {number} offset - Its bin minus $100's: `round(log10(dollars / 100) * 200)`.
+ */
+/**
  * The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
- * `scores`) and what it found (`bin`, `price`).
+ * `scores`), what it found (`bin`, `price`) and how well its stencil fits around that (`fit`,
+ * `stencil`).
  *
  * Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
  * `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
@@ -1039,6 +1047,11 @@
  *   before it (live, the mempool's as the next block's), each block's counts weighted
  *   `(2/7) * (5/7)^age`, the newest at age 0.
  * @property {OracleOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
+ * @property {OracleFit} fit - How well the stencil fits around the answer: every bin within 120 of `bin` (rounded),
+ *   scored as `scores` scores a candidate, with each amount's peak taken over this wider
+ *   window. It peaks at the price and echoes where other amounts pass for $100, as at double
+ *   and half.
+ * @property {OracleAmount[]} stencil - The stencil it scores with: each round-dollar amount and where it lands from $100's bin.
  */
 /**
  * One block's payments read as round dollars, over the oracle's search window for it.
@@ -1048,6 +1061,13 @@
  * @property {number} firstBucket - The first bucket's index: the window's first bin's lower edge (half a bin under it) over
  *   `step`.
  * @property {number[]} counts - The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
+ */
+/**
+ * Scores over a run of bins.
+ *
+ * @typedef {Object} OracleFit
+ * @property {number} firstBin - The first bin scored.
+ * @property {number[]} scores - Each bin's score, from `first_bin` on, unitless.
  */
 /**
  * A block's outputs as the oracle's filter judged them: each skipped one under the first rule
@@ -7337,7 +7357,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "02902d21019a2800c7c9a9405238a6e2072a0688a94a53fcf4fd47e7af13a00b";
+  static HASH = "1f0648092a69cb87d6f3d84da81165d07532162cbcafe0e504cacf4fbe2ccbb9";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -10553,7 +10573,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * The oracle at a block
    *
-   * How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
+   * How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score), what it found (the bin it picked and its price) and how well its stencil fits around that answer (every bin within 120 of it, with its score), with the stencil's 19 round-dollar amounts. Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
    *
    * Endpoint: `GET /api/oracle/blocks/{height}`
    *
