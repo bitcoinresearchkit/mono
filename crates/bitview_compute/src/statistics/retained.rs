@@ -23,6 +23,16 @@ impl<S> Retained<S> {
             .and_then(|(at, kept, state)| (at == next && kept == version).then_some(state))
     }
 
+    /// The state kept to continue at or before row `start` under `version`, with the row it
+    /// continues at, else `new` at row 0; what was kept is consumed either way. For a fold over
+    /// every row before one that can be rewritten: it rebuilds when that row is gone.
+    pub fn resume(&mut self, start: usize, version: Version, new: impl FnOnce() -> S) -> (usize, S) {
+        self.0
+            .take()
+            .filter(|&(at, kept, _)| at <= start && kept == version)
+            .map_or_else(|| (0, new()), |(at, _, state)| (at, state))
+    }
+
     pub fn keep(&mut self, next: usize, version: Version, state: S) {
         self.0 = Some((next, version, state));
     }

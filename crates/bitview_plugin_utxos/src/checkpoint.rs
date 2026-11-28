@@ -3,7 +3,7 @@ use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::Stamp;
+use vecdb::{AnyVec, Stamp};
 
 use crate::{
     Vecs,
@@ -74,6 +74,12 @@ impl Replay for Vecs {
 
 impl Vecs {
     fn truncate_outputs(&mut self, len: usize) -> Result<()> {
+        // Only when band rows go (all of them on a reset, which can find them emptied). A plain
+        // restart truncates nothing and keeps the open day, which this update's compute then
+        // rewrites alone.
+        if len == 0 || len < self.cohorts.amounts.split().0.utxos.count.stored.len() {
+            self.amount_gini.truncate(len)?;
+        }
         self.cohorts
             .par_iter_vecs_mut()
             .try_for_each(|v| v.any_truncate_if_needed_at(len))?;

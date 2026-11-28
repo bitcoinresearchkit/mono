@@ -25,7 +25,7 @@ impl Vecs {
             &prices.spot.cents.height.read_only_boxed_clone(),
             totals,
         )?;
-        let amount_gini = AmountGini::import(&db, STORAGE.schema_version())?;
+        let amount_gini = AmountGini::import(&db, STORAGE.schema_version(), mappings)?;
         let this = Self {
             db,
             caps,

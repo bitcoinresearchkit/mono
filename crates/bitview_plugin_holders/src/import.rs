@@ -46,7 +46,12 @@ impl Vecs {
             |_, sats: Sats, price| sats.value_at(price),
         )
         .read_only_boxed_clone();
-        let day_models = DayModels::import(&db, version, mappings.height.day1.read_only_boxed_clone())?;
+        let day_models = DayModels::import(
+            &db,
+            version,
+            mappings.height.day1.read_only_boxed_clone(),
+            mappings.day1.first_height.read_only_boxed_clone(),
+        )?;
         STORAGE.finalize_database(&db)?;
         Ok(Self {
             db,
