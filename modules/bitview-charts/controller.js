@@ -1,21 +1,19 @@
 // @ts-check
 
 import { Timeline } from "./timeline.js";
-import { motionClock, motionTime } from "../motion/clock.js";
-import { glide, velocityTracker } from "../motion/physics.js";
+import { motionTime } from "../motion/clock.js";
+import { FLICK_RATE as RATE, thrown, velocityTracker } from "../motion/physics.js";
 import { reduced } from "../motion/reduced.js";
 
-/** Two thirds of iOS's list glide (0.998): not years past what it was flicked for. */
-const SLOWING = 0.997, RATE = -Math.log(SLOWING);
 const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
 const PINCH_LEAST = 8;
 
 export class Controller {
   #time;
   #move;
-  /** @type {{ glide: ReturnType<typeof glide>, clock: (now?: number) => number, start: number, moved: number, toEnd: boolean } | null} */
+  /** @type {ReturnType<typeof thrown> | null} */
   #flick = null;
-  /** @type {{ glide: ReturnType<typeof glide>, clock: (now?: number) => number, start: number, moved: number, x: number, width: number } | null} */
+  /** @type {{ glide: ReturnType<typeof thrown>, x: number, width: number } | null} */
   #zoom = null;
   #velocity = velocityTracker(FLICK_SPAN);
   /** The log of the pinching fingers' distance. */
@@ -118,8 +116,7 @@ export class Controller {
     if (reduced()) return;
     if (Math.abs(speed) >= FLICK_LEAST) this.#fling(speed, at);
     else if (Math.abs(edge) >= FLICK_LEAST) {
-      const clock = motionClock();
-      this.#zoom = { glide: glide({ from: 0, velocity: edge, rate: RATE }), clock, start: clock(at), moved: 0, x: this.#pinchX, width };
+      this.#zoom = { glide: thrown({ velocity: edge, rate: RATE, at }), x: this.#pinchX, width };
       this.#move();
     }
   }
@@ -127,8 +124,8 @@ export class Controller {
   /** @param {number} speed @param {number} at */
   #fling(speed, at) {
     // A flick that would pass an end slows faster to rest there: held at it, it would stop dead.
-    const room = this.#time.room(speed), toEnd = Math.abs(speed) / RATE > room, clock = motionClock();
-    this.#flick = { glide: glide({ from: 0, velocity: speed, rate: toEnd ? Math.abs(speed) / Math.max(room, 1e-9) : RATE }), clock, start: clock(at), moved: 0, toEnd };
+    const room = this.#time.room(speed), toEnd = Math.abs(speed) / RATE > room;
+    this.#flick = thrown({ velocity: speed, rate: toEnd ? Math.abs(speed) / Math.max(room, 1e-9) : RATE, at, land: toEnd });
     this.#move();
   }
 
@@ -136,13 +133,11 @@ export class Controller {
   step(now) {
     const zoom = this.#zoom;
     if (zoom) {
-      const t = zoom.clock(now) - zoom.start, to = zoom.glide.at(t), span = this.#time.to - this.#time.from;
+      const by = zoom.glide.step(now), span = this.#time.to - this.#time.from;
       // (A frame stamped at or before the lift asks for no zoom: that isn't the limit.)
-      const asked = to !== zoom.moved;
-      if (asked) this.#time.zoom(zoom.x, Math.exp(-(to - zoom.moved) / zoom.width));
-      zoom.moved = to;
+      if (by) this.#time.zoom(zoom.x, Math.exp(-by / zoom.width));
       // Held at the least or most it zooms to: no more to glide.
-      if (zoom.glide.done(t) || (asked && this.#time.to - this.#time.from === span)) this.#zoom = null;
+      if (zoom.glide.done || (by && this.#time.to - this.#time.from === span)) this.#zoom = null;
       this.#move();
     }
     if (this.#to) {
@@ -153,10 +148,9 @@ export class Controller {
     const flick = this.#flick;
     if (!flick) return;
     // Closed form, not stepped per frame: any frame rate or a late frame reads alike.
-    const t = flick.clock(now) - flick.start, ends = flick.glide.done(t), to = ends && flick.toEnd ? flick.glide.to : flick.glide.at(t), by = to - flick.moved;
-    flick.moved = to;
-    if (!this.#time.pan(by) || ends) this.halt();
+    const by = flick.step(now);
+    if (!this.#time.pan(by) || flick.done) this.halt();
     else this.#move();
-    if (ends && by) this.#move();
+    if (flick.done && by) this.#move();
   }
 }
