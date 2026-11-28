@@ -75,8 +75,9 @@
         --hint: light-dark(rgb(15 38 34 / 0.7), rgb(253 245 223 / 0.5));
         --hint-over: light-dark(#0f2622, rgb(253 245 223 / 0.67));
         --label: light-dark(#4b5f57, rgb(155 171 161 / 0.75));
-        --edge: light-dark(rgb(15 38 34 / 0.2), rgb(235 243 221 / 0.13));
+        --edge: light-dark(rgb(15 38 34 / 0.52), rgb(253 245 223 / 0.37));
         --warm-accent: light-dark(rgb(110 78 20), rgb(245 229 190));
+        --accent-edge: color-mix(in srgb, var(--warm-accent) 70%, transparent);
         --interaction-orange: #ffa000;
         --orange-ink: light-dark(#955600, #ffa000);
         --profit: light-dark(#11653a, #7fe594);
@@ -464,12 +465,12 @@
         }
 
         .selector:hover {
-          border-color: color-mix(in srgb, var(--warm-accent) 30%, transparent);
+          border-color: color-mix(in srgb, var(--warm-accent) 80%, transparent);
         }
       }
 
       .selector:focus-within {
-        border-color: color-mix(in srgb, var(--warm-accent) 58%, transparent);
+        border-color: var(--warm-accent);
       }
 
       @media (pointer: coarse) {
@@ -493,7 +494,8 @@
       .today {
         position: relative;
         padding: 4px 9px;
-        border: 1px solid color-mix(in srgb, var(--warm-accent) 58%, transparent);
+        /* The page's one action button rests on the accent, apart from the selects' ink. */
+        border: 1px solid var(--accent-edge);
         border-radius: 9px;
         background: transparent;
         color: var(--foreground);
@@ -582,7 +584,7 @@
       }
 
       .dimension-option input:focus-visible + .dimension-option-content {
-        outline: 1px solid color-mix(in srgb, var(--warm-accent) 70%, transparent);
+        outline: 1px solid var(--accent-edge);
         outline-offset: 4px;
       }
 
