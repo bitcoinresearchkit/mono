@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31776 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31779 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -223,7 +223,7 @@
 
 ### bedrock
 
-- `bedrock.awake` (44): `bedrock_awake_supply_in_profit_share_threshold_p5`, `bedrock_awake_supply_in_profit_share_threshold_p2`, `bedrock_awake_supply_in_profit_share_threshold_p1`, `bedrock_awake_supply_in_profit_share_threshold_p0_5`, `bedrock_awake_supply_in_profit_share_threshold_p0_1`
+- `bedrock.awake` (45): `bedrock_awake_supply_in_profit_share_threshold_p5`, `bedrock_awake_supply_in_profit_share_threshold_p2`, `bedrock_awake_supply_in_profit_share_threshold_p1`, `bedrock_awake_supply_in_profit_share_threshold_p0_5`, `bedrock_awake_supply_in_profit_share_threshold_p0_1`
 
 ### rarity_meter
 
@@ -244,7 +244,7 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `age.halving_epochs` (93 series each): `0` → `halving_epoch_0`, `1` → `halving_epoch_1`, `2` → `halving_epoch_2`, `3` → `halving_epoch_3`, `4` → `halving_epoch_4`, `5` → `halving_epoch_5`
 - `age.ranges` (135 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
 - `age.vintages` (93 series each): `2009` → `vintage_2009`, `2010` → `vintage_2010`, `2011` → `vintage_2011`, `2012` → `vintage_2012`, `2013` → `vintage_2013`, `2014` → `vintage_2014`, `2015` → `vintage_2015`, `2016` → `vintage_2016`, `2017` → `vintage_2017`, `2018` → `vintage_2018`, `2019` → `vintage_2019`, `2020` → `vintage_2020`, `2021` → `vintage_2021`, `2022` → `vintage_2022`, `2023` → `vintage_2023`, `2024` → `vintage_2024`, `2025` → `vintage_2025`, `2026` → `vintage_2026`, `2027` → `vintage_2027`
-- `bedrock` (44 series each): `awake` → `bedrock_awake`, `mobile` → `bedrock_mobile`, `unweighted` → `bedrock_unweighted`
+- `bedrock` (45 series each): `awake` → `bedrock_awake`, `mobile` → `bedrock_mobile`, `unweighted` → `bedrock_unweighted`
 - `blocks.fullness` (4 series each): `avg` → `block_fullness_avg`, `min` → `block_fullness_min`, `max` → `block_fullness_max`, `p10` → `block_fullness_p10`, `p25` → `block_fullness_p25`, `median` → `block_fullness_median`, `p75` → `block_fullness_p75`, `p90` → `block_fullness_p90`
 - `blocks.size` (4 series each): `sum` → `block_size_sum`, `avg` → `block_size_avg`, `min` → `block_size_min`, `max` → `block_size_max`, `p10` → `block_size_p10`, `p25` → `block_size_p25`, `median` → `block_size_median`, `p75` → `block_size_p75`, `p90` → `block_size_p90`
 - `blocks.weight` (4 series each): `sum` → `block_weight_sum`, `avg` → `block_weight_avg`, `min` → `block_weight_min`, `max` → `block_weight_max`, `p10` → `block_weight_p10`, `p25` → `block_weight_p25`, `median` → `block_weight_median`, `p75` → `block_weight_p75`, `p90` → `block_weight_p90`

@@ -2751,6 +2751,7 @@ const _ProfitPercentiles = _s({
  * @typedef {{
  *   supplyInProfitShareThreshold: ProfitPercentiles,
  *   supplyInLossShareThreshold: Percentiles<?Percent>,
+ *   supplyInProfitShareRank: SeriesPattern9<?Ratio>,
  *   floor: Percentiles<?Dollars>,
  *   costBasisAboveP95Floor: Levels,
  *   entrySupply: EntrySupply<A>,
@@ -2761,6 +2762,7 @@ const _ProfitPercentiles = _s({
 const _Mode = (c, b, f0) => _n(c, b, {
   supplyInProfitShareThreshold: [_ProfitPercentiles, '*_supply_in_profit_share_threshold'],
   supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
+  supplyInProfitShareRank: [_i9, '*_supply_in_profit_share_rank'],
   floor: [_Percentiles, '*_floor'],
   costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
   entrySupply: [(c, b) => _EntrySupply(c, b, f0), 'p99'],
@@ -7335,7 +7337,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "5108ca3fe636adc2d4ab4b0dc9f96539dbbff193ee44647db6f9c0f3d2cd4cd0";
+  static HASH = "02902d21019a2800c7c9a9405238a6e2072a0688a94a53fcf4fd47e7af13a00b";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

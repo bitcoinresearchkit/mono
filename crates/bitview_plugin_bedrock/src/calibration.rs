@@ -63,6 +63,21 @@ impl Calibration {
             })
         })
     }
+    /// Each mode's part of the earlier blocks with more of its supply in loss than `current`, the
+    /// block observed last; NaN where its thresholds are undefined. That block's own share is in
+    /// the history, and neither counts nor is counted.
+    pub fn ranks(&self, current: &Modes<Option<f64>>) -> Modes<f64> {
+        Modes::from_fn(|mode| {
+            let history = self.histories.select(mode);
+            let earlier = history.count().saturating_sub(1);
+            match *current.select(mode) {
+                Some(share) if earlier >= MINIMUM_BLOCKS => {
+                    history.above(share) as f64 / earlier as f64
+                }
+                _ => f64::NAN,
+            }
+        })
+    }
     pub fn observe(&mut self, shares: Modes<Option<f64>>) {
         for (history, &share) in self.histories.iter_mut().zip(shares.iter()) {
             if let Some(share) = share {

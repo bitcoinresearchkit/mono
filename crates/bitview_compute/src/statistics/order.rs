@@ -125,6 +125,21 @@ impl ExactOrderStats {
         true
     }
 
+    /// How many values are greater than `value`: a binary search over the blocks' last values,
+    /// then one within the block it lands in.
+    pub fn above(&self, value: f64) -> usize {
+        let at = self.blocks.partition_point(|block| {
+            block
+                .last()
+                .is_some_and(|last| last.total_cmp(&value).is_le())
+        });
+        let before = self.blocks[..at].iter().map(Vec::len).sum::<usize>();
+        let within = self.blocks.get(at).map_or(0, |block| {
+            block.partition_point(|candidate| candidate.total_cmp(&value).is_le())
+        });
+        self.len - before - within
+    }
+
     /// Percentiles (0.0-1.0, ascending) at the nearest rank, `max(0, ceil(len * p) - 1)` (`p` in
     /// whole parts per million), resolved in one pass. The set must not be empty.
     pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
