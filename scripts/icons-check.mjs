@@ -337,7 +337,7 @@ const inlineIcons = (file) => {
 const ROOT = join(dirname(new URL(import.meta.url).pathname), "..", "website");
 const pages = (/** @type {string} */ dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   const p = join(dir, e.name);
-  if (e.isDirectory()) return ["assets", "modules", "_engine"].includes(e.name) ? [] : pages(p);
+  if (e.isDirectory()) return ["assets", "modules"].includes(e.name) ? [] : pages(p);
   return /\.(html|js)$/.test(e.name) && e.name !== "icons.js" ? [p] : [];
 });
 
