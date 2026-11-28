@@ -23,8 +23,9 @@ pub use dependencies::Dependencies;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use bitview_urpd::UrpdWalk;
-use brk_types::Version;
-use vecdb::{Database, Rw, StorageMode};
+use bitview_primitives::Day1;
+use brk_types::{Height, Version};
+use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use block_result::BlockResult;
 use calibration::Calibration;
@@ -48,6 +49,10 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
+    #[traversable(skip)]
+    day_of_height: ReadableBoxedVec<Height, Day1>,
+    #[traversable(skip)]
+    first_height: ReadableBoxedVec<Day1, Height>,
     calibration: M::WriteOnly<Option<Calibration>>,
     walk: M::WriteOnly<UrpdWalk>,
     entry_supply: M::WriteOnly<EntrySupply>,

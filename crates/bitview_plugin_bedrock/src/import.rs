@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::BoundedToPercent};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableBoxedVec};
+use vecdb::{Database, ImportableVec, PcoVec, ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::{
     EntryVecs, ModeVecs, Modes, Percentiles, PriceBands, ProfitPercentiles, STORAGE, Vecs,
@@ -58,6 +58,11 @@ impl ModeVecs {
         });
         let floor = EntryVecs::import(db, name, version, mappings, spot_price)?;
         Ok(Self {
+            supply_in_profit_share_rank: PcoVec::import(
+                db,
+                &format!("{name}_supply_in_profit_share_rank"),
+                version,
+            )?,
             supply_in_profit_share_threshold,
             supply_in_loss_share_threshold,
             prices,
@@ -90,6 +95,8 @@ impl Vecs {
         let this = Self {
             db,
             modes,
+            day_of_height: mappings.height.day1.read_only_boxed_clone(),
+            first_height: mappings.day1.first_height.read_only_boxed_clone(),
             calibration: None,
             walk: Default::default(),
             entry_supply: Default::default(),

@@ -4,17 +4,21 @@ use std::{
 };
 
 use bitview_cohort::AgeRange;
-use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
+use bitview_compute::{
+    Inputs, WRITE_INTERVAL, collect_cohort_weights, prepare_computed, write_locked,
+};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_primitives::{Day1, Ratio};
 use bitview_traversable::Traversable;
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
-use brk_error::Result;
+use brk_error::{OptionData, Result};
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use log::info;
 use statedb::Reader;
-use vecdb::{AnyVec, ReadableVec};
+use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
-use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, Vecs};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, Modes, Vecs};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -58,6 +62,16 @@ impl ComputePlugin for Vecs {
         );
         inputs.len = inputs.len.min(urpd.len());
         let source_version = inputs.version;
+        let rank_version = Version::ONE
+            + source_version
+            + self.day_of_height.version()
+            + self.first_height.version();
+        let ranked_days = prepare_computed(
+            rank_vecs(&mut self.modes),
+            rank_version,
+            usize::MAX,
+            context.exit(),
+        )?;
         let range = inputs.prepare(
             self.modes
                 .iter_mut()
@@ -74,38 +88,52 @@ impl ComputePlugin for Vecs {
                 end - 1
             );
         }
+        // The ranks resume on their own: with the walk, or before it where they are behind (new
+        // or reset), observing those blocks without thresholds.
+        let observed = self
+            .first_height
+            .collect_one(Day1::from(ranked_days))
+            .map_or(start, usize::from)
+            .min(start);
         let mut calibration = self
             .calibration
             .take()
-            .filter(|c| c.end == start && c.version == source_version)
+            .filter(|c| c.end == observed && c.version == source_version)
             .unwrap_or_else(|| {
                 Calibration::from_sources(
                     raw_loss_share,
                     cointime_loss_share,
                     coinflow_loss_share,
-                    start,
+                    observed,
                     source_version,
                 )
             });
         // Thresholds follow the stored loss shares alone, so one sequential pass fixes them
         // and the URPD evaluation can walk in parallel.
+        // The ranks from the block before, already observed: the day it closes is rewritten.
+        let ranked_from = observed.saturating_sub(1);
+        let mut ranks = Vec::with_capacity(end - ranked_from);
         let thresholds = {
-            let mut raw = raw_loss_share.bounded_cursor_at(start, end);
-            let mut cointime = cointime_loss_share.bounded_cursor_at(start, end);
-            let mut coinflow = coinflow_loss_share.bounded_cursor_at(start, end);
-            (start..end)
-                .map(|index| {
+            let mut raw = raw_loss_share.bounded_cursor_at(ranked_from, end);
+            let mut cointime = cointime_loss_share.bounded_cursor_at(ranked_from, end);
+            let mut coinflow = coinflow_loss_share.bounded_cursor_at(ranked_from, end);
+            (ranked_from..end)
+                .filter_map(|index| {
                     let shares = Calibration::loss_shares(
                         raw.get(index).map(f64::from),
                         cointime.get(index).map(f64::from),
                         coinflow.get(index).map(f64::from),
                     );
-                    let thresholds = calibration.thresholds(&shares);
-                    calibration.observe(shares);
+                    let thresholds = (index >= start).then(|| calibration.thresholds(&shares));
+                    if index >= observed {
+                        calibration.observe(shares);
+                    }
+                    ranks.push(calibration.ranks(&shares));
                     thresholds
                 })
                 .collect::<Vec<_>>()
         };
+        self.write_ranks(ranked_from, &ranks, rank_version, context.exit())?;
         let mut last_progress = Instant::now();
         let mut walk = mem::take(&mut self.walk);
         walk.map(
@@ -181,6 +209,60 @@ impl ComputePlugin for Vecs {
 }
 
 impl Vecs {
+    /// Each day's rank at its last block, from the day of block `from` on, `ranks` holding
+    /// blocks `from..`'s.
+    fn write_ranks(
+        &mut self,
+        from: usize,
+        ranks: &[Modes<f64>],
+        version: Version,
+        exit: &Exit,
+    ) -> Result<()> {
+        let Some(last) = (from + ranks.len()).checked_sub(1) else {
+            return Ok(());
+        };
+        let end = last + 1;
+        let day_of = |height: usize| {
+            self.day_of_height
+                .collect_one(Height::from(height))
+                .data()
+                .map(Day1::to_usize)
+        };
+        let (from_day, last_day) = (day_of(from)?, day_of(last)?);
+        // Earlier where the days before hold no blocks (January 2009).
+        let first_day = prepare_computed(rank_vecs(&mut self.modes), version, from_day, exit)?;
+        let start_of = |day: usize| {
+            self.first_height
+                .collect_one(Day1::from(day))
+                .map_or(end, usize::from)
+                .min(end)
+        };
+        // Each day's last block; a day without blocks has none.
+        let mut closes = Vec::with_capacity(last_day + 1 - first_day);
+        let mut start = start_of(first_day);
+        for day in first_day..=last_day {
+            let next = if day == last_day {
+                end
+            } else {
+                start_of(day + 1)
+            };
+            closes.push((next > start).then(|| next - 1));
+            start = next;
+        }
+        debug_assert!(
+            closes.iter().flatten().all(|&close| close >= from),
+            "the ranks resume within the days they hold"
+        );
+        let none = Modes::from_fn(|_| f64::NAN);
+        for close in closes {
+            let values = close.map_or(&none, |height| &ranks[height - from]);
+            for (vecs, &value) in self.modes.iter_mut().zip(values.iter()) {
+                vecs.supply_in_profit_share_rank.push(Ratio::from(value));
+            }
+        }
+        write_locked(rank_vecs(&mut self.modes), exit)
+    }
+
     /// The floor bands' holdings, from the floors the walk stored: their own group, so each
     /// resumes from where it was written.
     fn compute_entry_supply(
@@ -212,6 +294,13 @@ impl Vecs {
         self.entry_supply = entry_supply;
         Ok(())
     }
+}
+
+fn rank_vecs(modes: &mut Modes<ModeVecs>) -> Vec<&mut PcoVec<Day1, Ratio>> {
+    modes
+        .iter_mut()
+        .map(|vecs| &mut vecs.supply_in_profit_share_rank)
+        .collect()
 }
 
 /// One segment's cursors and cumulative-bucket scratch.

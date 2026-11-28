@@ -26,6 +26,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The Gini coefficient of UTXO amounts is served at `day1` (`utxo_amount_gini`, Corrado Gini's, 1912), read from the
   amount bands at each day's last block, so a floor under the figure for each output alone. Studio's Gini chart reads
   it instead of combining 29 band series on the page (5.6 ms a request, now 0.4 ms). +20 KB on disk.
+- Bedrock's rank is served at `day1`, for each mode (`bedrock_{unweighted,awake,mobile}_supply_in_profit_share_rank`):
+  the part of earlier blocks with less of the supply in profit than the day's last block, over the history the floors
+  rank against, so it is at most 1% when the day's loss share reaches the 99th-percentile threshold. The Bedrock
+  page reads it instead of ranking each day against earlier days itself, and its words say blocks; the sink's rarity
+  is the floor it is under. +59 KB on disk.
 - Compass is served at `day1`, for mobile and awake coins (`mobile_compass_*`, `awake_compass_*`): `index` (0 Fear to
   100 Optimism), `short_term_cloud_position` and `long_term_cloud_position` (-1 to 1), `mood` (0 Optimism to 8 Fear),
   `extreme` (1 when the price is further from a cloud than on 99 in 100 earlier days) and `mood_days` (the mood's run so

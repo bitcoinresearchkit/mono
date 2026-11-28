@@ -3412,6 +3412,7 @@ class ProfitPercentiles(_Node):
 class Mode(_Node, Generic[A]):
     supply_in_profit_share_threshold: ProfitPercentiles = _at(ProfitPercentiles, '*_supply_in_profit_share_threshold')
     supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
+    supply_in_profit_share_rank: SeriesPattern9[Optional[Ratio]] = _at(SeriesPattern9, '*_supply_in_profit_share_rank')
     floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
     cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
     entry_supply: EntrySupply[A] = _at((EntrySupply, 0), 'p99')

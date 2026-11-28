@@ -738,6 +738,7 @@ pub mod tree {
     shape! { Mode<A> at "series().bedrock.awake" {
         supply_in_profit_share_threshold: ProfitPercentiles = "*_supply_in_profit_share_threshold",
         supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
+        supply_in_profit_share_rank: SeriesPattern9<Option<Ratio>> = "*_supply_in_profit_share_rank",
         floor: Percentiles<Option<Dollars>> = "*_floor",
         cost_basis_above_p95_floor: Levels = "*_cost_basis_above_p95_floor",
         entry_supply: EntrySupply<A> = "p99",

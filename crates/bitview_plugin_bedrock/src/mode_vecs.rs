@@ -1,8 +1,8 @@
-use bitview_primitives::{BoundedRatio, Percent};
+use bitview_primitives::{BoundedRatio, Day1, Percent, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
 use brk_types::Cents;
-use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, PcoVec, Rw, StorageMode, WritableVec};
 
 use super::{EntryVecs, ModeResult, Percentiles, PriceBands, ProfitPercentiles};
 
@@ -22,6 +22,12 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// exposed as a percentage. Calibration remains full precision.
     #[traversable(lead = "Stress threshold: the share of coins in loss it calls extreme.")]
     pub supply_in_loss_share_threshold: Percentiles<LazyPerBlock<Percent, BoundedRatio>>,
+    /// The part of the mode's prior finite block shares of supply in profit below the day's
+    /// close (its last block, UTC), over the history the thresholds use: at most 0.01 when the
+    /// close's supply-in-loss share reaches the 99th-percentile threshold, and under 0.01 only
+    /// then; so for the others. Null where the thresholds are.
+    #[traversable(lead = "Profit rank: the part of earlier blocks with less of the supply in profit than today.")]
+    pub supply_in_profit_share_rank: M::Stored<PcoVec<Day1, Ratio>>,
     #[traversable(flatten)]
     /// Bedrock maps historically stressed supply-in-loss shares onto the
     /// represented block's mode-weighted distribution of UTXO creation prices to
