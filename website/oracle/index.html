@@ -709,7 +709,7 @@
 
       .plate {
         position: relative;
-        height: clamp(260px, 36vh, 340px);
+        height: clamp(274px, 36vh + 14px, 354px);
         cursor: grab;
         touch-action: pan-y;
         user-select: none;
@@ -1830,7 +1830,7 @@
           return;
         }
         const hist = shownSearch.histogram, w = plate.clientWidth, h = plate.clientHeight, center = shownSearch.bin, here = center + shift;
-        const lo = center - SPAN, hi = center + SPAN, strip = 86, base = h - strip - 22, top = 30;
+        const lo = center - SPAN, hi = center + SPAN, strip = 100, base = h - strip - 22, top = 30;
         const x = (/** @type {number} */ b) => ((b - lo) / (hi - lo)) * w;
         let peak = 0;
         for (let b = Math.floor(lo); b < hi; b++) peak = Math.max(peak, hist[b] ?? 0);
@@ -1858,7 +1858,7 @@
           teeth += `<text class="tooth-label${major ? "" : " minor"}" x="${cx.toFixed(1)}" y="${top - 12}" text-anchor="middle">${text}</text>`;
         }
         // The fit's echoes at double and half: $50 payments pass for $100 ones.
-        const s0 = h - strip + 28, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
+        const s0 = h - strip + 28, s1 = h - 22, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
         if (redraw) {
           let bars = "";
           for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
@@ -1869,8 +1869,10 @@
           }
           const pts = [];
           for (let c = center - REACH; c <= center + REACH; c += 0.5) pts.push(`${fx(c).toFixed(1)},${(s1 - (wide.at(c) / most) * (s1 - s0)).toFixed(1)}`);
-          const marks = [-60, 0, 60].map((d) => `<text class="axis-text" x="${fx(center + d)}" y="${s0 - 6}" text-anchor="middle">${d ? `$${grouped(priceOf(center + d))}` : "price"}</text>`).join("");
-          const fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">fit</text>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/>`;
+          // Ticks under the strip say what the price would be there against the answer, never in dollars: a dollar value
+          // beside "fit" or "price" reads as the price.
+          const marks = /** @type {[number, string][]} */ ([[-60, "double"], [0, "the price"], [60, "half"]]).map(([d, words]) => `<line class="rule" x1="${fx(center + d)}" x2="${fx(center + d)}" y1="${s1}" y2="${s1 + 4}"/><text class="axis-text" x="${fx(center + d)}" y="${h - 6}" text-anchor="middle">${words}</text>`).join("");
+          const fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">how well it fits</text><line class="rule" x1="0" x2="${w}" y1="${s1 + 0.5}" y2="${s1 + 0.5}"/>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/>`;
           spectrum.setAttribute("viewBox", `0 0 ${w} ${h}`);
           spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fit}<g id="moving"></g>`;
           plateStill = drawnFor;
