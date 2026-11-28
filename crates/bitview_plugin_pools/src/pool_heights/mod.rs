@@ -35,17 +35,48 @@ impl Column {
     ];
 }
 
-/// One block's value of each chain-wide series split by pool, or a pool's running totals of
-/// them: one per [`Column`] after `Blocks`.
+/// One block's value of each chain-wide series split by pool: one per [`Column`] after `Blocks`.
 pub type Totals = [u64; TOTALS];
 
 pub(crate) const TOTALS: usize = Column::Under0p1SatVbTxs as usize;
+/// The amounts lead the summed columns; the rest are counts.
+const AMOUNTS: usize = Column::FeeCents as usize;
+
+/// A pool's running totals through one of its blocks. Its counts of blocks or transactions stay
+/// far below 2^32, so they are kept in 32 bits: every pool's rows are in memory, one per block.
+#[derive(Clone, Copy, Default)]
+struct Running {
+    amounts: [u64; AMOUNTS],
+    counts: [u32; TOTALS - AMOUNTS],
+}
+
+const _: () = assert!(size_of::<Running>() == 48, "four amounts and four counts: 48 bytes a block");
+
+impl Running {
+    fn get(&self, slot: usize) -> u64 {
+        match slot.checked_sub(AMOUNTS) {
+            None => self.amounts[slot],
+            Some(count) => u64::from(self.counts[count]),
+        }
+    }
+
+    fn add(&mut self, block: Totals) {
+        let (amounts, counts) = block.split_at(AMOUNTS);
+        for (total, value) in self.amounts.iter_mut().zip(amounts) {
+            *total += value;
+        }
+        for (total, value) in self.counts.iter_mut().zip(counts) {
+            *total = u32::try_from(u64::from(*total) + value)
+                .expect("a pool's running count fits 32 bits");
+        }
+    }
+}
 
 #[derive(Clone, Default)]
 struct Record {
     heights: Pages<Height>,
     /// Running totals through each of `heights`, for the first `totals.len()` of them.
-    totals: Pages<Totals>,
+    totals: Pages<Running>,
 }
 
 static NO_HEIGHTS: Pages<Height> = Pages::new();
@@ -206,9 +237,7 @@ impl PoolSnapshot {
                 "totals fold in block order"
             );
             let mut running = record.totals.last().copied().unwrap_or_default();
-            for (total, value) in running.iter_mut().zip(block) {
-                *total += value;
-            }
+            running.add(block);
             record.totals.push(running);
             height += 1;
         }
@@ -259,7 +288,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
                 debug_assert!(position <= record.totals.len(), "totals behind len");
                 position
                     .checked_sub(1)
-                    .map_or(0, |last| record.totals[last][column as usize - 1])
+                    .map_or(0, |last| record.totals[last].get(column as usize - 1))
             }
         };
         T::from(value)
