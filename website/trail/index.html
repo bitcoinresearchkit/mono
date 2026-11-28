@@ -391,6 +391,12 @@
           background: var(--swatch);
         }
 
+        &#price-key i {
+          width: 18px;
+          height: 2px;
+          border-radius: 0;
+        }
+
         .ramp {
           width: 112px;
           height: 9px;
@@ -685,6 +691,7 @@
           <div id="key" class="key">
             <span id="terrain-key" class="key-item"></span>
             <span id="split-legend" class="key-item" hidden></span>
+            <span id="price-key" class="key-item"><i></i>Price</span>
           </div>
         </div>
 
@@ -1049,6 +1056,7 @@
         const corner = byId("corner");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
+        byId("price-key").style.setProperty("--swatch", PRICE_RED);
         const darkScheme = matchMedia("(prefers-color-scheme: dark)");
         const tokenProbe = document.createElement("i");
         // Each token is read through an empty element, its style asked afresh: Safari on iOS answered a hidden one's kept style with an earlier token's colour.
