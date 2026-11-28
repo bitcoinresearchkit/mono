@@ -508,7 +508,7 @@ export class Chart {
     /**
          * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, held?: number }} Axis
          */
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null, beside: PointerEvent | null, stop: () => void }>} */ (new Map());
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null, beside: PointerEvent | null, stop: () => void, caught: boolean }>} */ (new Map());
     let held = -1;
     let twoFingers = false;
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
@@ -603,8 +603,8 @@ export class Chart {
       if (on >= 0) return size(event, on);
       const id = event.pointerId, stop = hold(event);
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop });
-      this.controller.grab();
+      const caught = this.controller.grab();
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop, caught });
       clearTimeout(this.holding);
       if (this.letting) cancelAnimationFrame(this.letting), this.#clearPointer();
       this.holding = this.letting = 0;
@@ -694,6 +694,8 @@ export class Chart {
       if (held === id) return void ((held = -1), this.controller.forget(), (tapAt = -Infinity), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
       if (event && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         this.controller.forget();
+        // A tap that caught a glide only stops it (nor is it the first of a double tap).
+        if (at.caught) return void (tapAt = -Infinity);
         const axis = at.axis;
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
         (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");

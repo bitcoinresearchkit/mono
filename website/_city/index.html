@@ -3671,6 +3671,8 @@
       const spread = velocityTracker();
       const pinchAt = { x: 0, y: 0 };
       let pinched = false;
+      /** The press caught a glide: as a tap it only stops it. */
+      let caught = false;
 
       /**
        * As the chart's: a finger's pan flicks on; after a pinch only its zoom glides, if both fingers left within the
@@ -3695,6 +3697,7 @@
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         canvas.dataset.dragging = "";
         pinch = 0;
+        if (pointers.size === 1) caught = Boolean(flung);
         flung = null;
         if (pointers.size === 1) {
           pressX = event.clientX;
@@ -3738,7 +3741,7 @@
           pointers.delete(pointer.pointerId);
           if (pointers.size) return;
           delete canvas.dataset.dragging;
-          if (type === "pointerup" && !dragged) click(pointer.clientX, pointer.clientY);
+          if (type === "pointerup" && !dragged) caught || click(pointer.clientX, pointer.clientY);
           // A mouse or pen's drag stops where it's let go.
           else if (type === "pointerup" && pointer.pointerType === "touch") fling(pointer.timeStamp);
         });

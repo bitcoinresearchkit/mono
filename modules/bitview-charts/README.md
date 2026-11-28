@@ -44,7 +44,7 @@ chart.show(365);                                 // the last 365 points in view
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
   `setCrosshair(index, y)` (its date written by `crosshair.setFormat`: written as nothing, no badge, as a value's),
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
-  tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
+  tap: its point, its pane, the series hit there; not a tap that caught a glide, which only stops it), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
   `time.rightOffset`, the blank after the last point in CSS pixels: 6% of the plot, 16 to 48 (`rightBlank(width)`, one rule for

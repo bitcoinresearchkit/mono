@@ -81,10 +81,13 @@ export class Controller {
     this.#to = null;
   }
 
+  /** Whether it caught a flick or a pinch's glide: a tap that does only stops it. */
   grab() {
+    const caught = Boolean(this.#flick || this.#zoom);
     this.stop();
     this.#velocity.reset();
     this.#spread.reset();
+    return caught;
   }
 
   forget() {

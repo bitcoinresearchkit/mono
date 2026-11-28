@@ -804,7 +804,7 @@
     <div class="float" id="float" hidden aria-hidden="true"></div>
     <script type="module">
       // @ts-check
-      import { FLICK_RATE, thrown, velocityTracker } from "/modules/motion/physics.js";
+      import { FLICK_LEAST, FLICK_RATE, thrown, velocityTracker } from "/modules/motion/physics.js";
       import { reduced, whenReduced } from "/modules/motion/reduced.js";
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -1334,7 +1334,7 @@
       const STILL = TURN / 4;
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
       let flight = null;
-      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
+      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean, caught: boolean } | null} */ (null);
       /** The turn and tilt a finger let go of. */
       let flung = /** @type {{ turn: ReturnType<typeof thrown>, tilt: ReturnType<typeof thrown> } | null} */ (null);
       const trail = [velocityTracker(), velocityTracker()];
@@ -1354,9 +1354,12 @@
       }
       /** @param {number} at */
       function fling(at) {
+        const turn = trail[0].velocity(at), tilt = trail[1].velocity(at);
+        // (Degrees a millisecond back to the finger's px.)
+        if ((Math.hypot(turn, tilt) * R) / 90 < FLICK_LEAST) return;
         // The globe's own turn goes on under the glide: the glide carries what the finger gave past it.
         const glide = (/** @type {number} */ velocity) => thrown({ velocity, rate: FLICK_RATE, least: STILL, at });
-        flung = { turn: glide(trail[0].velocity(at) - (turning() ? TURN : 0)), tilt: glide(trail[1].velocity(at)) };
+        flung = { turn: glide(turn - (turning() ? TURN : 0)), tilt: glide(tilt) };
       }
       function frame(/** @type {number} */ now) {
         frameId = 0;
@@ -1387,7 +1390,7 @@
       document.addEventListener("visibilitychange", () => (last = 0));
 
       canvas.addEventListener("pointerdown", (event) => {
-        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false };
+        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false, caught: Boolean(flung) };
         flight = flung = null;
         greeted = true;
         for (const each of trail) each.reset();
@@ -1406,7 +1409,8 @@
         } else if (event.target === canvas && event.pointerType === "mouse") showFloat(pickAt(event), event);
       });
       addEventListener("pointerup", (event) => {
-        if (dragging && !dragging.moved && event.target === canvas) {
+        // A tap that caught a throw only stops it.
+        if (dragging && !dragging.moved && !dragging.caught && event.target === canvas) {
           const key = pickAt(event);
           select(key && key !== selected ? key : null);
         }
