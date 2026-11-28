@@ -1478,7 +1478,7 @@
       const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
       /** @type {Event[]} */ const early = [];
       worker.onmessage = worker.onerror = (event) => void early.push(event);
-      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, weekOf, FROM, SHOWN, WEEK }, { reduced }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js"), import("/modules/motion/reduced.js")]);
+      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, weekOf, percent, told, FROM, SHOWN, WEEK }, { reduced }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js"), import("/modules/motion/reduced.js")]);
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
@@ -1491,8 +1491,6 @@
       const month = (/** @type {number} */ day) => { const d = dateOf(day); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
       const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
       const usd = (/** @type {number} */ v) => (v >= 100 ? `$${WHOLE.format(v)}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toPrecision(2)}`);
-      /** A miss as every place on the page shows it: to two decimals (lines that read the same are ordered by their next worst). */
-      const percent = (/** @type {number} */ v) => `${v.toFixed(2)}%`;
       const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
       const worded = (/** @type {number} */ n) => NUMBERS[n] ?? String(n);
       const capital = (/** @type {string} */ s) => s[0].toUpperCase() + s.slice(1);
@@ -1902,8 +1900,6 @@
 
       // ── The reading ──
 
-      /** What a ranking says, to tell two apart: its bottoms, its lines' places and misses, and its ceilings. */
-      const told = (/** @type {import("./study.js").Board} */ b) => [b.lows, b.ranked.map((r) => [r.row.id, r.rank, r.row.at]), b.ceilings.map((m) => m.id)];
       const fail = (/** @type {string} */ why) => {
         /** @type {any} */ (window).bitviewLaunch?.ready();
         const failed = $("failed");
@@ -1923,9 +1919,9 @@
           $("from-year").textContent = String(dateOf(FROM).getUTCFullYear());
           hero(), falls(), /** @type {any} */ (window).bitviewLaunch?.ready();
         } else if (data.type === "ranked") {
-          // (Today's ranking replaces the stored one, and says so only when it differs: each of today's, as the ceilings can make a second.)
+          // (Today's ranking replaces the stored one, and says so only when it reads differently: each of today's, as the ceilings can make a second.)
           if (!data.live) stored = data;
-          else if (stored) $("checked").textContent = JSON.stringify(told(stored)) !== JSON.stringify(told(data)) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
+          else if (stored) $("checked").textContent = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
           (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
         }
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); marked(), miss(); }
