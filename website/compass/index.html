@@ -369,6 +369,9 @@
 
           /* A finger's 44px on a touch phone, the row still one line at 375px: .foot's rules override the reaches below. */
           @media (pointer: coarse) {
+            /* The rows' 44px reaches stand 6px out of each: any closer and the lower one covers the Play button's. */
+            row-gap: 12px;
+
             [data-span]::before {
               inset-inline: -1px;
             }
