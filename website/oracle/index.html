@@ -97,7 +97,7 @@
         --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
         --heat: var(--ink);
         --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
-        --gain: light-dark(#0a7d3e, #6ef096);
+        --gain: light-dark(#066b33, #6ef096);
         --loss: light-dark(#b12420, #ff7466);
         --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
@@ -259,8 +259,8 @@
         }
 
         .when {
-          /* A step toward --soft: over the evidence's warm cells the plain --faint falls short of 4.5:1. */
-          color: color-mix(in srgb, var(--faint), var(--soft) 40%);
+          /* Over the evidence's warm cells --faint, or a step toward --soft, falls short of 4.5:1. */
+          color: var(--soft);
         }
       }
 
