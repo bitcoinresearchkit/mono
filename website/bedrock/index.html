@@ -1210,8 +1210,8 @@
         const pick = (/** @type {number} */ k) => {
           bars[on]?.classList.remove("on"), bars[(on = k)]?.classList.add("on");
           const age = ages[k];
-          if (age) write("", `Last moved ${AGES[k][1]} ago · weight ${age.weight.toFixed(3)}`, `${coins(age.coins)} count as ${coins(age.coins * age.weight)} ${mode} coins`);
-          else write("", "Every coin · slide across to read one age", `${coins(sum)} count as ${coins(counted)} ${mode} coins`);
+          if (age) write("", `Last moved ${AGES[k][1]} ago · weight ${age.weight.toFixed(3)}`, `${coins(age.coins)} BTC count as ${coins(age.coins * age.weight)} ${mode} coins`);
+          else write("", "Every coin · slide across to read one age", `${coins(sum)} BTC count as ${coins(counted)} ${mode} coins`);
         };
         const at = (/** @type {PointerEvent} */ e) => {
           const first = bars[0].getBoundingClientRect(), end = bars[bars.length - 1].getBoundingClientRect();
