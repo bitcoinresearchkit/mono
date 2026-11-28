@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Ledger's live day keeps updating when a request never answers: the request gives up after 30 s and the next check,
+  every 30 s, asks again. One stalled request used to stop the updates until a reload.
 - A simple moving average of the price (`price_sma_*`, its `_ratio`, `mayer_multiple`, the Pi cycle top) is null until
   its whole window lies after the first exchange price, as other rolling prices are, instead of averaging the unpriced
   blocks before it as zero. `balanced_price` and `delta_price` are null where the difference they price is negative.
