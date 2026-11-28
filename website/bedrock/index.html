@@ -1438,6 +1438,8 @@
       /** The mode shown is kept if the new one can't be read. */
       async function show(/** @type {Mode} */ mode) {
         const turn = ++turns, days = readDays(mode), rest = readRest(mode, days);
+        // It can fail before the await below reaches it, or after that is skipped: neither is an uncaught error.
+        rest.catch(() => {});
         (asked = mode), say("");
         try {
           if (!heroOf) {
