@@ -124,6 +124,10 @@ export function stale(/** @type {Bottom[]} */ lows, /** @type {ReturnType<typeof
 
 /** @typedef {Made & { at: (import("./score.js").At | null)[] }} Row (`at`: one per bottom) */
 /** @typedef {{ row: Row, rank: number, worst: number }} Ranked (`rank`: shared by lines equal at every bottom; `worst`: its largest miss, Infinity with no value at a bottom) */
+/** A miss as every place shows it: to two decimals (lines that read the same are ordered by their next worst). */
+export const percent = (/** @type {number} */ v) => `${v.toFixed(2)}%`;
+/** What a reader sees of a ranking, to tell two apart: its bottoms, and its lines in order with their places and misses as printed. */
+export const told = (/** @type {Pick<Board, "lows" | "ranked">} */ b) => JSON.stringify([b.lows, b.ranked.map(({ row, rank }) => [row.id, rank, row.at.map((a) => a && percent(a.miss))])]);
 /**
  * Every line held to each bottom, in the ranking's order: those with a value at each fall's high (a cohort born since,
  * as coins over 15 years old, can't be held to a bottom before it). @returns {Ranked[]}

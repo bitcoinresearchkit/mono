@@ -1052,10 +1052,10 @@
       /** @typedef {{ today: number, edges: number[], loss: Float64Array, below: (share: number) => number }} Shares */
       /** Floors as the server ranks them; levels as the parts they are of the coins over the first floor. */
       const readShares = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => kept(`shares ${mode}`, async () => {
-        const [d, loss, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), ...FLOORS.map(([k]) => series(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
-        // A series a day short of the landscape's last holds its own last.
-        const profit = (/** @type {Float64Array} */ v) => 1 - v[Math.min(d.last, v.length - 1)] / 100;
-        const floors = thresholds.map(profit), top = floors[0], today = profit(loss);
+        const [d, loss, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), ...FLOORS.map(([k]) => latest(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
+        const profit = (/** @type {number} */ lossShare) => 1 - lossShare / 100;
+        // The thresholds are their latest; the loss at the landscape's last day, its own last when it's a day short.
+        const floors = thresholds.map(profit), top = floors[0], today = profit(loss[Math.min(d.last, loss.length - 1)]);
         if (!(today >= 0) || !floors.every((floor) => floor >= 0)) throw new Error(`the ${mode} coins in profit today couldn't be read`);
         const earlier = Float64Array.from(loss.subarray(0, Math.min(d.last, loss.length)), (v) => 1 - v / 100).filter((v) => v >= 0).sort();
         const below = (/** @type {number} */ share) => {
@@ -1426,6 +1426,7 @@
 
       /** @param {Mode} mode @param {Days} d @param {Awaited<ReturnType<typeof readRest>>} rest */
       function build(mode, d, [past, priceAt, ages, every]) {
+        $("failed").hidden = true;
         if (shown || heroOf !== mode) raiseHero(mode, d);
         const { signal } = built;
         weigh(ages, mode, signal), count(d, past, signal), rank(d, past, signal), scene(d, past, priceAt, mode, signal), record(d, past, mode, signal), weights(every, past);
