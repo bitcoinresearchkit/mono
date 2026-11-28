@@ -1518,6 +1518,8 @@
       const CHART = /** @type {string} */ ($("chart").getAttribute("aria-label"));
       /** Its id, or null; in the address, so a link shares it. */
       let chosen = new URLSearchParams(location.search).get("line");
+      /** Whether the ceilings the ranking leaves out are today's: till then, a line chosen from among them may yet be ranked. */
+      let settled = false;
       /** The chosen line when its read failed (pressing its chip asks again), and the name it was chosen from (focus goes back to it). */
       let unread = /** @type {string | null} */ (null), from = /** @type {HTMLElement | null} */ (null);
       /** A line's colour on the chart, by number: its place's among the first three, else the fourth. */
@@ -1527,8 +1529,9 @@
        * (it reads it once). */
       function marked() {
         const r = chosen ? ranked.find((r) => r.row.id === chosen) : undefined;
-        // (A line no ranking has, from an old link, isn't chosen: once a ranking is in.)
-        if (chosen && ranked.length && !r) chosen = null;
+        // (A line today's ranking doesn't rank, from an old link, isn't chosen: only once today's is in, as the stored one,
+        // shown first, may lack a line added since; a ceiling only once today's ceilings are.)
+        if (chosen && board?.live && !r && (settled || !board.ceilings.some((m) => m.id === chosen))) chosen = null;
         const address = `${location.pathname}${chosen ? `?line=${encodeURIComponent(chosen)}` : ""}${location.hash}`;
         if (address !== location.pathname + location.search + location.hash) history.replaceState(history.state, "", address);
         if (r && !lines.has(r.row.id) && unread !== r.row.id) worker.postMessage({ id: r.row.id });
@@ -1931,6 +1934,7 @@
           else if (stored) (against = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : ""), checked();
           (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
         }
+        else if (data.type === "settled") (settled = true), marked();
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); if (data.lines.some((l) => l.id === unread)) unread = null; marked(), miss(); }
         else if (data.type === "unread") (unread = data.id), marked();
         else if (data.type === "candles") (candles = data), heroChart?.drawn();

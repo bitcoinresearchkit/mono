@@ -144,13 +144,13 @@ async function main() {
   let ceilings = new Set(board?.ceilings.map((m) => m.id)), ranked = await rank(ceilings);
   said(ceilings, ranked);
   const redrawn = layer("lines", drawn.then(() => draw(firstOf(ranked))));
-  // (Which lines are ceilings, once the crowd's weeks are in.)
+  // (Which lines are ceilings, once the crowd's weeks are in: "settled" says the ones now ranked without are today's.)
   const weekly = await layer("crowd", crowd);
   if (weekly) await layer("ceilings", (async () => {
     const today = new Set(ids.filter((id, i) => ceiling(close, weekly[i].data, weekly[i].start)));
-    if (today.size === ceilings.size && [...today].every((id) => ceilings.has(id))) return;
+    if (today.size === ceilings.size && [...today].every((id) => ceilings.has(id))) return void post({ type: "settled" });
     const again = await rank(today);
-    (ceilings = today), (ranked = again), said(ceilings, ranked);
+    (ceilings = today), (ranked = again), said(ceilings, ranked), post({ type: "settled" });
     await layer("lines", draw(firstOf(ranked)));
   })());
   await redrawn;
