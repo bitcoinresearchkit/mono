@@ -229,9 +229,7 @@ impl<'a> QuickMatch<'a> {
         let held: Vec<Option<(Cow<'_, [ItemId]>, bool)>> = query_words
             .iter()
             .zip(&joins)
-            .map(|(&word, pairs)| {
-                self.prefix_lists(word, pairs.iter().filter(|pair| pair.second), EXACT_WORDS)
-            })
+            .map(|(&word, pairs)| self.prefix_lists(word, pairs, EXACT_WORDS))
             .collect();
         // A slip that leaves the words nothing in common, as the others have, is
         // read as a typo instead ("pice" as "price", not as "pic…").
@@ -417,16 +415,13 @@ impl<'a> QuickMatch<'a> {
         Self::sorted_union(&lists)
     }
 
-    // The word and applicable joined spellings, including a plural one letter past their end.
-    fn prefix_lists<'s, 'p>(
-        &'s self,
-        word: &str,
-        pairs: impl Iterator<Item = &'p Pair>,
-        exact: bool,
-    ) -> Option<(Cow<'s, [ItemId]>, bool)> {
+    // The word and its spellings joined to the word before it, including a plural one letter
+    // past their end.
+    fn prefix_lists<'s>(&'s self, word: &str, pairs: &[Pair], exact: bool) -> Option<(Cow<'s, [ItemId]>, bool)> {
         let mut lists = Vec::new();
         let mut firm = false;
-        for (key, from) in iter::once((word, 0)).chain(pairs.map(|pair| (pair.text.as_str(), pair.from))) {
+        let joined = pairs.iter().filter(|pair| pair.second).map(|pair| (pair.text.as_str(), pair.from));
+        for (key, from) in iter::once((word, 0)).chain(joined) {
             if let Some(own) = self.word_index.get(key) {
                 firm = true;
                 lists.push(own.as_slice());
@@ -440,39 +435,26 @@ impl<'a> QuickMatch<'a> {
         Self::sorted_union(&lists).map(|items| (items, !firm))
     }
 
-    /// Unranked item positions for each distinct query word. A caller searching documents
+    /// Unranked item positions for each distinct query word held whole (or joined to the word
+    /// beside it); none at all if some word is held by no item. A caller searching documents
     /// assembled from these items can intersect at document scope. Compound words stay
-    /// within an item. Fuzzy matching ignores unknown words shorter than a trigram and checks
-    /// longer unknown words with the single-word typo search.
-    pub fn word_hits(&self, query: &str, exact: bool) -> Vec<Vec<u32>> {
+    /// within an item.
+    pub fn word_hits(&self, query: &str) -> Vec<Vec<u32>> {
         let query = normalize(query);
         let sep = sep_table(SEPARATORS);
         let typed: Vec<_> = words(&query, &sep).collect();
         let mut seen = FxHashSet::default();
         let distinct: Vec<_> = typed.iter().copied().filter(|word| seen.insert(*word)).collect();
-        let pairs = self.query_joins(&typed, &distinct, exact);
-        let mut hits = Vec::with_capacity(distinct.len());
-        for (word, pairs) in distinct.into_iter().zip(&pairs) {
-            let ids = if exact {
-                self.exact_lists(word, pairs)
-            } else {
-                self.prefix_lists(word, pairs.iter(), false).map(|(items, _)| items)
-            };
-            let ids: Vec<u32> = match ids {
-                Some(ids) => ids.iter().map(|id| id.0).collect(),
-                None if !exact && word.len() < 3 => continue,
-                None if !exact => {
-                    let config = QuickMatchConfig::new().with_limit(self.items.len()).with_union_fallback(false);
-                    self.search::<false>(word, &config).into_iter().map(|(id, _)| id).collect()
-                }
-                None => return Vec::new(),
-            };
-            if ids.is_empty() {
-                return Vec::new();
-            }
-            hits.push(ids);
-        }
-        hits
+        let pairs = self.query_joins(&typed, &distinct, true);
+        distinct
+            .into_iter()
+            .zip(&pairs)
+            .map(|(word, pairs)| {
+                let items = self.exact_lists(word, pairs)?;
+                Some(items.iter().map(|id| id.0).collect())
+            })
+            .collect::<Option<_>>()
+            .unwrap_or_default()
     }
 
     /// How many of a query's distinct words each item holds whole, by position in the original

@@ -3494,7 +3494,7 @@
       "tool": {
         "name": "search_series",
         "title": "Search series",
-        "description": "Bitcoin: Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
+        "description": "Bitcoin: Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then names matching every word by its start, joined words or a plural, then descriptions holding every word whole, then names with a typo. Word order does not matter; use whole words to find a series by its description. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
         "inputSchema": {
           "type": "object",
           "properties": {

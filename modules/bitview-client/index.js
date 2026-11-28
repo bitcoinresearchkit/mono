@@ -7335,7 +7335,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "6cd29ecc49a93825f08f5b0e1880356333fb5ce34ddc3c1d8e1a504cc87ced9f";
+  static HASH = "3cbcf29a63536c88ab5be9f6e1ce6e1cf2dd7730b7ab8af21d1ae6f9ae5c1cd6";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8339,7 +8339,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Search series
    *
-   * Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+   * Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then names matching every word by its start, joined words or a plural, then descriptions holding every word whole, then names with a typo. Word order does not matter; use whole words to find a series by its description. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
    *
    * Endpoint: `GET /api/series/search`
    *
