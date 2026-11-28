@@ -1426,6 +1426,7 @@
 
       /** @param {Mode} mode @param {Days} d @param {Awaited<ReturnType<typeof readRest>>} rest */
       function build(mode, d, [past, priceAt, ages, every]) {
+        $("failed").hidden = true;
         if (shown || heroOf !== mode) raiseHero(mode, d);
         const { signal } = built;
         weigh(ages, mode, signal), count(d, past, signal), rank(d, past, signal), scene(d, past, priceAt, mode, signal), record(d, past, mode, signal), weights(every, past);
