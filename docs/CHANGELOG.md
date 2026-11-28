@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- A simple moving average of the price (`price_sma_*`, its `_ratio`, `mayer_multiple`, the Pi cycle top) is null until
+  its whole window lies after the first exchange price, as other rolling prices are, instead of averaging the unpriced
+  blocks before it as zero. `balanced_price` and `delta_price` are null where the difference they price is negative.
+- Day values stay right through a reorg across midnight: MVRV Z and seller exhaustion could keep the replaced block's
+  close until a restart. They now read only each day's close, so they also catch up faster after a restart.
 - The chart engine's two development pages (`/_engine/`) are no longer served.
 - A new series, `spent_txout_height` on `txin_index`: the height of the block holding the output each input spends
   (null for a coinbase input), a lazy view of `spent_txout_index` through the block boundaries, no storage. The
@@ -28,9 +33,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   pool's own word, with no hand overrides (MARA Pool's 11 since height 975,369 so far). Studio shows them under Mining ›
   Pools › Stratum V2 with their share of blocks, and the explorer's block page marks a tagged block. +36 KB on disk.
 - Five named models are served, so Studio's charts of them read the series instead of computing them on the page:
-  the Pi cycle top (`price_sma_111d`, `price_sma_350d`, both served again since v0.12.2, `pi_cycle_top_line`,
-  `pi_cycle_top`), the NVT signal (`nvt_signal`), stock-to-flow (`stock_to_flow`, `stock_to_flow_price`, PlanB's 2019
-  coefficients, flow as the past year's actual issuance, not the halving schedule), and at `day1` the MVRV Z-score
+  the Pi cycle top (`price_sma_111d`, `price_sma_350d`, both served again since v0.12.2, with their `_ratio`,
+  `pi_cycle_top_line`, `pi_cycle_top`), the NVT signal (`nvt_signal`), stock-to-flow (`stock_to_flow`,
+  `stock_to_flow_price`, PlanB's 2019 coefficients, flow as the past year's actual issuance, not the halving
+  schedule), and at `day1` the MVRV Z-score
   (`mvrv_z`, its deviation up to each day, never over all history) and seller exhaustion (`seller_exhaustion`). Each
   description cites its author and year. Studio's Pi cycle bottom chart is gone. +1.1 MB on disk.
 - The Gini coefficient of UTXO amounts is served at `day1` (`utxo_amount_gini`, Corrado Gini's, 1912), read from the
@@ -43,9 +49,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   is the floor it is under. +59 KB on disk.
 - Compass is served at `day1`, for mobile and awake coins (`mobile_compass_*`, `awake_compass_*`): `index` (0 Fear to
   100 Optimism), `short_term_cloud_position` and `long_term_cloud_position` (-1 to 1), `mood` (0 Optimism to 8 Fear),
-  `extreme` (1 when the price is further from a cloud than on 99 in 100 earlier days) and `mood_days` (the mood's run so
-  far). Each day reads its close and earlier days only. Two value types are new: `Mood` and `Flag`. The Compass page
-  reads them instead of computing them; today's card now moves with each block, not with the live price between
+  `extreme` (1 when under 1% of the earlier days, by weight, sat lower than the day, or higher, against either cloud) and
+  `mood_days` (the mood's run so far). Each day reads its close and earlier days only. Two value types are new:
+  `Mood` and `Flag`. The Compass page reads them instead of computing them; today's card now moves with each block, not with the live price between
   blocks. +280 KB on disk.
 
 - Burger's power law itself is served too, as `burger_power_law` beside `burger_power_law_floor` (both computed on
