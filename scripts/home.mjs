@@ -125,7 +125,7 @@ async function ranked(/** @type {number} */ to) {
     /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => {
       if (message.type === "ranked" && message.live) last = message;
       else if (message.type === "candles") done(last);
-      else if (message.type === "failed") fail(new Error(message.why));
+      else if (message.type === "failed" || message.type === "missed") fail(new Error(message.why));
     } };
     import(join(SITE, "bottoms", "worker.js")).catch(fail);
   });

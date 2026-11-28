@@ -1783,6 +1783,8 @@
       /** What a miss is, drawn on the first line: large at the bottom it missed by the most, then small at every bottom. */
       function miss() {
         const first = ranked[0], line = first && lines.get(first.row.id);
+        // (Left out where its line couldn't be read.)
+        $("miss").hidden = !line && missed.has("lines");
         if (!line) return;
         const k = first.row.at.reduce((worst, at, i) => ((at?.miss ?? -1) > (first.row.at[worst]?.miss ?? -1) ? i : worst), 0), at = first.row.at[k];
         if (!at) return;
@@ -1908,6 +1910,11 @@
         (/** @type {HTMLButtonElement} */ (again).type = "button"), again.addEventListener("click", () => location.reload());
         failed.hidden = false;
       };
+      /** The note under the ranking's head: how today's ranking compares with the one shown first (or that none was), and what each layer the worker couldn't read leaves out. */
+      let against = "";
+      const missed = /** @type {Map<string, string>} */ (new Map());
+      const checked = () => void ($("checked").textContent = [against, ...missed.values()].filter(Boolean).join(" "));
+      const WITHOUT = { lines: "Some of the three closest lines couldn't be read, so they aren't drawn", crowd: "Some grey lines couldn't be read, so today's ceilings weren't checked", ceilings: "Today's ceilings couldn't be applied, so the ranking keeps the earlier ones", candles: "The price's candles couldn't be read, so it stays a line" };
       const broke = (/** @type {ErrorEvent} */ event) => fail(event.message || "its worker couldn't start");
       const took = (/** @type {MessageEvent} */ { data }) => {
         if (data.type === "price") {
@@ -1921,14 +1928,15 @@
         } else if (data.type === "ranked") {
           // (Today's ranking replaces the stored one, and says so only when it reads differently: each of today's, as the ceilings can make a second.)
           if (!data.live) stored = data;
-          else if (stored) $("checked").textContent = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
+          else if (stored) (against = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : ""), checked();
           (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
         }
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); marked(), miss(); }
         else if (data.type === "unread") (unread = data.id), marked();
         else if (data.type === "candles") (candles = data), heroChart?.drawn();
         else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();
-        else if (data.type === "unstored") $("checked").textContent = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`;
+        else if (data.type === "unstored") (against = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`), checked();
+        else if (data.type === "missed") missed.set(data.layer, `${WITHOUT[/** @type {keyof typeof WITHOUT} */ (data.layer)]} (${data.why}).`), checked(), miss();
         else fail(data.why);
       };
       (worker.onerror = broke), (worker.onmessage = took);

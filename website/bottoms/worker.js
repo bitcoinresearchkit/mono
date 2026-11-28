@@ -3,13 +3,24 @@
 // page (shown at once), the price (the chart starts on it; beside it the server's catalog, which says what the lines
 // are), the first three lines whole and any the page asks for (the chart draws them), every line by week (the chart's crowd, drawn as it lands),
 // every line on the days it's held to (today's ranking, which only confirms or replaces the stored one; with the
-// crowd's weeks it says which lines are ceilings), and last the price's candles.
+// crowd's weeks it says which lines are ceilings), and last the price's candles. Every ask is tried twice. The page
+// fails only without the price or today's ranking: what fails past that is a layer, left out and said.
 
 import { PRICE, EPOCH, SHOWN, NAMED, weekOf, lowsOf, linesOf, spans, stale, ranking, ceiling } from "./study.js";
 
 const WAIT = 30000;
 /** What the server's bulk route takes in one ask: this many series, and this many of their values in all (it weighs a line's value at 16, and takes 320,000). */
 const MOST = 32, VALUES = 20000;
+const why = (/** @type {unknown} */ error) => (error instanceof Error ? error.message : String(error));
+/** An ask's JSON, asked once more when it fails (a slow link drops one now and then); a failure says what was asked. */
+async function json(/** @type {string | URL} */ url, /** @type {string} */ what) {
+  const once = async () => {
+    const response = await fetch(url, { signal: AbortSignal.timeout(WAIT) });
+    if (!response.ok) throw new Error(`the server answered ${response.status}`);
+    return response.json();
+  };
+  return once().catch(once).catch((error) => { throw new Error(`${what}: ${why(error)}`); });
+}
 /**
  * Series by day, or by week, from `from` up to `to` (to the last when not said), in `ids`' order: a few asks for many
  * lines, not one a line, each ask's handed to `landed` as it lands.
@@ -20,9 +31,7 @@ async function read(/** @type {string[]} */ ids, /** @type {number} */ from, to 
   const each = Math.max(1, Math.min(MOST, Math.floor(VALUES / (to - from)))), asks = Array.from({ length: Math.ceil(ids.length / each) }, (_, k) => ids.slice(k * each, (k + 1) * each));
   return (await Promise.all(asks.map(async (some) => {
     const what = some.length > 1 ? `${some[0]} and ${some.length - 1} more` : some[0];
-    const response = await fetch(`/api/series/bulk?series=${some.join(",")}&index=${index}&start=${from}${to < Infinity ? `&end=${to}` : ""}`, { signal: AbortSignal.timeout(WAIT) });
-    if (!response.ok) throw new Error(`${what}: the server answered ${response.status}`);
-    const bodies = await response.json();
+    const bodies = await json(`/api/series/bulk?series=${some.join(",")}&index=${index}&start=${from}${to < Infinity ? `&end=${to}` : ""}`, what);
     if (!Array.isArray(bodies) || bodies.length !== some.length || !bodies.every((body) => Array.isArray(body?.data))) throw new Error(`${what}: the server's answer couldn't be read`);
     return landed(bodies), bodies;
   }))).flat();
@@ -31,9 +40,7 @@ async function read(/** @type {string[]} */ ids, /** @type {number} */ from, to 
 async function catalog() {
   const read = async (/** @type {string} */ q) => {
     const page = async (/** @type {number} */ k) => {
-      const response = await fetch(`/api/series/list?q=${encodeURIComponent(q)}&page=${k}`, { signal: AbortSignal.timeout(WAIT) });
-      if (!response.ok) throw new Error(`the series list of "${q}", page ${k}: the server answered ${response.status}`);
-      const body = await response.json();
+      const body = await json(`/api/series/list?q=${encodeURIComponent(q)}&page=${k}`, `the series list of "${q}", page ${k}`);
       if (!Array.isArray(body?.series)) throw new Error(`the series list of "${q}", page ${k}: the server's answer couldn't be read`);
       return body;
     };
@@ -46,9 +53,7 @@ async function catalog() {
 }
 /** The ranking stored with the page at its release (scripts/home.mjs writes it from the release's server): shown at once, and where its reads start. @returns {Promise<import("./study.js").Board>} */
 async function stored() {
-  const response = await fetch(new URL("./ranking.json", import.meta.url), { signal: AbortSignal.timeout(WAIT) });
-  if (!response.ok) throw new Error(`the server answered ${response.status}`);
-  const board = await response.json();
+  const board = await json(new URL("./ranking.json", import.meta.url), "ranking.json");
   if (!Array.isArray(board?.lows) || !Array.isArray(board?.ranked) || !Array.isArray(board?.ceilings)) throw new Error("it isn't a ranking");
   // (JSON has no Infinity: a line with no value at a bottom has its worst written as null.)
   for (const r of board.ranked) r.worst ??= Infinity;
@@ -59,7 +64,8 @@ const post = (/** @type {any} */ message, /** @type {Transferable[]} */ handed =
 const asked = /** @type {string[]} */ ([]);
 let ask = (/** @type {string} */ id) => void asked.push(id);
 self.onmessage = (/** @type {MessageEvent<{ id: string }>} */ { data }) => ask(data.id);
-const why = (/** @type {unknown} */ error) => (error instanceof Error ? error.message : String(error));
+/** A part of the page past today's ranking: where it fails, it's left out and said. @template T @returns {Promise<T | undefined>} */
+const layer = (/** @type {"lines" | "crowd" | "ceilings" | "candles"} */ name, /** @type {Promise<T>} */ made) => made.catch((error) => void post({ type: "missed", layer: name, why: why(error) }));
 
 async function main() {
   const named = catalog();
@@ -137,15 +143,22 @@ async function main() {
   // (Ceilings as the stored ranking has them until the crowd's weeks say: they change only as weeks add up.)
   let ceilings = new Set(board?.ceilings.map((m) => m.id)), ranked = await rank(ceilings);
   said(ceilings, ranked);
-  const redrawn = drawn.then(() => draw(firstOf(ranked)));
+  const redrawn = layer("lines", drawn.then(() => draw(firstOf(ranked))));
   // (Which lines are ceilings, once the crowd's weeks are in.)
-  const weekly = await crowd;
-  const today = new Set(ids.filter((id, i) => ceiling(close, weekly[i].data, weekly[i].start)));
-  if (today.size !== ceilings.size || [...today].some((id) => !ceilings.has(id))) (ceilings = today), (ranked = await rank(ceilings)), said(ceilings, ranked), await draw(firstOf(ranked));
+  const weekly = await layer("crowd", crowd);
+  if (weekly) await layer("ceilings", (async () => {
+    const today = new Set(ids.filter((id, i) => ceiling(close, weekly[i].data, weekly[i].start)));
+    if (today.size === ceilings.size && [...today].every((id) => ceilings.has(id))) return;
+    const again = await rank(today);
+    (ceilings = today), (ranked = again), said(ceilings, ranked);
+    await layer("lines", draw(firstOf(ranked)));
+  })());
   await redrawn;
   // (The price as candles, for a view zoomed in: a column each.)
-  const [ohlc] = await read(["price_ohlc"], SHOWN), candles = [0, 1, 2].map(() => new Float64Array(n).fill(NaN));
-  ohlc.data.forEach((day, i) => { if (day) for (let k = 0; k < 3; k++) candles[k][ohlc.start + i] = day[k]; });
-  post({ type: "candles", open: candles[0], high: candles[1], low: candles[2] }, candles.map((c) => c.buffer));
+  await layer("candles", read(["price_ohlc"], SHOWN).then(([ohlc]) => {
+    const candles = [0, 1, 2].map(() => new Float64Array(n).fill(NaN));
+    ohlc.data.forEach((day, i) => { if (day) for (let k = 0; k < 3; k++) candles[k][ohlc.start + i] = day[k]; });
+    post({ type: "candles", open: candles[0], high: candles[1], low: candles[2] }, candles.map((c) => c.buffer));
+  }));
 }
 main().catch((error) => post({ type: "failed", why: why(error) }));
