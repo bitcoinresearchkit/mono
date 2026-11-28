@@ -703,7 +703,8 @@
     <script type="module">
       import { reduced } from "/modules/motion/reduced.js";
       const get = async (path) => {
-        const r = await fetch(`/api${path}`);
+        // A request that never answers would hold its read (the refresh, a day) open for good: it fails instead, and is asked again.
+        const r = await fetch(`/api${path}`, { signal: AbortSignal.timeout(30_000) });
         if (!r.ok) throw new Error(`${r.status} ${path}`);
         return r.headers.get("content-type")?.includes("json") ? r.json() : r.text();
       };
