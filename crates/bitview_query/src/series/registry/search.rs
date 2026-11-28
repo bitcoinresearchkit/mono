@@ -134,7 +134,7 @@ impl SentenceIndex {
             .map(|(text, ids)| (normalize(text), ids.into_boxed_slice()))
             .unzip();
         Self {
-            matcher: QuickMatch::new_owned(sentences),
+            matcher: QuickMatch::new_owned_whole_words(sentences),
             series,
         }
     }

@@ -37,12 +37,14 @@ pub struct QuickMatch<'a> {
     max_word_count: usize,
     max_word_len: usize,
     max_query_len: usize,
-    /// Every word and adjacent-pair compound prefix (prefix and fuzzy search).
-    word_index: FxHashMap<String, Vec<ItemId>>,
+    /// Every word and adjacent-pair compound prefix (prefix and fuzzy search): none in an index
+    /// of whole words.
+    word_index: Option<FxHashMap<String, Vec<ItemId>>>,
     /// Complete words only (exact search, and a plural's word).
     exact_words: FxHashMap<String, Vec<ItemId>>,
     /// Complete adjacent-pair compounds only (exact search).
     exact_compounds: FxHashMap<String, Vec<ItemId>>,
+    /// (Empty in an index of whole words.)
     trigram_index: FxHashMap<[u8; 3], Vec<ItemId>>,
 }
 
@@ -50,10 +52,11 @@ impl<'a> QuickMatch<'a> {
     /// Build from pre-formatted lowercase ASCII items, at most `u32::MAX` of
     /// them. Both preconditions are only checked in debug builds.
     pub fn new(items: &[&'a str]) -> Self {
-        Self::build(items.iter().copied().map(Cow::Borrowed).collect())
+        Self::build(items.iter().copied().map(Cow::Borrowed).collect(), true)
     }
 
-    fn build(items: Vec<Cow<'a, str>>) -> Self {
+    /// `prefixes`: whether to index what a search by prefix or typo reads.
+    fn build(items: Vec<Cow<'a, str>>, prefixes: bool) -> Self {
         debug_assert!(u32::try_from(items.len()).is_ok(), "Too many items");
         debug_assert!(
             items
@@ -62,7 +65,7 @@ impl<'a> QuickMatch<'a> {
             "QuickMatch items must be lowercase ASCII",
         );
 
-        let mut word_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
+        let mut word_index = prefixes.then(FxHashMap::<String, Vec<ItemId>>::default);
         let mut exact_words: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
         let mut exact_compounds: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
         let mut trigram_index: FxHashMap<[u8; 3], Vec<ItemId>> = FxHashMap::default();
@@ -81,20 +84,23 @@ impl<'a> QuickMatch<'a> {
                 word_count += 1;
                 max_word_len = max_word_len.max(word.len());
 
-                for len in 1..=word.len() {
-                    Self::insert_word(&mut word_index, &word[..len], id);
-                }
                 Self::insert_word(&mut exact_words, word, id);
 
-                let mut bytes = word.bytes();
-                if let (Some(mut a), Some(mut b)) = (bytes.next(), bytes.next()) {
-                    for c in bytes {
-                        let items = trigram_index.entry([a, b, c]).or_default();
-                        if items.last() != Some(&id) {
-                            items.push(id);
+                if let Some(word_index) = &mut word_index {
+                    for len in 1..=word.len() {
+                        Self::insert_word(word_index, &word[..len], id);
+                    }
+
+                    let mut bytes = word.bytes();
+                    if let (Some(mut a), Some(mut b)) = (bytes.next(), bytes.next()) {
+                        for c in bytes {
+                            let items = trigram_index.entry([a, b, c]).or_default();
+                            if items.last() != Some(&id) {
+                                items.push(id);
+                            }
+                            a = b;
+                            b = c;
                         }
-                        a = b;
-                        b = c;
                     }
                 }
 
@@ -104,9 +110,11 @@ impl<'a> QuickMatch<'a> {
                     // single word. Capping at the longest index key keeps the
                     // DDoS guard data-bounded while still letting it match.
                     max_word_len = max_word_len.max(compound.len());
-                    let from = previous_word.len() + 1;
-                    for len in from..=compound.len() {
-                        Self::insert_word(&mut word_index, &compound[..len], id);
+                    if let Some(word_index) = &mut word_index {
+                        let from = previous_word.len() + 1;
+                        for len in from..=compound.len() {
+                            Self::insert_word(word_index, &compound[..len], id);
+                        }
                     }
                     Self::insert_word(&mut exact_compounds, &compound, id);
                 }
@@ -213,50 +221,9 @@ impl<'a> QuickMatch<'a> {
             return vec![];
         }
 
-        let mut unknown_words: Vec<&str> = vec![];
-        // Every word of three letters or more the index doesn't hold: each must be
-        // a typo of a candidate's (the trigrams probe only some of them; shorter
-        // ones are left out, as they are when nothing's mistyped).
-        let mut unmatched: Vec<&str> = vec![];
-        let mut known_lists: Vec<&[ItemId]> = vec![];
-
-        // Each word's items, and whether it's held only as a slip, not as a word
-        // of its own ("pice" past "pic"): its own, and those of it joined to the
-        // word before it ("hash rate" as "hashrate").
         // (A pair the index holds nothing under fits nothing: left out.)
         let typed = words(&query, &sep).collect::<Vec<_>>();
         let joins = self.query_joins(&typed, &query_words, EXACT_WORDS);
-        let held: Vec<Option<(Cow<'_, [ItemId]>, bool)>> = query_words
-            .iter()
-            .zip(&joins)
-            .map(|(&word, pairs)| self.prefix_lists(word, pairs, EXACT_WORDS))
-            .collect();
-        // A slip that leaves the words nothing in common, as the others have, is
-        // read as a typo instead ("pice" as "price", not as "pic…").
-        let slips_as_typos = {
-            let all = held.iter().flatten().map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
-            let firm = held.iter().flatten().filter(|(_, slip)| !slip).map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
-            firm.len() != all.len()
-                && Self::intersect_lists(&all).is_some_and(|ids| ids.is_empty())
-                && !Self::intersect_lists(&firm).is_some_and(|ids| ids.is_empty())
-        };
-        // (Read as typos, a slip's items still count toward the union fallback.)
-        let mut slip_lists: Vec<&[ItemId]> = vec![];
-        for (&word, held) in query_words.iter().zip(&held) {
-            match held {
-                Some((items, slip)) if !(*slip && slips_as_typos) => known_lists.push(items.as_ref()),
-                _ if word.len() >= 3 => {
-                    if let Some((items, _)) = held {
-                        slip_lists.push(items.as_ref());
-                    }
-                    unmatched.push(word);
-                    if unknown_words.len() < TRIGRAM_BUDGET {
-                        unknown_words.push(word)
-                    }
-                }
-                _ => {}
-            }
-        }
 
         if EXACT_WORDS {
             // (A word, or it joined to one beside it, "hash rate": an item word
@@ -283,6 +250,48 @@ impl<'a> QuickMatch<'a> {
                 limit,
                 if config.union_fallback { 1 } else { query_words.len() },
             );
+        }
+
+        let mut unknown_words: Vec<&str> = vec![];
+        // Every word of three letters or more the index doesn't hold: each must be
+        // a typo of a candidate's (the trigrams probe only some of them; shorter
+        // ones are left out, as they are when nothing's mistyped).
+        let mut unmatched: Vec<&str> = vec![];
+        let mut known_lists: Vec<&[ItemId]> = vec![];
+
+        // Each word's items, and whether it's held only as a slip, not as a word
+        // of its own ("pice" past "pic"): its own, and those of it joined to the
+        // word before it ("hash rate" as "hashrate").
+        let held: Vec<Option<(Cow<'_, [ItemId]>, bool)>> = query_words
+            .iter()
+            .zip(&joins)
+            .map(|(&word, pairs)| self.prefix_lists(word, pairs))
+            .collect();
+        // A slip that leaves the words nothing in common, as the others have, is
+        // read as a typo instead ("pice" as "price", not as "pic…").
+        let slips_as_typos = {
+            let all = held.iter().flatten().map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
+            let firm = held.iter().flatten().filter(|(_, slip)| !slip).map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
+            firm.len() != all.len()
+                && Self::intersect_lists(&all).is_some_and(|ids| ids.is_empty())
+                && !Self::intersect_lists(&firm).is_some_and(|ids| ids.is_empty())
+        };
+        // (Read as typos, a slip's items still count toward the union fallback.)
+        let mut slip_lists: Vec<&[ItemId]> = vec![];
+        for (&word, held) in query_words.iter().zip(&held) {
+            match held {
+                Some((items, slip)) if !(*slip && slips_as_typos) => known_lists.push(items.as_ref()),
+                _ if word.len() >= 3 => {
+                    if let Some((items, _)) = held {
+                        slip_lists.push(items.as_ref());
+                    }
+                    unmatched.push(word);
+                    if unknown_words.len() < TRIGRAM_BUDGET {
+                        unknown_words.push(word)
+                    }
+                }
+                _ => {}
+            }
         }
 
         let pool = Self::intersect_lists(&known_lists);
@@ -399,8 +408,19 @@ impl<'a> QuickMatch<'a> {
 
     fn query_joins(&self, typed: &[&str], distinct: &[&str], exact: bool) -> Vec<Vec<Pair>> {
         joins(typed, distinct, |pair, from| {
-            self.word_index.contains_key(pair) || (!exact && self.shorter(pair, from).is_some())
+            if exact {
+                self.exact(pair).next().is_some()
+            } else {
+                self.word_index().contains_key(pair) || self.shorter(pair, from).is_some()
+            }
         })
+    }
+
+    /// Every prefix's items, which only a search by prefix or typo reads.
+    fn word_index(&self) -> &FxHashMap<String, Vec<ItemId>> {
+        self.word_index
+            .as_ref()
+            .expect("an index of whole words answers no search by prefix or typo")
     }
 
     /// The items holding the word a letter shorter than `key`: a plural, "prices" for "price" (or
@@ -428,16 +448,16 @@ impl<'a> QuickMatch<'a> {
 
     // The word and its spellings joined to the word before it, including a plural one letter
     // past their end.
-    fn prefix_lists<'s>(&'s self, word: &str, pairs: &[Pair], exact: bool) -> Option<(Cow<'s, [ItemId]>, bool)> {
+    fn prefix_lists<'s>(&'s self, word: &str, pairs: &[Pair]) -> Option<(Cow<'s, [ItemId]>, bool)> {
         let mut lists = Vec::new();
         let mut firm = false;
         let joined = pairs.iter().filter(|pair| pair.second).map(|pair| (pair.text.as_str(), pair.from));
         for (key, from) in iter::once((word, 0)).chain(joined) {
-            if let Some(own) = self.word_index.get(key) {
+            if let Some(own) = self.word_index().get(key) {
                 firm = true;
                 lists.push(own.as_slice());
             }
-            if !exact && let Some(shorter) = self.shorter(key, from) {
+            if let Some(shorter) = self.shorter(key, from) {
                 lists.push(shorter);
             }
         }
@@ -786,7 +806,17 @@ impl QuickMatch<'static> {
     /// Own pre-formatted lowercase ASCII items. Panics on invalid corpus input,
     /// as documented by [`Self::new`].
     pub fn new_owned(items: Vec<String>) -> Self {
-        Self::build(items.into_iter().map(Cow::Owned).collect())
+        Self::build(items.into_iter().map(Cow::Owned).collect(), true)
+    }
+
+    /// [`new_owned`](Self::new_owned) without the prefix and trigram indexes, for a caller that
+    /// matches whole words only. [`word_hits`](Self::word_hits),
+    /// [`words_held`](Self::words_held), [`nearest_ids`](Self::nearest_ids) and
+    /// [`matches_exact_with_ids_and_matched_words`](Self::matches_exact_with_ids_and_matched_words)
+    /// answer as ever; [`matches_with_ids_and_matched_words`](Self::matches_with_ids_and_matched_words)
+    /// panics.
+    pub fn new_owned_whole_words(items: Vec<String>) -> Self {
+        Self::build(items.into_iter().map(Cow::Owned).collect(), false)
     }
 }
 

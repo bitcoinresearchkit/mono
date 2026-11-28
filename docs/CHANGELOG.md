@@ -1014,6 +1014,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   word lists alone: the items holding the most of its words, at least half, shortest first (a word counts whole, a
   letter past, joined to the word beside it, or as a typo when the rest of the query then fits). `words_held(query)`
   counts, for every item, how many of a query's distinct words it holds whole (255 words at most)
+- quickmatch (Rust): `word_hits(query)` answers each query word's items, whole, singular or plural, and
+  `QuickMatch::new_owned_whole_words(items)` builds an index without the prefix and trigram lists, for a caller that
+  matches whole words only. The series search's index of its description sentences is one: 1.5 MB of heap where it
+  took 6.5 MB, built in 2 ms where it took 9
 - `GET /api/server/logs` carries an ETag: a request holding it gets `304`
 
 ### Performance
