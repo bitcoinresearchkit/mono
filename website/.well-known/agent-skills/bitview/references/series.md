@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31779 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31780 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -77,6 +77,7 @@
 - `inputs.p2tr_script_path` (6): `p2tr_script_path_input_count`, `p2tr_script_path_input_count_cumulative`, `p2tr_script_path_input_count_sum_24h`, `p2tr_script_path_input_count_sum_1w`, `p2tr_script_path_input_count_sum_1m`
 - `inputs.spent_within` (24): `within_1_block_spent_utxo_count`, `within_1_block_spent_utxo_count_cumulative`, `within_1_block_spent_utxo_count_sum_24h`, `within_1_block_spent_utxo_count_sum_1w`, `within_1_block_spent_utxo_count_sum_1m`
 - `inputs.coinbase_witness` (5): `coinbase_witness_block_count_cumulative`, `coinbase_witness_block_count_sum_24h`, `coinbase_witness_block_count_sum_1w`, `coinbase_witness_block_count_sum_1m`, `coinbase_witness_block_count_sum_1y`
+- `inputs.spent_txout_height` (1): `spent_txout_height`
 
 ### outputs
 

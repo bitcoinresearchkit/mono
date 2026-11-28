@@ -11,7 +11,8 @@ pub use dependencies::Dependencies;
 pub use has::HasInputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::Count16;
+use bitview_plugin_mappings::HeightOfVec;
+use bitview_primitives::{Count16, TxInIndex, TxOutIndex};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerSecondWindows, PerBlockFullFromCumulative};
 use brk_types::Version;
@@ -44,4 +45,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     types: TypesVecs<M>,
     #[traversable(flatten)]
     counts: Counts<M>,
+    /// Height of the block holding the output the input spends: where its coin was born; null for
+    /// a coinbase input.
+    #[traversable(lead = "The block each input's coin was born in.")]
+    spent_txout_height: HeightOfVec<TxInIndex, TxOutIndex>,
 }

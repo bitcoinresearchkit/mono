@@ -55,7 +55,7 @@ impl DefaultPlugins {
             thread::scope(|scope| -> Result<_> {
                 let inputs_handle = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(INPUTS_ID, || {
-                        Inputs::import(context, &mappings, &window_starts)
+                        Inputs::import(context, &indexer, &mappings, &window_starts)
                     })
                 })?;
 

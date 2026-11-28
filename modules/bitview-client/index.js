@@ -6355,6 +6355,7 @@ const _Pools = _s({
  *   spentWithin: SpentWithin,
  *   sameBlock: Flow<Count>,
  *   coinbaseWitness: CumulativeFlow,
+ *   spentTxoutHeight: SeriesPattern22<Height>,
  * }} Inputs
  */
 const _Inputs = _s({
@@ -6371,6 +6372,7 @@ const _Inputs = _s({
   spentWithin: [_SpentWithin, 'spent_utxo_*'],
   sameBlock: [_Flow, 'same_block_spent_utxo_*'],
   coinbaseWitness: [_CumulativeFlow, 'coinbase_witness_block_*'],
+  spentTxoutHeight: [_i22, 'spent_txout_height'],
 });
 
 /**
@@ -7357,7 +7359,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "1f0648092a69cb87d6f3d84da81165d07532162cbcafe0e504cacf4fbe2ccbb9";
+  static HASH = "6bb3c6b59797b430160ca4eae2029039fc06ceda07bb0eaa049fe4b86b8f05ac";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

@@ -19,7 +19,7 @@ pub use dependencies::Dependencies;
 pub use has::HasMappings;
 pub use height_lookup::HeightMap;
 pub use lookback::LookbackVecs;
-pub use views::{LazyCumulativeIndexVec, LazyIndexCountVec, RangeMapLookupVec};
+pub use views::{HeightOfVec, LazyCumulativeIndexVec, LazyIndexCountVec, RangeMapLookupVec};
 
 use std::ops::Deref;
 

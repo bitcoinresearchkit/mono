@@ -2254,6 +2254,7 @@ pub mod tree {
         spent_within: SpentWithin = "spent_utxo_*",
         same_block: Flow<Count> = "same_block_spent_utxo_*",
         coinbase_witness: CumulativeFlow = "coinbase_witness_block_*",
+        spent_txout_height: SeriesPattern22<Height> = "spent_txout_height",
     } }
     shape! { CoinbaseLocktime at "series().blocks.coinbase_locktime" {
         nonzero: CumulativeFlow = "nonzero_*",
