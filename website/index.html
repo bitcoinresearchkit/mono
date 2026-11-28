@@ -7,7 +7,8 @@
       {
         const first = {
           prices: "/api/v1/prices",
-          fees: "/api/v1/fees/precise",
+          projected: "/api/v1/fees/mempool-blocks",
+          mempool: "/api/mempool",
           tip: "/api/blocks/tip/height",
           blocks: "/api/v1/blocks",
           pools: "/api/v1/mining/pools/1w",
@@ -34,6 +35,7 @@
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="modulepreload" href="/assets/pools/logos.js" />
+    <link rel="modulepreload" href="/modules/fee-rate/index.js" />
     <script src="/assets/launch/launch.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -2217,7 +2219,7 @@
       <p class="status" id="status-bar" hidden>
         <span class="tip" id="tip"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
         <span id="price-panel" hidden><b class="num" id="price"></b><span class="vh" data-said></span></span>
-        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
+        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> <span id="fee-unit"></span><span class="vh" data-said></span></span>
       </p>
     </header>
 
@@ -2284,6 +2286,7 @@
     <script type="module">
       // @ts-check
       import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
+      import { GETS_IN, rateNum, rateWithin } from "/modules/fee-rate/index.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.webp`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.webp`);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2302,7 +2305,6 @@
 
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
-      const feeRate = (/** @type {number} */ v) => String(Number(v.toFixed(1)));
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z"];
       const short = (/** @type {number} */ v) => {
         const a = Math.abs(v);
@@ -2539,7 +2541,7 @@
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
         catalog: () => el("span", { className: "say" }, el("code", { className: "big catalog-count" }, "–"), el("span", { className: "small" }, "What each one is, and how to fetch it")),
-        changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_", el("wbr"), "2y_to_3y_", el("wbr"), "old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
+        changes: () => el("span", { className: "say" }, el("code", { className: "big" }, "old id", el("b", {}, " → "), "new id"), el("span", { className: "small" }, "Release notes · every renamed id")),
         run: () => el("span", { className: "say" }, el("code", { className: "big cmd" }, el("b", {}, "$"), " cargo install", el("br"), "--locked bitviewd"), el("span", { className: "small" }, "Linux · macOS · beside Bitcoin Core")),
         logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         benchmarks: () => el("span", { className: "say" }, el("code", { className: "big" }, "block 0", el("b", {}, " → "), "tip"), el("span", { className: "small" }, "Time · memory · disk · CPU")),
@@ -2650,10 +2652,10 @@
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
         const when = el("div", { className: "ago" }, ago(b.timestamp));
         when.dataset.at = String(b.timestamp);
-        const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
+        const fee = rateNum(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
         const tile = el("a", { className: "tile block", href: `/explorer/block/${b.height}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
-          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
+          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `median ${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
         tile.dataset.open = "explorer";
         tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
         tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
@@ -2906,8 +2908,11 @@
             refresh("oracle");
             refresh("stack");
           }).then((ok) => ok || forget("oracle", "stack")),
-          // The next block's rate as it is, not rounded up like the recommended ones.
-          part("fees-panel", read(early.fees), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
+          // The Explorer's number and words, from the same two reads.
+          part("fees-panel", Promise.all([read(early.projected), read(early.mempool)]), ([projected, mempool]) => {
+            $("fee").textContent = rateNum(rateWithin(projected, mempool, 1));
+            $("fee-unit").textContent = GETS_IN;
+          }),
           read(early.tip, "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read(early.blocks).then((list) => {
             drawBlocks(list);

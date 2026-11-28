@@ -23,6 +23,7 @@
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <link rel="modulepreload" href="/assets/pools/logos.js" />
+    <link rel="modulepreload" href="/modules/fee-rate/index.js" />
     <style>
       /* craft rules */
       /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
@@ -844,7 +845,7 @@
           justify-content: space-between;
           gap: 18px;
           margin: 0;
-          padding: 4px 2px 24px;
+          padding: 4px 2px 20px;
           list-style: none;
           overflow-x: auto;
           scrollbar-width: none;
@@ -867,7 +868,7 @@
           display: block;
           width: 56px;
           height: 56px;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
           border-radius: 8px;
           overflow: hidden;
           background: var(--tank);
@@ -884,8 +885,12 @@
           font-weight: 550;
           white-space: nowrap;
         }
+        .cm {
+          color: var(--soft);
+          font-size: 11px;
+        }
         .cw {
-          margin-top: 2px;
+          margin-top: 4px;
           color: var(--soft);
           font-size: 11.5px;
           white-space: nowrap;
@@ -1506,6 +1511,7 @@
     <div class="card" id="card" hidden></div>
     <script type="module">
       import { logo as poolLogo } from "/assets/pools/logos.js";
+      import { ceilRate, entryRate, GETS_IN, rateNum, rateWithin } from "/modules/fee-rate/index.js";
       import { BitviewClientBase } from "/modules/bitview-client/core.js";
       // Reads stay on the server that answered: a forming block's diffs follow its copy.
       const client = new BitviewClientBase({ baseUrl: location.origin, memCache: false, browserCache: false });
@@ -1587,15 +1593,10 @@
       const plural = (n, word) => `${int(n)} ${word}${n === 1 ? "" : "s"}`;
       const nth = (n) => `${int(n)}${n % 100 > 10 && n % 100 < 14 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
       const tone = (n) => (n >= 0.005 ? "gain" : n <= -0.005 ? "lost" : "");
-      const rateNum = (r) => nf(r < 1 ? 3 : r < 10 ? 2 : r < 100 ? 1 : 0).format(r);
       const unit = (u) => `\u00a0<span class="unit">${u}</span>`;
       const rate = (r) => `${rateNum(r)}\u00a0sat/vB`;
       const rateU = (r) => `${rateNum(r)}${unit("sat/vB")}`;
       const btcU = (sats) => `${btc(sats)}${unit("BTC")}`;
-      const ceilRate = (r) => {
-        const k = r < 1 ? 1000 : r < 10 ? 100 : r < 100 ? 10 : 1;
-        return Math.ceil(r * k - 1e-9) / k;
-      };
       const vbytes = (v) => (v >= 1e5 ? `${nf(2, 2).format(v / 1e6)} MvB` : `${int(v)} vB`);
       const weight = (w) => (w >= 1e5 ? `${nf(2).format(w / 1e6)} MWU` : `${int(w)} WU`);
       const bytes = (b) => (b >= 1e5 ? `${nf(2).format(b / 1e6)} MB` : `${nf(1).format(b / 1e3)} kB`);
@@ -1892,12 +1893,8 @@
         }
       });
 
-      const floorRate = () => {
-        const rates = state.mempool.fee_histogram.map(([r]) => r).filter((r) => r > 0);
-        return rates.length ? Math.min(...rates) : 0.1;
-      };
-      const entry = (b) => (b && b.blockVSize >= 995000 ? Math.max(b.feeRange[0], floorRate()) : floorRate());
-      const within = (n) => ceilRate(Math.min(...Array.from({ length: n }, (_, i) => entry(state.projected[i]))));
+      const entry = (b) => entryRate(b, state.mempool);
+      const within = (n) => rateWithin(state.projected, state.mempool, n);
       const paymentSats = (r) => Math.ceil(r * PAYMENT - 1e-9);
       const paymentCost = (r) => (state.price ? cost((paymentSats(r) / 1e8) * state.price) : `${int(paymentSats(r))} sats`);
 
@@ -1910,7 +1907,7 @@
           <div class="focus forming">
             <div class="lead">
               <p class="lead-kicker"><span class="chip live" id="forming">Forming</span></p>
-              <p class="answer"><b id="answer">&nbsp;</b><span>sat/vB gets you in</span></p>
+              <p class="answer"><b id="answer">&nbsp;</b><span>${GETS_IN}</span></p>
               <p class="lead-lede" id="say">&nbsp;</p>
               <dl class="lead-figs" id="alts">${fig("&nbsp;", "&nbsp;").repeat(4)}</dl>
               <p class="lead-note" id="chainsay">&nbsp;</p>
@@ -2079,7 +2076,7 @@
           .map(
             (c) => `${c.kind === "next" ? `<li class="nowline" aria-hidden="true"></li>` : ""}<li class="cell ${c.kind}${c.on ? " on" : ""}" data-p="${c.p}">
               <a href="${c.href}"${c.on ? ` aria-current="page"` : ""} aria-label="${c.kind === "mined" ? `Block ${int(c.p)}` : c.kind === "next" ? "The block forming now" : `The ${nth(c.i + 1)} block to come`}">
-                <span class="ch">${int(c.p)}</span><span class="box"></span><span class="cf">${rateU(c.fee)}</span><span class="cw">${c.when}</span>
+                <span class="ch">${int(c.p)}</span><span class="box"></span><span class="cf">${rateU(c.fee)}</span><span class="cm">median</span><span class="cw">${c.when}</span>
               </a></li>`,
           )
           .join("")}</ol></nav>`;
@@ -2737,7 +2734,6 @@
         return out;
       }
 
-      const STATE = { waiting: "Waiting", confirmed: "Confirmed", settled: "Settled", replaced: "Replaced" };
       function answerOf(k) {
         const W = k.state === "waiting";
         const money = (u, sats) => (u !== null ? cost(u) : `${btc(sats)}\u00a0BTC`);
@@ -2754,7 +2750,7 @@
                   `<span class="vc">value created ${usd(k.created)}</span><span class="vd">value destroyed ${usd(k.destroyed)}${k.pricedAll ? "" : `, of its first ${BIRTHS} coins`}</span>`,
                 ));
         return `<div class="lead">
-            <p class="lead-kicker"><span class="chip">${STATE[k.state]}${k.state === "confirmed" ? `, ${k.conf} of ${SETTLE}` : ""}</span>${copyPill(k.txid)}</p>
+            <p class="lead-kicker">${W ? `<span class="chip">Waiting</span>` : ""}${copyPill(k.txid)}</p>
             <h2 class="lead-title">${k.title}</h2>
             <p class="lead-lede">${k.lede}</p>
             ${state.alike.has(k.txid) ? alikeNote(state.alike.get(k.txid), "the address you came from") : ""}
@@ -3054,6 +3050,8 @@
           )
           .join("")}${hits.length > 2 ? `<small>and ${plural(hits.length - 2, "more look-alike")}</small>` : ""}</div>`;
 
+      // An address's kind in people's words: one for every type of output that has an address.
+      const SCRIPTS = { p2pk65: "Public key", p2pk33: "Public key", p2pkh: "Legacy", p2sh: "Script hash", p2wpkh: "SegWit", p2wsh: "SegWit script", p2tr: "Taproot", p2a: "Anchor" };
       async function viewAddress(address) {
         const v = state.view;
         const [a, txs, listed] = await Promise.all([
@@ -3100,14 +3098,15 @@
         const rows = [
           ...(earlier > 0 ? [{ kind: "strip", n: earlier, say: `${plural(earlier, "earlier transaction")}`, sub: `${btc(c.funded_txo_sum)}\u00a0BTC received in all, ${btc(c.spent_txo_sum)}\u00a0BTC sent` }] : []),
           ...mined.map((tx, i) => moment(tx, net(tx), afters[i])),
-          { kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)}\u00a0BTC`, note: `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` },
+          // An empty address is said once, by the heading: "now" is marked only to hold something, or to part the waiting from the past.
+          ...(balance || waiting.length ? [{ kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)}\u00a0BTC`, note: balance ? `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` : "" }] : []),
           ...waiting.map((tx) => moment(tx, net(tx), 0)),
         ];
         const coins = utxos.map((u) => ({ ...u, age: u.status.confirmed ? nowS() - u.status.block_time : null })).sort((x, y) => (y.age ?? -1) - (x.age ?? -1));
         $("view").innerHTML = `
           <div class="focus address">
             <div class="lead">
-              <p class="lead-kicker">${a.address_type ? `<span class="chip">${esc(a.address_type)}</span>` : ""}${copyPill(address)}</p>
+              <p class="lead-kicker"><span class="chip">${SCRIPTS[a.address_type] ?? a.address_type}</span>${copyPill(address, "Copy")}</p>
               <p class="lead-addr">${esc(address)}</p>
               <h2 class="lead-title">${balance ? `Holds ${btc(balance)}\u00a0BTC` : "Holds nothing"}</h2>
               <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)}\u00a0BTC and sent ${btc(c.spent_txo_sum)}\u00a0BTC over ${plural(c.tx_count, "transaction")}.</p>
@@ -3116,7 +3115,7 @@
               <dl class="lead-figs">
                 ${held ? fig("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
                 ${held ? fig("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
-                ${listed ? fig("Coins held", int(coins.length), coins[0]?.age ? `the oldest for ${span(coins[0].age)}` : "") : fig("Coins held", "Many", "more than the server lists")}
+                ${!listed ? fig("Coins held", "Many", "more than the server lists") : coins.length ? fig("Coins held", int(coins.length), coins[0].age ? `the oldest for ${span(coins[0].age)}` : "") : ""}
                 ${fig("Transactions", int(c.tx_count), a.mempool_stats.tx_count ? `and ${int(a.mempool_stats.tx_count)} waiting` : "confirmed")}
               </dl>
             </div>
