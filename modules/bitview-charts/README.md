@@ -61,7 +61,7 @@ chart.show(365);                                 // the last 365 points in view
   pointer).
 - Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse or pen's drag stops where it's
   let go), a pinch or the wheel zooms about that point (the point
-  there stays there), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse or pen is; a
+  there stays there; a pinch let go with both fingers at once zooms on, slowing as a flick does), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse or pen is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
   covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
@@ -73,8 +73,8 @@ chart.show(365);                                 // the last 365 points in view
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
 - `chart.controller`: how the view moves: the wheel, a flick, an eased `viewTo({ from, to }, duration)` (cubic, out; at
-  once with no duration). `range` is the view, `target` where an eased move goes (null at rest), `halt()` ends a flick,
-  `stop()` every motion. In an `embedded` chart a mostly vertical wheel scrolls the page, a pinch zooms, a sideways
+  once with no duration). `range` is the view, `target` where an eased move goes (null at rest), `halt()` ends a flick
+  or a pinch's glide, `stop()` every motion. In an `embedded` chart a mostly vertical wheel scrolls the page, a pinch zooms, a sideways
   scroll pans. `time.first`, the first point with data (a page's series starting after its times do): the view's held
   on its data from there, as from a first point. `time.shown(span)` is the range `show(span)` sets (an eased move aimed
   there). A flick's glide and an eased move resolve at once under reduced motion. Its physics and clocks are

@@ -669,7 +669,7 @@ export class Chart {
       } else if (down.size === 2) {
         let other = at;
         for (const each of down.values()) if (each !== at) other = each;
-        this.controller.pinch(plotX((at.x + other.x) / 2), Math.abs(at.x - other.x), Math.abs(event.clientX - other.x), (event.clientX - at.x) / 2);
+        this.controller.pinch(plotX((at.x + other.x) / 2), Math.abs(at.x - other.x), Math.abs(event.clientX - other.x), (event.clientX - at.x) / 2, event.timeStamp);
       }
       (at.x = event.clientX), (at.y = event.clientY);
       if (fine(event)) this.#follow(event);
@@ -702,8 +702,8 @@ export class Chart {
         return void this.#click(event);
       }
       tapAt = -Infinity;
-      if (down.size || pinched || !event || fine(event)) return void this.controller.forget();
-      this.controller.flick(event.timeStamp);
+      if (down.size || !event || fine(event)) return void this.controller.forget();
+      this.controller.flick(event.timeStamp, pinched);
     };
     // (Embedded, touch-action can't say "vertical unless held": touchmove is cancelled while a finger holds the crosshair
     // or two of the chart's fingers pinch; one joining a running scroll is the browser's.)
