@@ -17,7 +17,6 @@ brk_store = { workspace = true }
 brk_oracle = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
-derive_more = { workspace = true }
 tracing = { workspace = true }
 lz4_flex = { workspace = true, features = ["checked-decode"] }
 rapidhash = { workspace = true }

@@ -25,3 +25,7 @@ brk_alloc = { workspace = true }
 
 [build-dependencies]
 sha2 = { workspace = true }
+
+# build.rs uses sha2; cargo machete --with-metadata still reports it unused.
+[package.metadata.cargo-machete]
+ignored = ["sha2"]
