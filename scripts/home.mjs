@@ -563,9 +563,10 @@ function serveSite() {
     const r = await fetch(DATA + pathname + search).catch((error) => new Response(error.message, { status: 502 }));
     const by = req.headers.get("referer")?.replace(/^https?:\/\/[^/]+/, "") ?? "?";
     if (!r.ok && pathname.startsWith("/api/") && !failing.has(by)) failing.add(by), problems.push(`${DATA} answers ${r.status} for ${pathname}${search}, asked by ${by}: its picture would show the page failing`);
-    // (fetch hands the body decoded: its encoding and length go with it.)
+    // (fetch hands the body decoded: its encoding and length go with it. A server's own address goes too: the pages'
+    // client would go there from then on, past this proxy, its --data and its check.)
     const headers = new Headers(r.headers);
-    headers.delete("content-encoding"), headers.delete("content-length");
+    headers.delete("content-encoding"), headers.delete("content-length"), headers.delete("bitview-origin");
     return new Response(r.body, { status: r.status, headers });
   } });
 }
