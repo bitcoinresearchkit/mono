@@ -1931,7 +1931,7 @@
           else if (stored) (against = told(stored) !== told(data) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : ""), checked();
           (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), marked(), miss();
         }
-        else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); marked(), miss(); }
+        else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); if (data.lines.some((l) => l.id === unread)) unread = null; marked(), miss(); }
         else if (data.type === "unread") (unread = data.id), marked();
         else if (data.type === "candles") (candles = data), heroChart?.drawn();
         else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();

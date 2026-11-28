@@ -96,18 +96,18 @@ async function main() {
   // (The chart draws the first three over every day it shows, and a line the page asks for: each read whole once, the
   // stored ranking's first three not waiting for the catalog, as the stored ranking is of the same release as the server
   // it's served with; ahead of the ranking's reads. One that fails can be asked again.)
-  const whole = new Set();
-  const draw = async (/** @type {string[]} */ ids) => {
+  /** Each line's whole read, by id, kept unless it fails: whoever asks for one in flight waits on it too. @type {Map<string, Promise<void>>} */
+  const whole = new Map();
+  const draw = (/** @type {string[]} */ ids) => {
     const more = ids.filter((id) => !whole.has(id));
-    if (!more.length) return;
-    more.forEach((id) => whole.add(id));
-    try {
-      await fill(more, SHOWN, n);
-    } catch (error) {
-      throw (more.forEach((id) => whole.delete(id)), error);
+    if (more.length) {
+      const read = fill(more, SHOWN, n).then(() => {
+        const top = more.map((id) => ({ id, line: /** @type {Float64Array} */ (got.get(id)).slice() }));
+        post({ type: "lines", lines: top }, top.map((l) => l.line.buffer));
+      }, (error) => { throw (more.forEach((id) => whole.delete(id)), error); });
+      more.forEach((id) => whole.set(id, read));
     }
-    const top = more.map((id) => ({ id, line: /** @type {Float64Array} */ (got.get(id)).slice() }));
-    post({ type: "lines", lines: top }, top.map((l) => l.line.buffer));
+    return Promise.all(ids.map((id) => whole.get(id)));
   };
   const firstOf = (/** @type {import("./study.js").Ranked[]} */ ranked) => ranked.slice(0, 3).map((r) => r.row.id);
   ask = (id) => void draw([id]).catch((error) => post({ type: "unread", id, why: why(error) }));
