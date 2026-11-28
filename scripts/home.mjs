@@ -12,8 +12,9 @@
 // the rows, every preloaded file there, fallback fonts kept inline in every page that uses them and the craft rules (balanced headings, pretty text, equal-width digits) in every page, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
-//   bun scripts/home.mjs [server]              writes FROM_APPS and Bottoms' stored ranking (from bitview.space), then checks
-//   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
+//   bun scripts/home.mjs [server]              writes FROM_APPS and Bottoms' stored ranking (by the server's data), then checks
+//   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, the stored ranking reads other
+//                                                than the code makes it of that server's data to its day, or a check fails
 //   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found), shot from this checkout's pages with bitview.space's data (server serves only the series check)
 //   bun scripts/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than website/index.html (a draft of it)
@@ -23,6 +24,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { told, weekOf } from "../website/bottoms/study.js";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = join(REPO, "website");
@@ -99,25 +101,54 @@ if ((existsSync(SITEMAP) ? readFileSync(SITEMAP, "utf8") : "") !== sitemapXml) {
 }
 
 // ── Bottoms' stored ranking (bottoms/ranking.json): shown at once while the page ranks today's data, and where its
-// reads start. Its worker run here on bitview.space's data, its last ranking kept, written when it changed (its day
-// aside). Checked only for being there: a ranking older than the data is the page's to say. ──
+// reads start. Its worker run here on SERVER's data to its last complete day, so it's of the release being made. Written
+// when it changed (its day aside); checked by running it again on the data to the stored day, so what the chain did since
+// fails nothing, and only a change a reader would see does (the code's rules, the server's lines or their values). ──
 
-if (check) { if (!existsSync(join(SITE, "bottoms", "ranking.json"))) problems.push("bottoms/ranking.json is missing: run bun scripts/home.mjs"); }
-else {
-  const RANKING = join(SITE, "bottoms", "ranking.json"), real = globalThis.fetch, was = globalThis.self;
-  Bun.plugin({ name: "site root", setup: (build) => void build.onResolve({ filter: /^\/modules\// }, (at) => ({ path: join(SITE, at.path) })) });
-  // (The worker asks its own origin, here bitview.space, and its own files as a server would answer them.)
+const RANKING = join(SITE, "bottoms", "ranking.json");
+/** The page's worker run here on SERVER's data up to day `to`: its last ranking of today's, as it'd be posted. */
+async function ranked(/** @type {number} */ to) {
+  const real = globalThis.fetch;
+  // (The worker asks its own origin, here SERVER, and its own files as a server would answer them. Series are cut at
+  // `to`, by week to the last week over by then, so a later run on the same day's data makes the same.)
   const own = (/** @type {URL} */ url) => (existsSync(fileURLToPath(url)) ? new Response(Bun.file(fileURLToPath(url))) : new Response(null, { status: 404 }));
-  globalThis.fetch = Object.assign((/** @type {any} */ url, /** @type {any} */ init) => (url instanceof URL && url.protocol === "file:" ? Promise.resolve(own(url)) : real(typeof url === "string" && url.startsWith("/") ? PROD + url : url, init)), real);
+  const cut = (/** @type {string} */ path) => {
+    const url = new URL(path, SERVER);
+    const end = url.searchParams.get("index") === "day1" ? to + 1 : url.searchParams.get("index") === "week1" ? weekOf(to + 1) : null;
+    if (end !== null) url.searchParams.set("end", String(Math.min(end, Number(url.searchParams.get("end") ?? end))));
+    return url.href;
+  };
+  globalThis.fetch = Object.assign((/** @type {any} */ url, /** @type {any} */ init) => (url instanceof URL && url.protocol === "file:" ? Promise.resolve(own(url)) : real(typeof url === "string" && url.startsWith("/") ? cut(url) : url, init)), real);
+  // (Left in place after: on a failure the worker's other asks still run, and nothing else here asks either of these.)
   /** @type {any} */ let last = null;
-  const ended = new Promise((done, fail) => {
-    /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => message.type === "ranked" && message.live ? (last = message) : message.type === "candles" ? done(last) : message.type === "failed" && fail(new Error(`bottoms/worker.js: ${message.why}`)) };
+  return new Promise((done, fail) => {
+    /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => {
+      if (message.type === "ranked" && message.live) last = message;
+      else if (message.type === "candles") done(last);
+      else if (message.type === "failed") fail(new Error(message.why));
+    } };
+    import(join(SITE, "bottoms", "worker.js")).catch(fail);
   });
-  await import(join(SITE, "bottoms", "worker.js"));
-  const { day, lows, ranked, ceilings } = await ended;
-  (globalThis.fetch = real), (globalThis.self = was);
-  const old = existsSync(RANKING) ? JSON.parse(readFileSync(RANKING, "utf8")) : null, now = { lows, ranked, ceilings };
-  if (JSON.stringify(old && { lows: old.lows, ranked: old.ranked, ceilings: old.ceilings }) !== JSON.stringify(now)) writeFileSync(RANKING, `${JSON.stringify({ day, ...now })}\n`), console.log(`bottoms/ranking.json written: ${ranked.length} lines ranked`);
+}
+if (!pictures && !icons) {
+  try {
+    const old = existsSync(RANKING) ? JSON.parse(readFileSync(RANKING, "utf8")) : null;
+    if (check && !old) throw new Error("it's missing");
+    const body = await (await fetch(`${SERVER}/api/series/price_close/day1?start=-1`, { signal: AbortSignal.timeout(10_000) })).json();
+    // (The server's last day is still running.)
+    const complete = body.start + body.data.length - 2;
+    if (!Number.isInteger(complete)) throw new Error("the server's last day couldn't be read");
+    if (check && old.day > complete) throw new Error(`the server's data ends before its day (${old.day}, the server's last complete day ${complete})`);
+    const { day, lows, ranked: lines, ceilings } = await ranked(check ? old.day : complete);
+    const now = { lows, ranked: lines, ceilings };
+    if (check) {
+      if (told(old) !== told(now)) problems.push(`bottoms/ranking.json is stale: it reads other than the code makes it of ${SERVER}'s data to its day: run bun scripts/home.mjs ${SERVER}`);
+    } else if (JSON.stringify(old && { lows: old.lows, ranked: old.ranked, ceilings: old.ceilings }) !== JSON.stringify(now)) {
+      writeFileSync(RANKING, `${JSON.stringify({ day, ...now })}\n`), console.log(`bottoms/ranking.json written: ${lines.length} lines ranked`);
+    }
+  } catch (error) {
+    problems.push(`bottoms/ranking.json ${check ? "unchecked" : "not written"} (${SERVER}): ${/** @type {Error} */ (error).message}`);
+  }
 }
 
 // ── Every app on it ──

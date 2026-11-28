@@ -44,7 +44,7 @@ async function catalog() {
   };
   return new Set((await Promise.all(NAMED.map(read))).flat());
 }
-/** The ranking stored with the page at its release (scripts/home.mjs writes it from bitview.space): shown at once, and where its reads start. @returns {Promise<import("./study.js").Board>} */
+/** The ranking stored with the page at its release (scripts/home.mjs writes it from the release's server): shown at once, and where its reads start. @returns {Promise<import("./study.js").Board>} */
 async function stored() {
   const response = await fetch(new URL("./ranking.json", import.meta.url), { signal: AbortSignal.timeout(WAIT) });
   if (!response.ok) throw new Error(`the server answered ${response.status}`);
