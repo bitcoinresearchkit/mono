@@ -298,5 +298,3 @@ clears); avoid reflecting programmatic calls. A programmatic
   of 4, 8, 16… points (a draw's work by its columns, not its points); a band's, as its last point (a gap found by an
   index, not a scan); bars' and candles', from their points.
 - Lines' ys on device pixels, a run at one y one segment; bevelled joins (half a round join's cost in Firefox).
-
-Its bench and its types: `website/_engine/` (`index.html`, `types.html`).

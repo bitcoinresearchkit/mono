@@ -8,6 +8,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The chart engine's two development pages (`/_engine/`) are no longer served.
 - An oracle block's reading (`/api/oracle/blocks/{height}`, `/api/oracle/live`) also gives how well its stencil fits
   around the answer (`fit`: every bin within 120 of it, scored as its candidates are) and the stencil itself
   (`stencil`: the 19 round-dollar amounts and their offsets in bins). The oracle page draws the fit and the
