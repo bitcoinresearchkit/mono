@@ -60,7 +60,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub transferred: Price<LazyPerBlock<Cents>>,
     /// Balanced price (David Puell, same article): `realized price − transferred price`, here as
     /// realized capitalization less the transferred price's capitalization, divided by
-    /// circulating supply in BTC. Zero where the difference is negative.
+    /// circulating supply in BTC. Undefined (null) where the difference is negative.
     #[traversable(lead = "Balanced price: the realized price less the transferred price.")]
     pub balanced: Price<LazyPerBlock<Cents>>,
     /// Terminal price (Checkmate): the transferred price times 21, as read in David Puell's thread
@@ -80,8 +80,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// capitalization) divided by circulating supply in BTC. Average capitalization is market
     /// capitalization's life-to-date mean from the first exchange price (2010), over time: each
     /// block's cap held until the next. A second per-coin wording in circulation (realized price
-    /// minus the life-to-date mean price) runs a few percent lower. Zero where the difference is
-    /// negative.
+    /// minus the life-to-date mean price) runs a few percent lower. Undefined (null) where the
+    /// difference is negative.
     #[traversable(lead = "Delta price: the realized cap less the average cap, per coin.")]
     pub delta: Price<LazyPerBlock<Cents>>,
     /// Running sum of coin days destroyed times spot price in USD, in USD-days.

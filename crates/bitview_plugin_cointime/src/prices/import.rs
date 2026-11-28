@@ -168,7 +168,8 @@ fn per_coin(
     Price::from_height_source(name, version, &source, mappings)
 }
 
-/// Realized capitalization less another, in USD.
+/// Realized capitalization less another, in USD; undefined (NaN) where the difference is negative,
+/// as a price below zero is none.
 fn realized_less<C: ReadableCloneableVec<Height, Dollars>>(
     name: &str,
     version: Version,
@@ -176,6 +177,11 @@ fn realized_less<C: ReadableCloneableVec<Height, Dollars>>(
     cap: &C,
 ) -> impl ReadableCloneableVec<Height, Dollars> + use<C> {
     LazyIndexedVec::new(name, version, realized_cap, cap, |_, realized: Cents, cap: Dollars| {
-        Dollars::from(realized) - cap
+        let difference = Dollars::from(realized) - cap;
+        if difference < Dollars::ZERO {
+            Dollars::NAN
+        } else {
+            difference
+        }
     })
 }
