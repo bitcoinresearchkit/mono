@@ -1,6 +1,6 @@
 use bitview_cohort::AgeRange;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Date, Ratio};
+use bitview_primitives::{Ratio, genesis_day};
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock};
 use brk_types::{Cents, Timestamp, Version};
 use vecdb::Ident;
@@ -27,7 +27,7 @@ pub(crate) fn new(
         &old,
         |_, young: Cents, old: Cents| f64::from(young) / f64::from(old),
     );
-    let genesis = Timestamp::from(Date::from(brk_types::chain().genesis_time()));
+    let genesis = genesis_day().to_timestamp();
     let weighted = LazyIndexedVec::new(
         "rhodl_ratio_source",
         version,

@@ -1,6 +1,6 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Date, Float64, PriceRatio};
+use bitview_primitives::{Float64, PriceRatio, genesis_day};
 use bitview_vecs::{
     LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price, PriceWithMvrv, PriceWithRatio,
     import_cached,
@@ -38,7 +38,7 @@ impl Vecs {
         let average_cap = PcoVec::import(db, "average_cap", version)?;
         let timestamps = &mappings.timestamp.monotonic;
         // The market's age from the genesis block's day, as RHODL weighs it.
-        let genesis = Timestamp::from(Date::from(brk_types::chain().genesis_time()));
+        let genesis = genesis_day().to_timestamp();
         let transferred_cap = LazyIndexedVec::new(
             "transferred_cap",
             version,

@@ -1,17 +1,15 @@
 //! The published lines, each a closed formula of the block's day (UTC) with its author's constants.
 
-use bitview_primitives::Day1;
+use bitview_primitives::{Day1, genesis_day};
 use brk_types::{Cents, Height};
 
-/// The genesis block's day, 2009-01-03, as a `Day1` (which counts from 2009-01-01): the authors
-/// count whole days from it.
-const GENESIS: u16 = 2;
 /// 2012-01-01, where the Rainbow chart's days start.
 const RAINBOW_START: u16 = 1095;
 
-/// Whole days from the genesis block's day to `day`.
+/// Whole days from the genesis block's day to `day`, as the authors count them (on mainnet from
+/// 2009-01-03).
 pub(super) fn days_since_genesis(day: Day1) -> f64 {
-    u64::from(day) as f64 - f64::from(GENESIS)
+    u64::from(day) as f64 - u64::from(genesis_day()) as f64
 }
 
 /// `log10(price in dollars)` of a power law in days since genesis, in cents; null on and before
