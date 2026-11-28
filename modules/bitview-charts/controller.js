@@ -2,10 +2,10 @@
 
 import { Timeline } from "./timeline.js";
 import { motionTime } from "../motion/clock.js";
-import { FLICK_RATE as RATE, thrown, velocityTracker } from "../motion/physics.js";
+import { FLICK_LEAST, FLICK_RATE as RATE, thrown, velocityTracker } from "../motion/physics.js";
 import { reduced } from "../motion/reduced.js";
 
-const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
+const FLICK_SPAN = 50;
 const PINCH_LEAST = 8;
 
 export class Controller {

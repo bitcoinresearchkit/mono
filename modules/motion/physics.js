@@ -62,6 +62,8 @@ export function glide({ from, velocity, rate, least = 0.02 }) {
 
 /** A flick's slowing, the `rate` of a let-go glide: two thirds of iOS's list glide (0.998), not years past what it was flicked for. */
 export const FLICK_RATE = -Math.log(0.997);
+/** Px a millisecond: a finger let go slower was placing, not flicking. */
+export const FLICK_LEAST = 0.25;
 
 /**
  * A glide let go at an input event's time `at`, read each frame as how far it went on since the last read: for a value
