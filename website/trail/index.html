@@ -3848,56 +3848,25 @@
           );
           const pastMin = projectAtTimeAxis(layout, start, start, end);
           const nowMin = projectAtTimeAxis(layout, axisEnd, start, end);
-          const drawFloorLabel = (
-            text,
-            x,
-            y,
-            baseline,
-            down,
-          ) => {
+          // A halo, since terrain hanging below the floor (change, ages) passes under the axis labels.
+          const drawAxisLabel = (text, x, y, align, axis, down) => {
             context.save();
             context.translate(x, y);
-            context.transform(
-              baseline.x,
-              baseline.y,
-              down.x,
-              down.y,
-              0,
-              0,
-            );
-            context.textAlign = "center";
-            context.fillText(text, 0, 0);
-            context.restore();
-          };
-          const drawDateLabel = (text, x, y) => {
-            if (state.dimension !== "2d") {
-              drawFloorLabel(text, x, y, timeAxis, timeOut);
-              return;
-            }
-            context.save();
-            context.textAlign = "right";
-            context.fillText(text, x, y);
-            context.restore();
-          };
-          const drawValueLabel = (text, x, y) => {
-            context.save();
-            context.translate(x, y);
-            context.transform(
-              valueLabelAxis.x,
-              valueLabelAxis.y,
-              valueLabelDown.x,
-              valueLabelDown.y,
-              0,
-              0,
-            );
-            context.textAlign = "left";
+            if (axis) context.transform(axis.x, axis.y, down.x, down.y, 0, 0);
+            context.textAlign = align;
             context.strokeStyle = scene.labelHalo;
-            context.lineWidth = 3;
+            context.lineWidth = ui(3);
             context.lineJoin = "round";
             context.strokeText(text, 0, 0);
             context.fillText(text, 0, 0);
             context.restore();
           };
+          const drawDateLabel = (text, x, y) =>
+            state.dimension === "2d"
+              ? drawAxisLabel(text, x, y, "right")
+              : drawAxisLabel(text, x, y, "center", timeAxis, timeOut);
+          const drawValueLabel = (text, x, y) =>
+            drawAxisLabel(text, x, y, "left", valueLabelAxis, valueLabelDown);
           const selectedProfile = getProfile(axisEnd);
 
           context.save();
@@ -3977,10 +3946,11 @@
             context.stroke();
             const label = formatAxisPrice(price);
             if (covered(point, maxTextWidth(context, [label]) / 2, pricePills, priceAxis)) continue;
-            drawFloorLabel(
+            drawAxisLabel(
               label,
               point.x + priceOut.x * floorLabelOffset,
               point.y + priceOut.y * floorLabelOffset,
+              "center",
               priceAxis,
               priceOut,
             );
