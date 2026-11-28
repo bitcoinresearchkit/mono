@@ -212,7 +212,8 @@
         display: flex;
       }
       .go button,
-      .go input {
+      .go input,
+      .unread button {
         height: 32px;
         padding: 0 12px;
         border: 0;
@@ -224,7 +225,8 @@
       }
       @media (prefers-color-scheme: dark) {
         .go button,
-        .go input {
+        .go input,
+        .unread button {
           background: rgb(255 255 255 / 0.07);
         }
       }
@@ -248,6 +250,30 @@
       }
       .holder:not([data-sized]) {
         visibility: hidden;
+      }
+      /* A failed start, said in the book's place until the book shows. */
+      .unread {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        padding: 0 24px;
+        text-align: center;
+        p {
+          font: italic 19px var(--serif);
+        }
+        button {
+          position: relative;
+        }
+        button[aria-disabled="true"] {
+          opacity: 0.5;
+          cursor: default;
+        }
+      }
+      .unread[hidden],
+      .holder[data-sized] ~ .unread {
+        display: none;
       }
       .book {
         position: absolute;
@@ -635,7 +661,8 @@
           position: absolute;
           inset: -13px -14px -13px -12px;
         }
-        .go button::after {
+        .go button::after,
+        .unread button::after {
           content: "";
           position: absolute;
           inset: -6px 0;
@@ -693,6 +720,10 @@
             </svg>
           </div>
         </div>
+      </div>
+      <div class="unread" id="unread" role="alert" hidden>
+        <p>The ledger couldn’t be read from the server.</p>
+        <button id="retry" type="button">Try again</button>
       </div>
     </main>
     <footer class="foot">
@@ -1228,6 +1259,7 @@
       // Every turn and jump takes a new generation: frames and landing count only while it's the latest.
       const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
       let gen = 0;
+      let opened = false;
       let busy = false;
       let queued = 0;
       let hand = null;
@@ -1295,6 +1327,7 @@
       };
       const dayOf = (s) => firstDay(s)?.d ?? FIRST - 1;
       async function jump(compute, { riffle = false } = {}) {
+        if (!opened) return;
         putDown();
         const g = take();
         speed = 1;
@@ -1339,7 +1372,7 @@
         });
       }
       function turn(dir, lifted = false) {
-        if (hand) return;
+        if (!opened || hand) return;
         if (busy) {
           queued = Math.max(-8, Math.min(8, queued + dir));
           speed = 2.8;
@@ -1490,20 +1523,41 @@
         jump(() => spreadAt(anchor));
       }
 
-      [tip, pools] = await Promise.all([
-        get("/blocks/tip/height").then(Number),
-        get("/v1/mining/pools").then(
-          (list) => Object.fromEntries(list.map((p) => [p.slug, p.name])),
-          () => ({}),
-        ),
-      ]);
-      let tipHash = await get("/blocks/tip/hash").catch(() => null);
       $("day").min = "2009-01-03";
       $("day").max = iso(today());
       measure();
       years();
       const askedDay = parseDay(new URLSearchParams(location.search).get("day"));
-      await jump(askedDay === null ? spreadAtEnd : () => spreadAt({ d: clampDay(askedDay) }));
+      const first = askedDay === null ? spreadAtEnd : () => spreadAt({ d: clampDay(askedDay) });
+      // The book opens once its first pages are read. A read that fails, or never answers, is said in the book's place,
+      // and the start is asked again by the button, or after 30 s.
+      let tipHash;
+      while (!opened) {
+        try {
+          [tip, pools] = await Promise.all([
+            get("/blocks/tip/height").then(Number),
+            get("/v1/mining/pools").then(
+              (list) => Object.fromEntries(list.map((p) => [p.slug, p.name])),
+              () => ({}),
+            ),
+          ]);
+          tipHash = await get("/blocks/tip/hash").catch(() => null);
+          await resolve(first);
+          opened = true;
+        } catch (error) {
+          console.error(error);
+          // The next try reads every day again: one this try read may be blocks behind by then.
+          days.clear();
+          ready.clear();
+          const button = $("retry");
+          $("unread").hidden = false;
+          // (aria-disabled, not disabled: a button that is disabled under the keyboard loses the focus.)
+          button.ariaDisabled = "false";
+          await new Promise((again) => (setTimeout(again, 30_000), (button.onclick = again)));
+          button.ariaDisabled = "true";
+        }
+      }
+      await jump(first);
       new ResizeObserver(() => {
         if (busy || hand) pendingLayout = true;
         else relayout(anchorOf(spread));
