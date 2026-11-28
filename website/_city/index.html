@@ -359,6 +359,7 @@
     <script type="module">
       // @ts-check
       import { logo as poolLogo } from "/assets/pools/logos.js";
+      import { FLICK_LEAST, FLICK_RATE, thrown, velocityTracker } from "/modules/motion/physics.js";
       import { reduced, whenReduced } from "/modules/motion/reduced.js";
 
       const ORIGIN = location.origin;
@@ -466,6 +467,8 @@
       const camera = { u: 0, v: 0, scale: 40 };
       /** @type {{ from: typeof camera, to: typeof camera, start: number } | null} */
       let flight = null;
+      /** A pan or a pinch let go moving, in screen px (the zoom as the screen's edge would move). */
+      let flung = /** @type {{ x: ReturnType<typeof thrown>, y: ReturnType<typeof thrown>, zoom: ReturnType<typeof thrown>, at: { x: number, y: number } } | null} */ (null);
       let animateUntil = 0;
       let lastFrame = 0;
       let frameId = 0;
@@ -3537,6 +3540,14 @@
           if (t >= 1) flight = null;
           invalidate();
         }
+        if (flung) {
+          const dx = flung.x.step(now), dy = flung.y.step(now), by = flung.zoom.step(now), scale = camera.scale;
+          if (dx || dy) pan(dx, dy);
+          if (by) zoom(flung.at.x, flung.at.y, Math.exp(by / W));
+          // Held at the least or most it zooms to: no more to glide.
+          if ((flung.x.done && flung.y.done && flung.zoom.done) || (by && camera.scale === scale)) flung = null;
+          invalidate();
+        }
         updateView();
         stepWarp(dt);
         const step = dt * warp;
@@ -3647,6 +3658,7 @@
 
       function flyHome() {
         follow(null);
+        flung = null;
         flight = { from: { ...camera }, to: homeView(), start: performance.now() };
         invalidate();
       }
@@ -3654,6 +3666,26 @@
       /** @type {Map<number, { x: number, y: number }>} */
       const pointers = new Map();
       let pinch = 0;
+      const trailX = velocityTracker(), trailY = velocityTracker();
+      /** The log of the pinching fingers' distance, and where they were. */
+      const spread = velocityTracker();
+      const pinchAt = { x: 0, y: 0 };
+      let pinched = false;
+      /** The press caught a glide: as a tap it only stops it. */
+      let caught = false;
+
+      /**
+       * As the chart's: a finger's pan flicks on; after a pinch only its zoom glides, if both fingers left within the
+       * tracker's span (the finger left last moves apart from the other, not the view).
+       * @param {number} at
+       */
+      function fling(at) {
+        const vx = pinched ? 0 : trailX.velocity(at), vy = pinched ? 0 : trailY.velocity(at), edge = pinched ? spread.velocity(at) * W : 0;
+        const glide = (/** @type {number} */ velocity) => thrown({ velocity, rate: FLICK_RATE, at });
+        if (Math.max(Math.hypot(vx, vy), Math.abs(edge)) < FLICK_LEAST) return;
+        flung = { x: glide(vx), y: glide(vy), zoom: glide(edge), at: { ...pinchAt } };
+        invalidate();
+      }
 
       const CLICK_SLOP = 4;
       let pressX = 0;
@@ -3665,11 +3697,14 @@
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         canvas.dataset.dragging = "";
         pinch = 0;
+        if (pointers.size === 1) caught = Boolean(flung);
+        flung = null;
         if (pointers.size === 1) {
           pressX = event.clientX;
           pressY = event.clientY;
-          dragged = false;
-        } else dragged = true;
+          dragged = pinched = false;
+          trailX.reset(), trailY.reset();
+        } else (dragged = pinched = true), spread.reset();
       });
 
       canvas.addEventListener("pointermove", (event) => {
@@ -3682,6 +3717,7 @@
           if (!dragged && Math.hypot(event.clientX - pressX, event.clientY - pressY) < CLICK_SLOP) return;
           dragged = true;
           pan(event.clientX - last.x, event.clientY - last.y);
+          trailX.add(event.timeStamp, event.clientX), trailY.add(event.timeStamp, event.clientY);
         } else if (pointers.size === 2) {
           const [a, b] = [...pointers.values()];
           const before = Math.hypot(a.x - b.x, a.y - b.y);
@@ -3691,7 +3727,8 @@
           last.y = event.clientY;
           const after = Math.hypot(a.x - b.x, a.y - b.y);
           pan(((a.x + b.x) / 2 - midX) , ((a.y + b.y) / 2 - midY));
-          if (before > 0 && pinch++ > 0) zoom((a.x + b.x) / 2, (a.y + b.y) / 2, after / before);
+          if (before > 0 && pinch++ > 0) zoom((pinchAt.x = (a.x + b.x) / 2), (pinchAt.y = (a.y + b.y) / 2), after / before);
+          if (after > 0) spread.add(event.timeStamp, Math.log(after));
           return;
         }
         last.x = event.clientX;
@@ -3704,7 +3741,9 @@
           pointers.delete(pointer.pointerId);
           if (pointers.size) return;
           delete canvas.dataset.dragging;
-          if (type === "pointerup" && !dragged) click(pointer.clientX, pointer.clientY);
+          if (type === "pointerup" && !dragged) caught || click(pointer.clientX, pointer.clientY);
+          // A mouse or pen's drag stops where it's let go.
+          else if (type === "pointerup" && pointer.pointerType === "touch") fling(pointer.timeStamp);
         });
       }
 

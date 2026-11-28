@@ -804,8 +804,10 @@
     <div class="float" id="float" hidden aria-hidden="true"></div>
     <script type="module">
       // @ts-check
+      import { FLICK_LEAST, FLICK_RATE, thrown, velocityTracker } from "/modules/motion/physics.js";
+      import { reduced, whenReduced } from "/modules/motion/reduced.js";
+
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       /** One formatter: a number's toLocaleString makes one per call. */
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
@@ -1136,7 +1138,7 @@
         if (greeted) return;
         greeted = true;
         const lead = snapshot?.rows.find((row) => row.cc);
-        if (lead && !selected && !dragging) flyTo([COUNTRIES[lead.cc].at[0] + (reduced.matches ? 0 : 15), COUNTRIES[lead.cc].at[1]]);
+        if (lead && !selected && !dragging) flyTo([COUNTRIES[lead.cc].at[0] + (reduced() ? 0 : 15), COUNTRIES[lead.cc].at[1]]);
       }
       function failure(/** @type {Error} */ error, /** @type {() => void} */ again) {
         const message = Object.assign(document.createElement("li"), { className: "message" }), retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
@@ -1328,20 +1330,36 @@
       }
 
       const TURN = 0.004; // degrees a millisecond
+      /** A let-go turn ends at a speed too small to see: it blends into the globe's own. */
+      const STILL = TURN / 4;
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
       let flight = null;
-      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
+      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean, caught: boolean } | null} */ (null);
+      /** The turn and tilt a finger let go of. */
+      let flung = /** @type {{ turn: ReturnType<typeof thrown>, tilt: ReturnType<typeof thrown> } | null} */ (null);
+      const trail = [velocityTracker(), velocityTracker()];
       let last = 0, frameId = 0, onScreen = true;
       const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-      const turning = () => !reduced.matches && !selected && !dragging;
-      const moving = () => Boolean(flight || pulses.length || turning());
+      const turning = () => !reduced() && !selected && !dragging;
+      const moving = () => Boolean(flight || flung || pulses.length || turning());
+      const tilted = (/** @type {number} */ tilt) => Math.max(-80, Math.min(80, tilt));
       function invalidate() {
         if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
       }
       function flyTo(/** @type {number[]} */ at) {
         const to = [-at[0], Math.max(-55, Math.min(55, -at[1]))], turn = ((to[0] - rot[0] + 540) % 360) - 180;
-        flight = { from: [rot[0], rot[1]], to: [rot[0] + turn, to[1]], t0: performance.now(), dur: reduced.matches ? 0 : Math.min(2000, 600 + Math.hypot(turn, to[1] - rot[1]) * 8) };
+        flight = { from: [rot[0], rot[1]], to: [rot[0] + turn, to[1]], t0: performance.now(), dur: reduced() ? 0 : Math.min(2000, 600 + Math.hypot(turn, to[1] - rot[1]) * 8) };
+        flung = null;
         invalidate();
+      }
+      /** @param {number} at */
+      function fling(at) {
+        const turn = trail[0].velocity(at), tilt = trail[1].velocity(at);
+        // (Degrees a millisecond back to the finger's px.)
+        if ((Math.hypot(turn, tilt) * R) / 90 < FLICK_LEAST) return;
+        // The globe's own turn goes on under the glide: the glide carries what the finger gave past it.
+        const glide = (/** @type {number} */ velocity) => thrown({ velocity, rate: FLICK_RATE, least: STILL, at });
+        flung = { turn: glide(turn - (turning() ? TURN : 0)), tilt: glide(tilt) };
       }
       function frame(/** @type {number} */ now) {
         frameId = 0;
@@ -1352,8 +1370,13 @@
           rot[0] = flight.from[0] + (flight.to[0] - flight.from[0]) * k;
           rot[1] = flight.from[1] + (flight.to[1] - flight.from[1]) * k;
           if (t >= 1) flight = null;
-        } else if (turning()) {
-          rot[0] += dt * TURN;
+        } else {
+          if (flung) {
+            rot[0] += flung.turn.step(now);
+            rot[1] = tilted(rot[1] + flung.tilt.step(now));
+            if (flung.turn.done && flung.tilt.done) flung = null;
+          }
+          if (turning()) rot[0] += dt * TURN;
         }
         draw(now);
         if (moving()) invalidate();
@@ -1363,13 +1386,14 @@
         onScreen = entry.isIntersecting;
         if (onScreen) invalidate();
       }).observe(canvas);
-      reduced.addEventListener("change", invalidate);
+      whenReduced(invalidate);
       document.addEventListener("visibilitychange", () => (last = 0));
 
       canvas.addEventListener("pointerdown", (event) => {
-        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false };
-        flight = null;
+        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false, caught: Boolean(flung) };
+        flight = flung = null;
         greeted = true;
+        for (const each of trail) each.reset();
       });
       addEventListener("pointermove", (event) => {
         if (dragging) {
@@ -1379,16 +1403,21 @@
             canvas.classList.add("dragging");
           }
           rot[0] = dragging.rot[0] + dx * (90 / R);
-          rot[1] = Math.max(-80, Math.min(80, dragging.rot[1] - dy * (90 / R)));
+          rot[1] = tilted(dragging.rot[1] - dy * (90 / R));
+          trail[0].add(event.timeStamp, rot[0]), trail[1].add(event.timeStamp, rot[1]);
           invalidate();
         } else if (event.target === canvas && event.pointerType === "mouse") showFloat(pickAt(event), event);
       });
       addEventListener("pointerup", (event) => {
-        if (dragging && !dragging.moved && event.target === canvas) {
+        // A tap that caught a throw only stops it.
+        if (dragging && !dragging.moved && !dragging.caught && event.target === canvas) {
           const key = pickAt(event);
           select(key && key !== selected ? key : null);
         }
+        // As the chart's: a finger's throw glides on, a mouse or pen's drag stops where it's let go.
+        const flicked = dragging?.moved && event.pointerType === "touch";
         dragging = null;
+        if (flicked) fling(event.timeStamp);
         canvas.classList.remove("dragging");
         invalidate();
       });
@@ -1607,7 +1636,7 @@
           if (before > 0 && !rereading && fresh.length <= 3) {
             for (const block of fresh) {
               const cc = POOL_COUNTRY.get(block.pool);
-              if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now() });
+              if (cc && !reduced()) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now() });
             }
             $("said").textContent = fresh.map((block) => `Block ${grouped(block.height)}: ${names.get(block.pool) ?? block.pool}, ${POOL_COUNTRY.has(block.pool) ? COUNTRIES[/** @type {string} */ (POOL_COUNTRY.get(block.pool))].name : "no known home"}`).join(". ");
           }

@@ -508,7 +508,7 @@ export class Chart {
     /**
          * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, held?: number }} Axis
          */
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null, beside: PointerEvent | null, stop: () => void }>} */ (new Map());
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null, beside: PointerEvent | null, stop: () => void, caught: boolean }>} */ (new Map());
     let held = -1;
     let twoFingers = false;
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
@@ -603,8 +603,8 @@ export class Chart {
       if (on >= 0) return size(event, on);
       const id = event.pointerId, stop = hold(event);
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop });
-      this.controller.grab();
+      const caught = this.controller.grab();
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop, caught });
       clearTimeout(this.holding);
       if (this.letting) cancelAnimationFrame(this.letting), this.#clearPointer();
       this.holding = this.letting = 0;
@@ -669,7 +669,7 @@ export class Chart {
       } else if (down.size === 2) {
         let other = at;
         for (const each of down.values()) if (each !== at) other = each;
-        this.controller.pinch(plotX((at.x + other.x) / 2), Math.abs(at.x - other.x), Math.abs(event.clientX - other.x), (event.clientX - at.x) / 2);
+        this.controller.pinch(plotX((at.x + other.x) / 2), Math.abs(at.x - other.x), Math.abs(event.clientX - other.x), (event.clientX - at.x) / 2, event.timeStamp);
       }
       (at.x = event.clientX), (at.y = event.clientY);
       if (fine(event)) this.#follow(event);
@@ -694,6 +694,8 @@ export class Chart {
       if (held === id) return void ((held = -1), this.controller.forget(), (tapAt = -Infinity), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
       if (event && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         this.controller.forget();
+        // A tap that caught a glide only stops it (nor is it the first of a double tap).
+        if (at.caught) return void (tapAt = -Infinity);
         const axis = at.axis;
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
         (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");
@@ -702,8 +704,8 @@ export class Chart {
         return void this.#click(event);
       }
       tapAt = -Infinity;
-      if (down.size || pinched || !event || fine(event)) return void this.controller.forget();
-      this.controller.flick(event.timeStamp);
+      if (down.size || !event || fine(event)) return void this.controller.forget();
+      this.controller.flick(event.timeStamp, pinched);
     };
     // (Embedded, touch-action can't say "vertical unless held": touchmove is cancelled while a finger holds the crosshair
     // or two of the chart's fingers pinch; one joining a running scroll is the browser's.)

@@ -2,6 +2,7 @@
 // Functions of elapsed time, never of frames. Velocities stay in the value's own units a millisecond, scaled by the caller:
 // normalizing here is a trap (a spring from a value to itself has no travel to scale by).
 
+import { motionClock } from "./clock.js";
 import { reduced } from "./reduced.js";
 
 /**
@@ -56,6 +57,35 @@ export function glide({ from, velocity, rate, least = 0.02 }) {
     velocity: (t) => (t < duration ? velocity * Math.exp(-rate * Math.max(0, t)) : 0),
     /** @param {number} t */
     done: (t) => t >= duration,
+  };
+}
+
+/** A flick's slowing, the `rate` of a let-go glide: two thirds of iOS's list glide (0.998), not years past what it was flicked for. */
+export const FLICK_RATE = -Math.log(0.997);
+/** Px a millisecond: a finger let go slower was placing, not flicking. */
+export const FLICK_LEAST = 0.25;
+
+/**
+ * A glide let go at an input event's time `at`, read each frame as how far it went on since the last read: for a value
+ * other things move too (a view's limits, a globe's own turn). `land`: the last read reaches the glide's end, not
+ * least / rate short of it.
+ * @param {{ velocity: number, rate: number, least?: number, at: number, land?: boolean }} thrown
+ */
+export function thrown({ velocity, rate, least, at, land = false }) {
+  const path = glide({ from: 0, velocity, rate, least }), clock = motionClock(), start = clock(at);
+  let moved = 0, done = path.done(0);
+  return {
+    get done() {
+      return done;
+    },
+    /** @param {number} now a frame's time */
+    step(now) {
+      const t = clock(now) - start;
+      done = path.done(t);
+      const to = done && land ? path.to : path.at(t), by = to - moved;
+      moved = to;
+      return by;
+    },
   };
 }
 
