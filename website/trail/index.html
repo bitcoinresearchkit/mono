@@ -3804,6 +3804,7 @@
         }
 
         function drawPlotAxes(layout, start, end, selectedRow) {
+          const flat = state.dimension === "2d";
           const axes = plotAxisGeometry(layout);
           const datePill = datePillModel(
             layout,
@@ -3862,7 +3863,7 @@
             context.restore();
           };
           const drawDateLabel = (text, x, y) =>
-            state.dimension === "2d"
+            flat
               ? drawAxisLabel(text, x, y, "right")
               : drawAxisLabel(text, x, y, "center", timeAxis, timeOut);
           const drawValueLabel = (text, x, y) =>
@@ -3915,7 +3916,7 @@
             const half = maxTextWidth(context, [formatAxisValue(valueFoot.value)]) / 2;
             pricePills.push({ point: offsetPoint(atPrice(axisMaxCoordinate), priceAxis, ui(AXIS_LABEL_OFFSET) + half), half });
           }
-          if (state.dimension === "2d") {
+          if (flat) {
             const pill = pillSpan(datePill.text, datePill.anchor);
             pricePills.push({ ...pill, point: { x: datePill.anchor.x - pill.half, y: datePill.anchor.y } });
           } else {
@@ -3979,9 +3980,8 @@
           const yearSpan =
             Math.hypot(nowMin.x - pastMin.x, nowMin.y - pastMin.y) /
             Math.max(1, (state.dateTimes[axisEnd] - state.dateTimes[start]) / (365.25 * DAY_MS));
-          const yearRoom = state.dimension === "2d" ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
+          const yearRoom = flat ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
           const yearStep = [1, 2, 4].find((step) => yearSpan * step >= yearRoom) ?? 4;
-          const flat = state.dimension === "2d";
           const datePills = [pillSpan(datePill.text, datePill.anchor, !flat)];
           const yearAxis = flat ? { x: 0, y: 1 } : timeAxis;
           for (
@@ -4071,7 +4071,7 @@
             );
             // Heights are compressed, so a tall ridge isn't read as proportionally more.
             context.fillStyle = scene.note;
-            if (state.dimension === "2d") {
+            if (flat) {
               context.textAlign = "center";
               context.fillText("ONE ROW A DAY · HEIGHT ON THE RIGHT, COMPRESSED", layout.left + layout.width / 2, layout.top - ui(UI_FONT_SIZE * 2) - 6);
             } else {
