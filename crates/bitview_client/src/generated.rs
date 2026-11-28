@@ -2819,19 +2819,19 @@ impl BitviewClient {
     /// Endpoint: `GET /api/series/list`
     pub fn list_series(
         &self,
-        q: Option<&str>,
         page: Option<usize>,
         per_page: Option<usize>,
+        q: Option<&str>,
     ) -> Result<PaginatedSeries> {
         let mut query = Vec::new();
-        if let Some(v) = q {
-            query.push(query_pair("q", v));
-        }
         if let Some(v) = page {
             query.push(query_pair("page", v));
         }
         if let Some(v) = per_page {
             query.push(query_pair("per_page", v));
+        }
+        if let Some(v) = q {
+            query.push(query_pair("q", v));
         }
         let query_str = if query.is_empty() {
             String::new()

@@ -126,9 +126,9 @@ Series list
 Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most 1024 UTF-8 bytes).
 
 Parameters:
-- `q` (query, string, optional): Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
 - `page` (query, integer, optional): Zero-based page number (default: 0)
 - `per_page` (query, integer, optional): Results per page, 1 to 1,000 (default: 1000)
+- `q` (query, string, optional): Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
 
 Returns: JSON `PaginatedSeries`
 

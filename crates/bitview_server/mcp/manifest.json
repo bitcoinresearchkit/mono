@@ -16,9 +16,9 @@
       },
       {
         "path": "references/endpoints.md",
-        "digest": "sha256:804676e0a3becdf0bb49be0af8ba49272db863a9ee285322134311e07ebf8d7f",
+        "digest": "sha256:3bfa9e3fea40196f8b84ee0365695ac5c845c2c37f02c09247175a0ec507a186",
         "size": 5390,
-        "text": "# Bitview tools\n\nEvery tool, with its arguments (`*` required). Each tool's description says what it returns.\n\n- `get_sync_status` Sync status\n- `get_series_count` Series count\n- `list_indexes` List available indexes\n- `list_series` Series list. Arguments: `q`, `page`, `per_page`\n- `search_series` Search series. Arguments: `q`*, `limit`\n- `get_series_info` Get series info. Arguments: `series`*\n- `get_series` Get series data. Arguments: `series`*, `index`*, `start`, `end`, `limit`, `format`\n- `get_series_latest` Get latest series value. Arguments: `series`*, `index`*\n- `get_series_len` Get series data length. Arguments: `series`*, `index`*\n- `get_series_version` Get series version. Arguments: `series`*, `index`*\n- `get_series_bulk` Bulk series data. Arguments: `series`*, `index`*, `start`, `end`, `limit`, `format`\n- `list_urpd_cohorts` Available URPD cohorts\n- `get_urpd_latest` Latest URPD. Arguments: `cohort`*, `agg`, `weight`\n- `get_urpd` URPD at block height or date. Arguments: `cohort`*, `point`*, `agg`, `weight`\n- `get_difficulty_adjustment` Difficulty adjustment\n- `get_prices` Current BTC price\n- `get_historical_price` Historical price. Arguments: `timestamp`, `currency`\n- `get_address_hash_prefix_matches` Address hash-prefix matches. Arguments: `address_type`*, `prefix`*\n- `get_address` Address information. Arguments: `address`*\n- `get_address_txs` Address transactions. Arguments: `address`*, `after_txid`, `max_txs`\n- `get_address_confirmed_txs` Address confirmed transactions. Arguments: `address`*, `max_txs`\n- `get_address_confirmed_txs_after` Address confirmed transactions (paginated). Arguments: `address`*, `after_txid`*, `max_txs`\n- `get_address_mempool_txs` Address mempool transactions. Arguments: `address`*, `max_txs`\n- `get_address_utxos` Address UTXOs. Arguments: `address`*\n- `validate_address` Validate address. Arguments: `address`*\n- `get_block` Block information. Arguments: `hash`*\n- `get_block_v1` Block (v1). Arguments: `hash`*\n- `get_block_header` Block header. Arguments: `hash`*\n- `get_block_hash_by_height` Block hash by height. Arguments: `height`*\n- `get_block_by_timestamp` Block by timestamp. Arguments: `timestamp`*\n- `get_block_status` Block status. Arguments: `hash`*\n- `get_block_tip_height` Block tip height\n- `get_block_tip_hash` Block tip hash\n- `get_block_txid` Transaction ID at index. Arguments: `hash`*, `index`*\n- `get_block_txs_from_index` Block transactions (paginated). Arguments: `hash`*, `start_index`*\n- `get_blocks` Recent blocks\n- `get_blocks_from_height` Blocks from height. Arguments: `height`*\n- `get_blocks_v1` Recent blocks with extras\n- `get_blocks_v1_from_height` Blocks from height with extras. Arguments: `height`*\n- `get_block_audit_summary` This server's recorded block expectation. Arguments: `hash`*\n- `get_block_audit` Recorded missing, fresh, conflicting, added and unseen transactions. Arguments: `hash`*\n- `get_block_audit_score` Recorded audit score for a block hash. Arguments: `hash`*\n- `get_recent_audit_scores` Audited scores in the latest sixteen height slots\n- `get_audit_scores` Audited scores through a canonical height. Arguments: `height`*\n- `get_audit_predictions` Time-bucketed canonical audit match rates. Arguments: `time_period`*\n- `get_transaction_audit` How this server's expectation classified a confirmed transaction. Arguments: `hash`*, `txid`*\n- `get_pools` List all mining pools\n- `get_pool_ranking` Mining pool statistics. Arguments: `time_period`*\n- `get_pool` Mining pool details. Arguments: `slug`*\n- `get_pools_hashrate_by_period` All pools hashrate. Arguments: `time_period`*\n- `get_pool_hashrate` Mining pool hashrate. Arguments: `slug`*\n- `get_pool_blocks` Mining pool blocks. Arguments: `slug`*\n- `get_pool_blocks_from_height` Mining pool blocks before height. Arguments: `slug`*, `height`*\n- `get_hashrate_by_period` Network hashrate. Arguments: `time_period`*\n- `get_difficulty_adjustments_by_period` Difficulty adjustments. Arguments: `time_period`*\n- `get_reward_stats` Mining reward statistics. Arguments: `block_count`*\n- `get_block_fees` Block fees. Arguments: `time_period`*\n- `get_block_rewards` Block rewards. Arguments: `time_period`*\n- `get_block_fee_rates_precise` Block fee rates (precise). Arguments: `time_period`*\n- `get_block_sizes_weights` Block sizes and weights. Arguments: `time_period`*\n- `get_mempool_blocks` Projected mempool blocks\n- `get_precise_fees` Recommended fee rates (precise)\n- `get_mempool` Mempool statistics\n- `get_mempool_recent` Recent mempool transactions\n- `get_replacements` Recent RBF replacements\n- `get_fullrbf_replacements` Recent full-RBF replacements\n- `get_txid_by_index` Txid by index. Arguments: `index`*\n- `get_cpfp` CPFP info. Arguments: `txid`*\n- `get_tx_rbf` RBF replacement history. Arguments: `txid`*\n- `get_tx` Transaction information. Arguments: `txid`*\n- `get_tx_hex` Transaction hex. Arguments: `txid`*\n- `get_tx_merkleblock_proof` Transaction merkleblock proof. Arguments: `txid`*\n- `get_tx_merkle_proof` Transaction merkle proof. Arguments: `txid`*\n- `get_tx_outspend` Output spend status. Arguments: `txid`*, `vout`*\n- `get_tx_outspends` All output spend statuses. Arguments: `txid`*\n- `get_tx_status` Transaction status. Arguments: `txid`*\n- `get_transaction_times` Transaction first-seen times. Arguments: `txids`*\n- `get_utxo_set_diff` UTXO set changes of a block or date. Arguments: `point`*\n"
+        "text": "# Bitview tools\n\nEvery tool, with its arguments (`*` required). Each tool's description says what it returns.\n\n- `get_sync_status` Sync status\n- `get_series_count` Series count\n- `list_indexes` List available indexes\n- `list_series` Series list. Arguments: `page`, `per_page`, `q`\n- `search_series` Search series. Arguments: `q`*, `limit`\n- `get_series_info` Get series info. Arguments: `series`*\n- `get_series` Get series data. Arguments: `series`*, `index`*, `start`, `end`, `limit`, `format`\n- `get_series_latest` Get latest series value. Arguments: `series`*, `index`*\n- `get_series_len` Get series data length. Arguments: `series`*, `index`*\n- `get_series_version` Get series version. Arguments: `series`*, `index`*\n- `get_series_bulk` Bulk series data. Arguments: `series`*, `index`*, `start`, `end`, `limit`, `format`\n- `list_urpd_cohorts` Available URPD cohorts\n- `get_urpd_latest` Latest URPD. Arguments: `cohort`*, `agg`, `weight`\n- `get_urpd` URPD at block height or date. Arguments: `cohort`*, `point`*, `agg`, `weight`\n- `get_difficulty_adjustment` Difficulty adjustment\n- `get_prices` Current BTC price\n- `get_historical_price` Historical price. Arguments: `timestamp`, `currency`\n- `get_address_hash_prefix_matches` Address hash-prefix matches. Arguments: `address_type`*, `prefix`*\n- `get_address` Address information. Arguments: `address`*\n- `get_address_txs` Address transactions. Arguments: `address`*, `after_txid`, `max_txs`\n- `get_address_confirmed_txs` Address confirmed transactions. Arguments: `address`*, `max_txs`\n- `get_address_confirmed_txs_after` Address confirmed transactions (paginated). Arguments: `address`*, `after_txid`*, `max_txs`\n- `get_address_mempool_txs` Address mempool transactions. Arguments: `address`*, `max_txs`\n- `get_address_utxos` Address UTXOs. Arguments: `address`*\n- `validate_address` Validate address. Arguments: `address`*\n- `get_block` Block information. Arguments: `hash`*\n- `get_block_v1` Block (v1). Arguments: `hash`*\n- `get_block_header` Block header. Arguments: `hash`*\n- `get_block_hash_by_height` Block hash by height. Arguments: `height`*\n- `get_block_by_timestamp` Block by timestamp. Arguments: `timestamp`*\n- `get_block_status` Block status. Arguments: `hash`*\n- `get_block_tip_height` Block tip height\n- `get_block_tip_hash` Block tip hash\n- `get_block_txid` Transaction ID at index. Arguments: `hash`*, `index`*\n- `get_block_txs_from_index` Block transactions (paginated). Arguments: `hash`*, `start_index`*\n- `get_blocks` Recent blocks\n- `get_blocks_from_height` Blocks from height. Arguments: `height`*\n- `get_blocks_v1` Recent blocks with extras\n- `get_blocks_v1_from_height` Blocks from height with extras. Arguments: `height`*\n- `get_block_audit_summary` This server's recorded block expectation. Arguments: `hash`*\n- `get_block_audit` Recorded missing, fresh, conflicting, added and unseen transactions. Arguments: `hash`*\n- `get_block_audit_score` Recorded audit score for a block hash. Arguments: `hash`*\n- `get_recent_audit_scores` Audited scores in the latest sixteen height slots\n- `get_audit_scores` Audited scores through a canonical height. Arguments: `height`*\n- `get_audit_predictions` Time-bucketed canonical audit match rates. Arguments: `time_period`*\n- `get_transaction_audit` How this server's expectation classified a confirmed transaction. Arguments: `hash`*, `txid`*\n- `get_pools` List all mining pools\n- `get_pool_ranking` Mining pool statistics. Arguments: `time_period`*\n- `get_pool` Mining pool details. Arguments: `slug`*\n- `get_pools_hashrate_by_period` All pools hashrate. Arguments: `time_period`*\n- `get_pool_hashrate` Mining pool hashrate. Arguments: `slug`*\n- `get_pool_blocks` Mining pool blocks. Arguments: `slug`*\n- `get_pool_blocks_from_height` Mining pool blocks before height. Arguments: `slug`*, `height`*\n- `get_hashrate_by_period` Network hashrate. Arguments: `time_period`*\n- `get_difficulty_adjustments_by_period` Difficulty adjustments. Arguments: `time_period`*\n- `get_reward_stats` Mining reward statistics. Arguments: `block_count`*\n- `get_block_fees` Block fees. Arguments: `time_period`*\n- `get_block_rewards` Block rewards. Arguments: `time_period`*\n- `get_block_fee_rates_precise` Block fee rates (precise). Arguments: `time_period`*\n- `get_block_sizes_weights` Block sizes and weights. Arguments: `time_period`*\n- `get_mempool_blocks` Projected mempool blocks\n- `get_precise_fees` Recommended fee rates (precise)\n- `get_mempool` Mempool statistics\n- `get_mempool_recent` Recent mempool transactions\n- `get_replacements` Recent RBF replacements\n- `get_fullrbf_replacements` Recent full-RBF replacements\n- `get_txid_by_index` Txid by index. Arguments: `index`*\n- `get_cpfp` CPFP info. Arguments: `txid`*\n- `get_tx_rbf` RBF replacement history. Arguments: `txid`*\n- `get_tx` Transaction information. Arguments: `txid`*\n- `get_tx_hex` Transaction hex. Arguments: `txid`*\n- `get_tx_merkleblock_proof` Transaction merkleblock proof. Arguments: `txid`*\n- `get_tx_merkle_proof` Transaction merkle proof. Arguments: `txid`*\n- `get_tx_outspend` Output spend status. Arguments: `txid`*, `vout`*\n- `get_tx_outspends` All output spend statuses. Arguments: `txid`*\n- `get_tx_status` Transaction status. Arguments: `txid`*\n- `get_transaction_times` Transaction first-seen times. Arguments: `txids`*\n- `get_utxo_set_diff` UTXO set changes of a block or date. Arguments: `point`*\n"
       }
     ]
   },
@@ -3414,14 +3414,6 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "q": {
-              "description": "Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)",
-              "type": "string",
-              "examples": [
-                "rarity"
-              ],
-              "default": ""
-            },
             "page": {
               "description": "Zero-based page number (default: 0)",
               "type": "integer",
@@ -3440,6 +3432,14 @@
               "minimum": 1,
               "maximum": 1000,
               "default": 1000
+            },
+            "q": {
+              "description": "Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)",
+              "type": "string",
+              "examples": [
+                "rarity"
+              ],
+              "default": ""
             }
           },
           "additionalProperties": false
@@ -3453,11 +3453,6 @@
         "path": "/api/series/list",
         "parameters": [
           {
-            "name": "q",
-            "argument": "q",
-            "location": "query"
-          },
-          {
             "name": "page",
             "argument": "page",
             "location": "query"
@@ -3465,6 +3460,11 @@
           {
             "name": "per_page",
             "argument": "per_page",
+            "location": "query"
+          },
+          {
+            "name": "q",
+            "argument": "q",
             "location": "query"
           }
         ]

@@ -7363,7 +7363,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "f41963e7406a835703909553a374d81684edd99aa78ac73ec3e3f39228d90241";
+  static HASH = "a139ba1952423dd8568ddff7777cbd2fa8c41126cdfcdedaf7a4b179ef1b5cd5";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8345,20 +8345,20 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/list`
    *
    * @param {object} [options]
-   * @param {string} [options.q] - Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
    * @param {number} [options.page] - Zero-based page number (default: 0)
    * @param {number} [options.per_page] - Results per page, 1 to 1,000 (default: 1000)
+   * @param {string} [options.q] - Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<PaginatedSeries>) => void} [options.onValue]
    * @param {boolean} [options.cache]
    * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PaginatedSeries>>}
    */
-  async listSeries({ q, page, per_page, signal, onValue, cache, memCache } = {}) {
+  async listSeries({ page, per_page, q, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (q != null) params.set('q', String(q));
     if (page != null) params.set('page', String(page));
     if (per_page != null) params.set('per_page', String(per_page));
+    if (q != null) params.set('q', String(q));
     const query = params.toString();
     const path = `/api/series/list${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });

@@ -6464,16 +6464,16 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')
 
-    def list_series(self, *, q: Optional[str] = None, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
+    def list_series(self, *, page: Optional[int] = None, per_page: Optional[int] = None, q: Optional[str] = None) -> PaginatedSeries:
         """Series list.
 
         Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most 1024 UTF-8 bytes).
 
         Endpoint: `GET /api/series/list`"""
         params: List[Tuple[str, Any]] = []
-        if q is not None: params.append(('q', q))
         if page is not None: params.append(('page', page))
         if per_page is not None: params.append(('per_page', per_page))
+        if q is not None: params.append(('q', q))
         query = urlencode(params)
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)

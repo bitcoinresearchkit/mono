@@ -1436,9 +1436,9 @@ pub static COMMANDS: &[Command] = &[
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "q", name: "q", required: false, value_name: "string", repeatable: false, description: Some("Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)") },
             Parameter { api_name: "page", name: "page", required: false, value_name: "integer", repeatable: false, description: Some("Zero-based page number (default: 0)") },
             Parameter { api_name: "per_page", name: "per-page", required: false, value_name: "integer", repeatable: false, description: Some("Results per page, 1 to 1,000 (default: 1000)") },
+            Parameter { api_name: "q", name: "q", required: false, value_name: "string", repeatable: false, description: Some("Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)") },
         ],
         request_body: None,
     },
