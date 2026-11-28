@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_vecs::priced_starts;
+use bitview_vecs::{priced_from, priced_starts};
 use brk_error::Result;
 use brk_exit::Exit;
 
@@ -19,11 +19,20 @@ impl Vecs {
         let from = indexer.compute_start().height;
         let close = &prices.spot.cents.height;
 
-        for (_, sma) in self.sma.periods.iter_mut() {
-            sma.source.compute(from, lookback, close, exit)?;
+        // A simple average has no value until its window lies wholly at or after the first price,
+        // as a dollar sum's.
+        let priced = priced_from();
+        for (days, sma) in self.sma.periods.iter_mut() {
+            sma.cents.compute_rolling_average(
+                from,
+                lookback.start_vec(days),
+                close,
+                priced,
+                &mut sma.window,
+                exit,
+            )?;
             sma.price.compute_ratio(from, close, exit)?;
         }
-        self.pi_cycle.compute(from, lookback, close, exit)?;
 
         for (days, state) in self.ema_stored.iter_mut() {
             state.compute_rolling_ema(

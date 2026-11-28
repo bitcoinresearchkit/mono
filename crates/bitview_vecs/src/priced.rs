@@ -27,6 +27,12 @@ pub fn first_price_height() -> Option<usize> {
     brk_types::chain().is_mainnet().then_some(FIRST_PRICE_HEIGHT)
 }
 
+/// Where priced rows start, past every height on a chain without prices: the earliest start of a
+/// window that is wholly priced.
+pub fn priced_from() -> Height {
+    Height::from(first_priced(0).min(u32::MAX as usize))
+}
+
 /// The first priced height at or after `height`.
 #[inline]
 fn first_priced(height: usize) -> usize {

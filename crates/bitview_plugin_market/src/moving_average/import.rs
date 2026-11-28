@@ -7,20 +7,23 @@ use vecdb::{Convert, Database, Ident, LazyVec, ReadableCloneableVec};
 
 use super::{
     Vecs,
-    periods::Periods,
-    sma::{PiCycle, SmaSource, SmaVecs, StoredSma},
+    periods::{Periods, SmaPeriods},
+    sma::{PiCycle, SmaVecs, StoredSma},
 };
 
+const SMA_VERSION: Version = Version::new(3);
 const EMA_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
-        let sma_version = version + Version::TWO;
-        let periods = Periods::try_from_fn(|suffix, days| -> Result<_> {
-            let source = SmaSource::import(db, suffix, days, sma_version, mappings)?;
+        let sma_version = version + SMA_VERSION;
+        let periods = SmaPeriods::try_from_fn(|suffix, _| -> Result<_> {
+            let name = format!("price_sma_{suffix}");
+            let cents = import_cached(db, &format!("{name}_cents_source"), sma_version, mappings)?;
             Ok(StoredSma {
-                price: PriceWithRatio::import(db, &format!("price_sma_{suffix}"), sma_version, &source.cents, mappings)?,
-                source,
+                price: PriceWithRatio::import(db, &name, sma_version, &cents, mappings)?,
+                cents,
+                window: Default::default(),
             })
         })?;
         let mayer_multiple = LazyPerBlock::from_lazy::<Ident, PriceRatio>(
@@ -28,6 +31,7 @@ impl Vecs {
             sma_version,
             &periods._200d.price.relative.ratio,
         );
+        let pi_cycle = PiCycle::new(sma_version, &periods, mappings);
         let ema_version = version + EMA_VERSION;
         let ema_stored = Periods::try_from_fn(|suffix, _| {
             import_cached(db, &format!("price_ema_{suffix}_state"), ema_version, mappings)
@@ -47,7 +51,7 @@ impl Vecs {
                 periods,
                 mayer_multiple,
             },
-            pi_cycle: PiCycle::import(db, sma_version, mappings)?,
+            pi_cycle,
             ema,
             ema_stored,
         })

@@ -11,14 +11,14 @@ use super::{
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Simple moving average of block-level Bitcoin spot prices over a trailing
-    /// monotonic-time window, including the represented block. Windows start no earlier
-    /// than the first exchange price (block 74,641); null before it.
+    /// monotonic-time window, including the represented block; null until the whole
+    /// window lies at or after the first exchange price (block 74,641).
     #[traversable(lead = "Simple moving average: the price, averaged over the window.")]
     pub(crate) sma: SmaVecs<M>,
     /// Philip Swift's Pi cycle top (2019), from two more simple moving averages computed as
     /// those above.
     #[traversable(lead = "Pi cycle top: Philip Swift's top signal from two of the price's averages.")]
-    pub(crate) pi_cycle: PiCycle<M>,
+    pub(crate) pi_cycle: PiCycle,
     /// Exponential moving average of block-level Bitcoin spot price. At each
     /// block it recursively applies `alpha = 2 / (span + 1)`, where `span` is
     /// the number of blocks from the trailing period's monotonic-time start
